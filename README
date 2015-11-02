@@ -7,14 +7,22 @@ bin - scripts for setting up db, recreating, and running main server
  db_migrate.py
  reset-all
 
+PREREQUISITE
+Linux:
+ sudo yum install blas-devel lapack-devel gcc-c++ freetype-devel libpng-devel libffi-devel libopenssl-devel postgresql94-devel
+ sudo chkconfig postgresql94 on
+ sudo service postgresql96 initdb
+ sudo service postgresql96 start
+
 TO BEGIN:
-clone git@github.com:genp/kaizen.git
+git clone git@github.com:genp/kaizen.git
 cd kaizen
 mkvirtualenv kaizen
 setvirtualenvproject kaizen
 ln -sf `pwd`/bin/postactivate ~/.virtualenvs/kaizen/bin
 ln -sf `pwd`/bin/postdeactivate ~/.virtualenvs/kaizen/bin
 pip install --upgrade pip
+pip install numpy scipy
 pip install -r pip-freeze.txt
 add2virtualenv .
 
@@ -27,6 +35,8 @@ Install opencv:
      ~/.virtualenvs/kaizen/lib/python*/site-packages
   Linux: ???
 
+sudo -u postgres createuser -sdr jj
+#change ident to trust in pg_hba.conf
 createdb kaizen
 ./bin/db_create.py
 ./bin/kaizen.py
