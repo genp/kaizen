@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">Dataset: {{dataset.name}}</h1>
+    <h1 style = "float:right; margin-right: 50px; font-weight: normal;"><a href = "/keyword/new">New Keyword </a></h1>
+  </div>
+
+  <hr>
+
+  <h2>Images ({{blobs|length}} of {{dataset.blobs|length}})</h2>
+  <div id = "example-container">
+    {% for b in blobs %}
+    <a href="/blob/{{b.id}}/debug"><img src="{{b.url}}"/></a>
+    {% endfor %}
+  </div>
+
+
+  <h2>Patches</h2>
+
+  {% if dataset.patchspecs %}
+  Images in this dataset will be turned into patches according to:
+  <ul>
+    {% for ps in dataset.patchspecs %}
+    <li>{{ ps }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  You can specify a new way to make patches:
+  <form action="/patchspec/new" method="post">
+    {{ psform.hidden_tag() }}
+    {{ m.field(psform.name) }}
+
+    <fieldset>
+      {{ m.field(psform.width, size = 5) }}
+      {{ m.field(psform.height, size = 5) }}
+    </fieldset>
+
+    <fieldset>
+      {{ m.field(psform.xoverlap, size = 3) }}
+      {{ m.field(psform.yoverlap, size = 3) }}
+    </fieldset>
+
+    {{ m.field(psform.scale, size = 4) }}
+    {{ m.field(psform.flip) }}
+    <input type="submit" value="Slice &amp; Dice">
+  </form>
+
+  <h2>Features</h2>
+  {% if dataset.featurespecs %}
+  Patches in this dataset will be analyzed by:
+  <ul>
+    {% for fs in dataset.featurespecs %}
+    <li>{{ fs }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  You can specify a new feature to analyze:
+  <form action="/featurespec/new" method="post">
+    {{ fsform.hidden_tag() }}
+    {{ m.field(fsform.name) }}
+    {{ m.field(fsform.kind) }}
+    {{ m.field(fsform.params) }}
+    <input type="submit" value="Analyze">
+  </form>
+
+  <h2>Classifiers</h2>
+  <ul>
+    {% for c in classifiers %}
+    <li><a href="{{c.url}}">{{c.name}}</a> @ iteration {{c.iteration.number}}</li>
+  {% endfor %}
+  </ul>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">FeatureSpecs</h1>
+  </div>
+
+  <hr>
+
+  <ul>
+    {% for fs in featurespecs %}
+    <li>{{fs.name}}</li>
+    {% endfor %}
+  </ul>
+
+  <form action="/featurespec/new" method="post">
+    {{ fsform.hidden_tag() }}
+    {{ m.field(fsform.name) }}
+    {{ m.field(fsform.kind) }}
+    {{ m.field(fsform.params) }}
+    <input type="submit" value="Make new FeatureSpec">
+  
+</div>
+{% endblock %}

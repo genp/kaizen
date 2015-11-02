@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}\
+<p>{{model}} at iteration {{itr}}</p>
+
+
+{% import "_active_query.html" as forms %}
+{{ forms.display_active_query(keyword.name, itr, hits, row_width) }}
+
+{% endblock %}

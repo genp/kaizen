@@ -1,0 +1,14 @@
+{% macro display_form(form, name, action, id, type, value) %}
+<form action="{{ action }}" method="post" id="{{ id }}" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    {% for field in form if field.widget.input_type != 'hidden' %}
+      {{ field.label }}
+      {{ field }}
+    {% endfor %}
+    <input type="{{ type }}" value="{{ value|e }}" name="{{ name }}">
+</form>
+{% endmacro %}
+
+{% macro display_new_classifier_form(form, id) %}    
+    {{ display_form(form, 'classifier_new', '/classifier/new', 'submit_classifier', 'submit', 'Create Classifier') }}
+{% endmacro %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">Patch: {{patch.id}}</h1>
+  </div>
+
+  <hr>
+
+  <h2>Features</h2>
+  <ul>
+    {% for f in patch.features %}
+    <li>{{ f }}</li>
+    {% endfor %}
+  </ul>
+
+</div>
+
+{% endblock %}

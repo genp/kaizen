@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">Classifiers</h1>
+  </div>
+  <hr>
+
+  <div id = "card-container">
+    {% import "card.html" as card %}
+    {% for m in classifiers %}
+      {{card.create_card_classifier(m.keyword.name, "/classifier/"+m.id|string, m.examples.next().patch, m.rounds.count()-1)}}
+    {% endfor %}
+  </div>
+</div>
+
+
+{% endblock %}

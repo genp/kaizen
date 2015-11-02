@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<p>{{classifier.keyword.name}} at iteration {{round.number}}</p>
+
+
+{% import "_active_query_state.html" as forms %}
+{{ forms.display_active_query(classifier, hits, 5, form) }}
+
+{% endblock %}

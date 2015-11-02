@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.instr { 
+  margin: 10px;
+  padding: 20px;
+  border: 1px dashed #968895;
+  float: left;
+  width:95%;/* 660px; */
+}
+</style>
+
+<div id = "container">
+  <h1> Welcome </h1>
+  <hr>
+  <h2> Create an image classifer in four easy steps!</h2>
+
+  <div class="instr"> 
+    <h3> Step 1: </h3>
+    Create a Dataset by uploading a zip or tar file of images.
+  </div>
+
+  <div class="instr"> 
+    <h3> Step 2: </h3>
+    Create a "Keyword" which is really a target type of image by uploading
+    images and marking the relevant pieces.
+  </div>
+
+  <div class="instr"> 
+    <h3> Step 3: </h3>
+    Create a classifier from the keyword against your dataset.
+  </div>
+
+  <div class="instr"> 
+    <h3> Step 4: </h3>
+    Iteratively improve your classifier by dividing the proposed image
+    patches into correct and incorrect groups.
+  </div>
+</div>
+{% endblock %}

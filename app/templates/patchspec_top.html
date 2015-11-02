@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">PatchSpecs</h1>
+  </div>
+
+  <hr>
+
+  <ul>
+    {% for ps in patchspecs %}
+    <li>{{ps}}</li>
+    {% endfor %}
+  </ul>
+
+  <form action="/patchspec/new" method="post">
+    {{ psform.hidden_tag() }}
+    {{ m.field(psform.name) }}
+
+    <fieldset>
+      {{ m.field(psform.width, size = 5) }}
+      {{ m.field(psform.height, size = 5) }}
+    </fieldset>
+
+    <fieldset>
+      {{ m.field(psform.xoverlap, size = 3) }}
+      {{ m.field(psform.yoverlap, size = 3) }}
+    </fieldset>
+
+    {{ m.field(psform.scale, size = 4) }}
+    {{ m.field(psform.flip) }}
+    <input type="submit" value="Make new PatchSpec">
+  
+</div>
+{% endblock %}

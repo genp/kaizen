@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">Blob: {{blob.id}}</h1>
+  </div>
+
+  <hr>
+
+  <h2>Patches</h2>
+  <ul>
+    {% for p in blob.patches %}
+    <li>
+      <a href="{{p.url}}/debug"><img class="patch" src="{{p.url}}"/></a>
+      <dl>
+        {% for f in p.features %}
+        <dt>{{f.spec}}</dt> <dd>{{f.vector}}</dd>
+        {% endfor %}
+      </dl>
+    </li>
+    {% endfor %}
+  </ul>
+
+</div>
+
+{% endblock %}

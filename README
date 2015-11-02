@@ -1,0 +1,32 @@
+LICENSE - Copyright Gen
+README - This file
+app - The main flask webserver
+bin - scripts for setting up db, recreating, and running main server
+ db_create.py
+ run.py
+ db_migrate.py
+ reset-all
+
+TO BEGIN:
+clone git@github.com:genp/kaizen.git
+cd kaizen
+mkvirtualenv kaizen
+setvirtualenvproject kaizen
+ln -sf `pwd`/bin/postactivate ~/.virtualenvs/kaizen/bin
+ln -sf `pwd`/bin/postdeactivate ~/.virtualenvs/kaizen/bin
+pip install --upgrade pip
+pip install -r pip-freeze.txt
+add2virtualenv .
+
+Install opencv:
+  OS X:
+   brew install opencv
+   ln -s /usr/local/Cellar/opencv/2*/lib/python2.7/site-packages/cv.py \
+     ~/.virtualenvs/kaizen/lib/python*/site-packages
+   ln -s /usr/local/Cellar/opencv/2*/lib/python2.7/site-packages/cv2.so \
+     ~/.virtualenvs/kaizen/lib/python*/site-packages
+  Linux: ???
+
+createdb kaizen
+./bin/db_create.py
+./bin/kaizen.py

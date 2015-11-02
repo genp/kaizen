@@ -1,0 +1,81 @@
+{% import "macros.html" as m %}
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  {% if title %}
+    <title>{{ title }} | Kaizen</title>
+  {% else %}
+    <title>Kaizen</title>
+  {% endif %}
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+  <link rel="stylesheet" href="/css/normalize.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cluster.css') }}" />
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/imgareaselect-default.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/basic.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dropzone.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/radios-to-slider.css') }}" />
+
+  <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.10.2.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.imgareaselect.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/dropzone.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.maphilight.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/show_upload_image_multi_select.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/load_patches.js') }}"></script>
+  <script src="/js/jquery.radios-to-slider.js"></script>
+  <script src="/js/modernizr-latest.js"></script>
+  <script src="/js/plugins.js"></script>
+  <script src="/js/main.js"></script>
+</head>
+  <body>
+    <div id = "nav_bar">
+      <p>Kaizen</p>
+      <div id = "links">
+        <a href="{{ url_for('top') }}">Home</a>
+        <a href="{{ url_for('keyword_top')  }}">Keywords</a>
+        <a href="{{ url_for('classifier_top')   }}">Classifiers</a>
+        <a href="{{ url_for('dataset_top')   }}">Datasets</a>
+        <a href="{{ url_for('geo_top')    }}">Geolocations</a>
+      </div>
+      {{current_user}}
+    </div>
+      
+
+    <div id = "main">
+      {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <ul>
+        {% for message in messages %}
+        <li>{{ message }} </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endwith %}
+
+      {% block content %}
+      <p>Set a content block!</p>
+      {% endblock %}
+        
+
+      <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
+      <script>
+        (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
+        function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;
+        e=o.createElement(i);r=o.getElementsByTagName(i)[0];
+        e.src='//www.google-analytics.com/analytics.js';
+        r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
+        ga('create','UA-XXXXX-X');ga('send','pageview');
+      </script>
+    </div>
+  </body>
+</html>

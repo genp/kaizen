@@ -1,0 +1,50 @@
+{% macro create_card(name, id, patch) %}
+
+<div class = "card">
+  <a href = "{{ id }}">
+    <div class = "card-image" style = "overflow: hidden;">
+      <img width="126" src= "{{patch.url}}"/>
+    </div>
+  </a>
+  <div class = "card-content">
+    <a href = "{{ id }}"> <h5>{{name}}</h5> </a>
+  </div>
+</div>
+
+{% endmacro %}
+
+{% macro create_card_classifier(name, id, patch, iteration) %}
+<div class = "card">
+  <a href = "{{ id }}">
+    <div class = "card-image" style = "overflow: hidden;">
+      <img width="126" src= "{{patch.url}}"/>
+    </div>
+  </a>
+  <div class = "card-content">
+    <a href = "{{ id }}"> {{name}} </a><br/>
+    Iteration: {{iteration}}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro create_geo_card(name, id, blob_id) %}
+<div class = "card">
+  <a href = "{{ id }}">
+    <div class = "card-image" style = "overflow: hidden;">
+      <img src = "/blob/{{blob_id}}" style = "position: relative;" onload="
+				if (this.width > this.height) {
+					this.height = 126.0;
+					shift = (width - height) / 2;
+					this.style.left = '-' + shift + 'px';
+				} else {
+					this.width = 126.0;
+					shift = (height - width) / 2;
+					this.style.top = '-' + shift + 'px';
+				}">
+    </div>
+  </a>
+  <div class = "card-content">
+    <a href = "{{ id }}"> <h5>{{name}}</h5> </a>
+  </div>
+</div>
+{% endmacro %}

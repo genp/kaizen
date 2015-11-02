@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id="container" > 
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">Keywords</h1>
+    <h1 style = "float:right; font-weight:normal"><a href = "/keyword/new">Create New Keyword </a></h1>
+  </div>
+
+  <hr>
+
+  <div id = "card-container">
+    {% import "card.html" as card %}
+    {% for ks in keywords %}
+      {{card.create_card(ks.name, ks.id|string, ks.seeds[0].patch)}}
+    {% endfor %}
+  </div>
+
+{% endblock %}

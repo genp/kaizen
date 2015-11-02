@@ -1,0 +1,10 @@
+#!/bin/zsh
+# This hook is sourced after this virtualenv is activated.
+
+_PGUSER=$PGUSER
+_PGHOST=$PGHOST
+_PGDATABASE=$PGDATABASE
+
+export PGUSER=$USER
+export PGHOST=localhost
+export PGDATABASE=kaizen

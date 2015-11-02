@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id="container" > 
+    <h1> Create New PatchSpec </h1>
+    <hr>
+    
+    <form action="/patchspec/new" method="post">
+      {{ psform.hidden_tag() }}
+
+      {{ m.field(psform.name) }}
+
+      <fieldset>
+        {{ m.field(psform.width, size = 5) }}
+        {{ m.field(psform.height, size = 5) }}
+      </fieldset>
+
+      <fieldset>
+        {{ m.field(psform.xoverlap, size = 3) }}
+        {{ m.field(psform.yoverlap, size = 3) }}
+      </fieldset>
+
+      {{ m.field(psform.scale, size = 4) }}
+      <input type="submit" value="Make new Patchset">
+    </form>
+
+</div>
+
+
+{% endblock %}

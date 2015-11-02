@@ -1,0 +1,187 @@
+@import "compass/css3";
+
+$font-stack: 'Nunito', sans-serif, Frutiger, "Frutiger Linotype", Univers, Calibri, "Gill Sans", "Gill Sans MT", "Myriad Pro", Myriad, "DejaVu Sans Condensed", "Liberation Sans", "Nimbus Sans L", Tahoma, Geneva, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+
+@mixin transition($args...) {
+        -o-transition:$args;
+        -ms-transition:$args;
+        -moz-transition:$args;
+        -webkit-transition:$args;
+        transition:$args;
+}
+
+#naming-keyword {
+    width: 940px;
+    height: 80px;
+}
+
+#naming-keyword h1{
+    display: inline-block;
+}
+
+:focus::-webkit-input-placeholder{color:transparent;}
+
+#keyword-textarea {
+    @include border-radius(3px);
+    font-family: $font-stack;
+    color: #555753;
+    border: 1px solid rgba(0,0,0,0.05);
+    background-color: rgba(0,0,0,0.03);
+    display:inline-block;
+    height: 37px;
+    font-size: 2em;
+    resize: none;
+    outline: none;
+    margin-left: 5px;
+    margin-top: 22px;
+}
+
+/****
+Navigation bar css
+*****/
+$nav_bar-height: 60px;
+
+#nav_bar {
+
+    position:fixed;
+    top:0px;
+    z-index: 9999;
+    margin: 0 auto;
+    height: $nav_bar-height;
+    width: 100%;
+    text-align: center;
+    background-color: rgb(240,240,240);
+    border-bottom: 1px solid rgb(200,200,200);
+    overflow: hidden;
+
+    p {
+        margin-left: 50px;
+        float: left;
+        font-size: 14pt;
+        margin-top: 15px;
+    }
+
+}
+
+#links {
+    width: 700px;
+    float: left;
+    text-align: left;
+    margin-left: 25px;
+    font-size: 14pt;
+    margin-top: 15px;
+
+    a {
+        color: gray;
+        padding: 17px 20px 21px;
+    }
+
+    a:hover {
+        color: rgb(25,25,25);
+        background-color: rgb(225,225,225);
+    }
+}
+
+/****
+End of navigation bar css
+****/
+
+#seed-drop {
+    width: 100%;
+    min-height: 255px;
+    margin: 0 auto;
+}
+
+.bbox {
+    display:inline-block;
+    border: 1px solid black;
+    float: none;
+    position: relative;
+}
+
+
+#main {
+    background-color: white;
+}
+
+
+body {
+    font-family: $font-stack;
+    color: #555753;
+    margin: 0; 
+    padding: 0;
+}
+
+#container {
+    background:none repeat scroll 0 0 white;
+    margin:50px auto;
+    padding:20px 30px;
+    width: 940px;
+}
+
+#keyword-container {
+    margin:0 auto;
+    width: 100%;
+}
+
+a {
+    color: #59C5C7;
+    text-decoration:none;
+    }
+
+a:hover {
+    color: #333333;
+    }
+
+/*
+Start of card css
+*/
+
+.card {
+    @include box-shadow(0 2px 4px rgba(0,0,0,0.2));
+    width: 126px;
+    margin: 13.5px;
+    display:inline-block;
+}
+
+.card-image {
+    background: black;
+    height: 126px;
+    width: 126px;
+
+    img {
+       @include transition(0.5s);
+       &:hover {
+        opacity: 0.8;
+       }
+    }
+
+}
+
+.card-content {
+    height: 50px;
+    display: block;
+    overflow: hidden;
+    padding: 7px 10px 0;
+    position: relative;
+    white-space: nowrap;
+}
+
+/*
+End of card css
+*/
+
+/*
+Start of floating div property
+*/
+.sticky {
+     position: fixed;
+     z-index: 9999;
+     background: white;
+     border: 1px solid #c8c8c8;
+     top: $nav_bar-height;
+  }
+/*
+End of floating div property
+*/
+

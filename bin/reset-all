@@ -1,0 +1,24 @@
+#!/bin/sh
+
+killall celery
+killall psql
+killall kaizen.py
+
+if [ ! -z "$PGHOST" -a "$PGHOST" != localhost ]; then
+   echo "Remove this check in reset-all if you really mean it on $PGHOST"
+   exit 1
+fi
+
+if [ ! -x ./bin/db_create.py ]; then
+   echo "Run this from the top of the repo"
+   exit 1
+fi
+
+dropdb kaizen && createdb kaizen || exit 1
+
+for dir  in datasets blobs patches; do
+  rm -rf ./app/static/$dir
+done
+
+./bin/db_create.py
+

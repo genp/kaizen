@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id="container" > 
+
+    <h1> Create Geolocation Classifiers </h1>
+    
+    <textarea placeholder = "Enter geo search tag" id="keyword-top"></textarea>
+   <hr>
+    
+   <h1> Upload Images </h1>
+    <form action="/file-upload/" class="dropzone" id="seed-drop"  enctype="multipart/form-data">
+      {{blob_form.hidden_tag()}}
+      <div class="fallback">
+        {{blob_form.file}}
+        <!--input name="file" type="file" multiple /-->
+      </div>
+    </form>
+
+    <hr>
+    <h1> Select Window </h1>
+
+    <div id="img-container"> </div> 
+
+    <hr>
+
+    <h1 id="keyword-view"> Preview for:  </h1>
+
+    <div id="preview-container">
+        <div id="keyword-container">
+
+        </div>
+                <form action="/geo/add/" method="post" id="submit_keyword" enctype="multipart/form-data">
+                    {{form.hidden_tag()}}
+                    {{form.keyword}}
+                    {{form.seeds}}
+                    
+                    <div><input type="submit" value="Make Classifiers"></div>
+                </form>
+    </div>
+
+</div>
+
+
+
+
+
+<script>
+
+$("#submit_keyword").on('submit', function () {
+    $("#seeds").val(JSON.stringify(user_patches));
+    $("#submit_keyword").submit();
+});
+
+
+$("#keyword-top").on('change keyup paste',function() {
+    $("#keyword").val($("#keyword-top").val());
+    $("#keyword-view").text("Preview for: "+$("#keyword-top").val());
+});
+
+</script>
+
+
+{% endblock %}

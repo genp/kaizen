@@ -1,0 +1,163 @@
+from app import app, db
+from flask import render_template, g, redirect, jsonify
+from forms import *
+from models import Dataset, Blob, PatchSpec, FeatureSpec, Classifier
+import tempfile
+import config
+import os
+import json
+import zipfile, tarfile
+import random
+import tasks
+
+
+@app.route('/dataset-upload/', methods = ['POST'])
+def dataset_upload():
+    form = DatasetForm()
+    if form.validate_on_submit():
+        upload = form.file.data
+        name, ext = os.path.splitext(upload.filename)
+
+        acceptable = ['.jpg', '.jpeg', '.png']
+
+        dset = None
+        if ext == ".zip":
+            with zipfile.ZipFile(upload, 'r') as myzip:
+                tmpd = tempfile.mkdtemp(dir = config.DATASET_DIR,
+                                        prefix = "dataset")
+                dset = Dataset(name = name)
+                db.session.add(dset)
+
+                for item in myzip.infolist():
+                    _, ext = os.path.splitext(item.filename)
+                    if ext in acceptable and not item.filename.startswith("__MACOSX"):
+                        myzip.extract(item, tmpd)
+                        blob = Blob(str(tmpd) + "/" + item.filename)
+                        dset.blobs.append(blob)
+        elif ext == ".gz" or ext == ".bz2" or ext == ".tar":
+            if ext != ".tar":
+                name, ext = os.path.splitext(name)
+
+            if ext == ".tar":
+                with tarfile.open(fileobj=upload) as mytar:
+                    tmpd = tempfile.mkdtemp(dir = config.DATASET_DIR,
+                                            prefix = "dataset")
+                    dset = Dataset(name = name)
+                    db.session.add(dset)
+
+                    for item in mytar:
+                        if item.isreg():
+                            _, ext = os.path.splitext(item.name)
+                            if ext in acceptable and not item.name.startswith("__MACOSX"):
+                                mytar.extract(item, tmpd)
+                                blob = Blob(str(tmpd) + "/" + item.name)
+                                dset.blobs.append(blob)
+        if dset != None:
+            if form.patchspec.data:
+                dset.patchspecs.append(form.patchspec.data)
+            if form.featurespec.data:
+                dset.featurespecs.append(form.featurespec.data)
+            db.session.commit()
+            tasks.dataset.delay(dset.id)
+    else:
+        print form.errors
+    return jsonify(name=dset.name, id=dset.id, url = dset.url)
+
+@app.route('/dataset/', methods = ['GET'])
+def dataset_top():
+    datasets = Dataset.query.all()
+    return render_template('dataset_top.html',
+                           datasets = datasets)
+
+
+@app.route('/dataset/new', methods = ['GET', 'POST'])
+def dataset_new():
+    dataset_form = DatasetForm()
+    return render_template('dataset_new.html',
+                           title = 'New Dataset',
+                           dataset_form = dataset_form)
+
+@app.route('/dataset/<int:id>', methods = ['GET'])
+def dataset(id, psform=None, fsform=None):
+    dataset = Dataset.query.get_or_404(id)
+    classifiers = Classifier.query.filter_by(dataset_id = id)
+
+    num_ex = 20
+    blobs = dataset.blobs[:num_ex]
+    if not psform:
+        psform = PatchSpecForm()
+    psform.dataset.data = dataset
+    if not fsform:
+        fsform = FeatureSpecForm()
+    fsform.dataset.data = dataset
+
+    return render_template('dataset.html',
+                           title = dataset.name,
+                           dataset = dataset,
+                           blobs = blobs,
+                           classifiers = classifiers,
+                           psform = psform,
+                           fsform = fsform)
+
+@app.route('/patchspec/', methods = ['GET'])
+def patchspec_top(psform=None):
+    patchspecs = PatchSpec.query.all()
+    if not psform:
+        psform = PatchSpecForm()
+    return render_template('patchspec_top.html',
+                           patchspecs = patchspecs,
+                           psform = psform)
+
+@app.route('/patchspec/new', methods = ['GET', 'POST'])
+def patchspec_new():
+    psform = PatchSpecForm()
+    next = "/patchspec/";
+    if psform.validate_on_submit():
+        pspec = PatchSpec(name=psform.name.data,
+                          width=psform.width.data,
+                          height=psform.height.data,
+                          scale=psform.scale.data,
+                          steps=psform.steps.data,
+                          xoverlap=psform.xoverlap.data,
+                          yoverlap=psform.yoverlap.data,
+                          fliplr=psform.fliplr.data)
+        db.session.add(pspec)
+        if psform.dataset.data:
+            psform.dataset.data.patchspecs.append(pspec)
+            next = psform.dataset.data.url
+        db.session.commit()
+        tasks.if_dataset(fsform.dataset.data)
+        return redirect(next)
+    if psform.dataset.data:
+        return dataset(psform.dataset.data.id, psform=psform)
+    else:
+        return patchspec_top(psform=psform)
+
+
+@app.route('/featurespec/', methods = ['GET'])
+def featurespec_top():
+    featurespecs = FeatureSpec.query.all()
+    fsform = FeatureSpecForm()
+    return render_template('featurespec_top.html',
+                           featurespecs = featurespecs,
+                           fsform = fsform)
+
+@app.route('/featurespec/new', methods = ['GET', 'POST'])
+def featurespec_new():
+    fsform = FeatureSpecForm()
+    next = "/featurespec/";
+    if fsform.validate_on_submit():
+        fspec = FeatureSpec(name=fsform.name.data,
+                            kind=fsform.kind.data,
+                            params=fsform.params.data)
+        db.session.add(fspec)
+        if fsform.dataset.data:
+            fsform.dataset.data.featurespecs.append(fspec)
+            next = fsform.dataset.data.url
+        db.session.commit()
+        tasks.if_dataset(fsform.dataset.data)
+        return redirect(next)
+    if fsform.dataset.data:
+        return dataset(fsform.dataset.data.id, fsform=fsform)
+    else:
+        return featurespec_top(fsform=fsform)

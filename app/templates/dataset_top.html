@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">Datasets</h1>
+    <h1 style = "float:right; margin-right: 50px; font-weight: normal"><a href = "/dataset/new">Create New Dataset </a></h1>
+  </div>
+
+  <hr>
+
+  <ul>
+    {% for ds in datasets %}
+    <li><a href = "/dataset/{{ds.id}}">{{ds.name}}</a>:
+      {{ds.images}} images.
+
+      {% if ds.present() %}
+        <ul>
+          {% for m in ds.classifiers %}
+            <li><a href="/classifier/{{m.id}}/">{{m.keyword.name}}: {{m.name}}</a> @ iteration {{m.rounds[-1].number}}</li>
+          {% endfor %}
+        </ul>
+      {% elif ds.location %}
+        (requires {{ds.location}})
+      {% endif %}
+    {% endfor %}
+
+  </ul>
+</div>
+{% endblock %}

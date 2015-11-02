@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div id = "container">
+
+  <h1>Classifier: {{classifier.keyword.name}} on {{classifier.dataset.name}}</h1>
+
+  {% for r in classifier.rounds %}
+    <h2>Iteration #{{r.number}}</h2>
+
+    <h3>Positives</h3>
+    {% for ex in r.examples %}
+      {% if ex.value %}
+    <img class="patch" src='{{ex.patch.url}}'>
+      {% endif %}
+    {% endfor %}
+
+    <h3>Negatives</h3>
+    {% for ex in r.examples %}
+      {% if not ex.value %}
+    <img class="patch" src='{{ex.patch.url}}'/>
+      {% endif %}
+    {% endfor %}
+
+    <h3>Predictions</h3>
+    <h4>Highest</h4>
+    {% for pred in r.predictions[:9] %}
+    <img class="patch" src='{{pred.feature.patch.url}}'/>
+    {% endfor %}
+
+    <h4>Lowest</h4>
+    {% for pred in r.predictions[-9:] %}
+    <img class="patch" src='{{pred.feature.patch.url}}'/>
+    {% endfor %}
+
+  {% endfor %}
+
+</div>
+
+
+{% import "_active_query.html" as active %}
+{{ active.display_active_query(classifier, hits, 5, form) }}
+{% endblock %}

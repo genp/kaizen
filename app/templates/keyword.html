@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <h1 >Keyword: {{keyword.name}}</h1>
+  <hr>
+
+  <h2> Examples provided so far </h2>
+  <ul>
+    {% for ex in keyword.seeds %}
+      <li><a href="{{ex.patch.url}}/debug"><img class="patch" src="{{ex.patch.url}}"/>{{ex.patch}}</a></li>
+    {% endfor %}
+  </ul>
+
+  <h2> Classifiers made with this Keyword </h2>
+  <ul>
+    {% for c in keyword.classifiers %}
+    <li><a href="{{c.url}}/">{{keyword.name}} on {{c.dataset.name}}</a>
+    {% endfor %}
+  </ul>
+
+  Create new classifier on 
+  {% import "forms.html" as forms %}
+  {{ forms.display_new_classifier_form(form, keyword.id|string) }}
+</div>
+
+{% endblock %}

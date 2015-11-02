@@ -1,0 +1,99 @@
+/* by Ruben Torres */
+.radios-to-slider{
+	background-color:#e0e0e0;
+	display:block;
+	position:relative;
+	margin-bottom:30px;
+	-webkit-box-sizing:content-box;
+	   -moz-box-sizing:content-box;
+	     -o-box-sizing:content-box;
+	        box-sizing:content-box;
+}
+
+
+.radios-to-slider.medium{
+	height:12px;
+	-webkit-border-radius:15px;
+	-moz-border-radius:15px;
+	-o-border-radius:15px;
+	border-radius:15px;
+	padding:5px;
+}
+
+/* Levels */
+.radios-to-slider .slider-level{
+	background-color:#fff;
+	cursor:pointer;
+	position:absolute;
+	display:block;
+}
+
+.radios-to-slider .slider-level.slider-lower-level{
+	opacity:0.2;
+}
+
+.radios-to-slider.medium .slider-level{
+	width:12px;
+	height:12px;
+	-webkit-border-radius:12px;
+	-moz-border-radius:12px;
+	-o-border-radius:12px;
+	border-radius:12px;
+	z-index:2;
+}
+
+/* Labels */
+.slider-label{
+	position:absolute;
+	display:block;
+	cursor:pointer;
+	color:#5e5e5e;
+	text-align:center;
+}
+
+.radios-to-slider.medium .slider-label{
+	top:25px;
+	width:44px;
+}
+
+/* Slider bar */
+.radios-to-slider .slider-bar{
+	background-color:#00b4f1;
+	float:left;
+	height:100%;
+	width:0;
+	pointer-events:none;
+	display:none;
+	position:absolute;
+	left:0;
+	top:0;
+}
+
+.slider-bar.transition-enabled{
+	-webkit-transition:.2s;
+	-moz-transition:.2s;
+	-o-transition:.2s;
+	transition:.2s;
+}
+
+.radios-to-slider.medium .slider-bar{
+	-webkit-border-radius:12px;
+	-moz-border-radius:12px;
+	-o-border-radius:12px;
+	border-radius:12px;
+}
+
+/* Slider Knob */
+.slider-knob{
+	float:right;
+	background-color:#0977B5;
+}
+
+.radios-to-slider.medium .slider-knob{
+	width:22px;
+	height:22px;
+	-webkit-border-radius:15px;
+	-moz-border-radius:15px;
+	-o-border-radius:15px;
+	border-radius:15px;
+}

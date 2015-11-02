@@ -1,0 +1,198 @@
+/* line 13, ../sass/base.scss */
+#naming-keyword {
+  width: 940px;
+  height: 80px;
+}
+
+/* line 18, ../sass/base.scss */
+#naming-keyword h1 {
+  display: inline-block;
+}
+
+/* line 22, ../sass/base.scss */
+:focus::-webkit-input-placeholder {
+  color: transparent;
+}
+
+/* line 24, ../sass/base.scss */
+#keyword-textarea {
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  border-radius: 3px;
+  font-family: "Nunito", sans-serif, Frutiger, "Frutiger Linotype", Univers, Calibri, "Gill Sans", "Gill Sans MT", "Myriad Pro", Myriad, "DejaVu Sans Condensed", "Liberation Sans", "Nimbus Sans L", Tahoma, Geneva, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  color: #555753;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: rgba(0, 0, 0, 0.03);
+  display: inline-block;
+  height: 37px;
+  font-size: 2em;
+  resize: none;
+  outline: none;
+  margin-left: 5px;
+  margin-top: 22px;
+}
+
+/****
+Navigation bar css
+*****/
+/* line 44, ../sass/base.scss */
+#nav_bar {
+  position: fixed;
+  top: 0px;
+  z-index: 9999;
+  margin: 0 auto;
+  height: 60px;
+  width: 100%;
+  text-align: center;
+  background-color: #f0f0f0;
+  border-bottom: 1px solid #c8c8c8;
+  overflow: hidden;
+}
+/* line 57, ../sass/base.scss */
+#nav_bar p {
+  margin-left: 50px;
+  float: left;
+  font-size: 14pt;
+  margin-top: 15px;
+}
+
+/* line 66, ../sass/base.scss */
+#links {
+  width: 700px;
+  float: left;
+  text-align: left;
+  margin-left: 25px;
+  font-size: 14pt;
+  margin-top: 15px;
+}
+/* line 74, ../sass/base.scss */
+#links a {
+  color: gray;
+  padding: 17px 20px 21px;
+}
+/* line 79, ../sass/base.scss */
+#links a:hover {
+  color: #191919;
+  background-color: #e1e1e1;
+}
+
+/****
+End of navigation bar css
+****/
+/* line 89, ../sass/base.scss */
+#seed-drop {
+  width: 100%;
+  min-height: 255px;
+  margin: 0 auto;
+}
+
+/* line 95, ../sass/base.scss */
+.bbox {
+  display: inline-block;
+  border: 1px solid black;
+  float: none;
+  position: relative;
+}
+
+/* line 103, ../sass/base.scss */
+#main {
+  background-color: white;
+}
+
+/* line 108, ../sass/base.scss */
+body {
+  font-family: "Nunito", sans-serif, Frutiger, "Frutiger Linotype", Univers, Calibri, "Gill Sans", "Gill Sans MT", "Myriad Pro", Myriad, "DejaVu Sans Condensed", "Liberation Sans", "Nimbus Sans L", Tahoma, Geneva, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  color: #555753;
+  margin: 0;
+  padding: 0;
+}
+
+/* line 115, ../sass/base.scss */
+#container {
+  background: none repeat scroll 0 0 white;
+  margin: 50px auto;
+  padding: 20px 30px;
+  width: 940px;
+}
+
+/* line 122, ../sass/base.scss */
+#keyword-container {
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* line 127, ../sass/base.scss */
+a {
+  color: #59C5C7;
+  text-decoration: none;
+}
+
+/* line 132, ../sass/base.scss */
+a:hover {
+  color: #333333;
+}
+
+/*
+Start of card css
+*/
+/* line 140, ../sass/base.scss */
+.card {
+  -moz-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  -webkit-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  width: 126px;
+  margin: 13.5px;
+  display: inline-block;
+}
+
+/* line 147, ../sass/base.scss */
+.card-image {
+  background: black;
+  height: 126px;
+  width: 126px;
+}
+/* line 152, ../sass/base.scss */
+.card-image img {
+  -o-transition: 0.5s;
+  -ms-transition: 0.5s;
+  -moz-transition: 0.5s;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+}
+/* line 154, ../sass/base.scss */
+.card-image img:hover {
+  opacity: 0.8;
+}
+
+/* line 161, ../sass/base.scss */
+.card-content {
+  height: 50px;
+  display: block;
+  overflow: hidden;
+  padding: 7px 10px 0;
+  position: relative;
+  white-space: nowrap;
+}
+
+/*
+End of card css
+*/
+/*
+Start of floating div property
+*/
+/* line 177, ../sass/base.scss */
+.sticky {
+  position: fixed;
+  z-index: 9999;
+  background: white;
+  border: 1px solid #c8c8c8;
+  top: 60px;
+}
+
+/*
+End of floating div property
+*/
+
+.patch {
+  height: 100px;
+}
