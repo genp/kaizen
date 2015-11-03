@@ -4,6 +4,7 @@ from app import db, lm
 import config
 import os, time
 import numpy as np
+import importlib
 from PIL import Image
 from flask.ext.login import UserMixin
 from scipy import misc
@@ -238,8 +239,11 @@ class FeatureSpec(db.Model):
 
   @orm.reconstructor
   def instantiate(self):
-      module, classname = self.cls.split(".",1)
-      self.instance = eval("__import__('%s').%s()" % (module, classname))
+      parts = self.cls.split(".")
+      module = ".".join(parts[:-1])
+      classname = parts[-1]
+      self.instance = eval("importlib.import_module('%s').%s()" %
+                           (module, classname))
       if self.params:
           self.instance.set_params(**self.params)
 
@@ -343,10 +347,13 @@ class Estimator(db.Model):
           return model(**kwargs)
 
   def instantiate(self):
-      module, classname = self.cls.split(".",1)
-      instance = eval("__import__('%s').%s()" % (module, classname))
+      parts = self.cls.split(".")
+      module = ".".join(parts[:-1])
+      classname = parts[-1]
+      instance = eval("importlib.import_module('%s').%s()" %
+                      (module, classname))
       if self.params:
-          instance.set_params(**self.params)
+        instance.set_params(**self.params)
       return instance
 
   @property
@@ -443,17 +450,16 @@ class Round(db.Model):
             value = estimators[feature.spec.id].predict(feature.vector)
             yield Prediction(value=value, feature=feature, round=self)
 
-    def choose_queries(self):
-      '''Yield PatchQueries to ask humans about some Patches.  Currently,
-      chooses the highest predictions, but might become more clever,
-      to select Patches that are likely to most improve the
-      Classifier.
+  def choose_queries(self):
+    '''Yield PatchQueries to ask humans about some Patches.  Currently,
+    chooses the highest predictions, but might become more clever, to
+    select Patches that are likely to most improve the Classifier.
 
-      Even before that, should certainly be made clever enough to draw
-      on high predictions from different FeatureSpecs.
-      '''
-      for p in self.predictions[:config.query_num]:
-        yield PatchQuery(predicted=p.value, patch=p.feature.patch, round=self)
+    Even before that, should certainly be made clever enough to draw
+    on high predictions from different FeatureSpecs.
+    '''
+    for p in self.predictions[:config.query_num]:
+      yield PatchQuery(predicted=p.value, patch=p.feature.patch, round=self)
 
 
     def __repr__(self):

@@ -37,6 +37,5 @@
 </div>
 
 
-{% import "_active_query.html" as active %}
-{{ active.display_active_query(classifier, hits, 5, form) }}
+{% include "active_query.html" %}
 {% endblock %}

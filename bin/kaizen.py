@@ -38,7 +38,7 @@ if fs:
 
 e = Estimator.ifNew(cls = 'sklearn.neighbors.KNeighborsRegressor')
 if e:
-    e.params = {'weights' : 'distance'}
+    e.params = {'weights' : 'distance', 'n_neighbors': 2}
     db.session.add(e)
 
 e = Estimator.ifNew(cls = 'sklearn.linear_model.LinearRegression')

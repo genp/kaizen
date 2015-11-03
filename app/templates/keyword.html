@@ -12,12 +12,11 @@
     {% endfor %}
   </ul>
 
-  <h2> Classifiers made with this Keyword </h2>
-  <ul>
-    {% for c in keyword.classifiers %}
+  {% for c in keyword.classifiers %}
+  {% if loop.first %}<h2> Classifiers made with this Keyword </h2><ul>{% endif %}
     <li><a href="{{c.url}}/">{{keyword.name}} on {{c.dataset.name}}</a>
-    {% endfor %}
-  </ul>
+  {% if loop.first %}</ul>{% endif %}
+  {% endfor %}
 
   Create new classifier on 
   {% import "forms.html" as forms %}
