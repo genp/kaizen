@@ -61,17 +61,16 @@ button {
 
 #gallery {
     padding: 10px;
-    width: 530px;
     display: inline-block;
 }
 
 #cluster {
     padding: 10px;
-    width: 530px;
     display: inline-block;
 }
 
 .patch-container {
+    width: 526px;
     padding: 2px;
     background: #222;
 }

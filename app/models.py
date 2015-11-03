@@ -5,6 +5,7 @@ import config
 import os, time
 import numpy as np
 import importlib
+import urllib
 from PIL import Image
 from flask.ext.login import UserMixin
 from scipy import misc
@@ -53,6 +54,21 @@ dataset_x_blob = db.Table('dataset_x_blob', db.Model.metadata,
     db.Column('blob_id', db.Integer, db.ForeignKey('blob.id'))
 )
 
+def s3_url(location):
+  assert location[:5] == 's3://'
+  (bucket, key) = location[5:].split("/")
+  return "http://%s.s3.amazonaws.com/%s" % (bucket, key)
+
+def clean_cache(s):
+  dir = config.CACHE_DIR
+  now = time.time()
+  for fn in os.listdir(dir):
+    complete = os.path.join(dir, fn)
+    last_access = os.path.getatime(complete)
+    if now - last_access > 24 * 60 * 60:
+      os.remove(complete)
+
+
 class Blob(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   ext = db.Column(db.String())
@@ -62,7 +78,8 @@ class Blob(db.Model):
   longitude = db.Column(db.Float())
 
   URL_MAP = {
-    config.clroot + '/app/static/' : 'http://localhost:8080/'
+    config.clroot + '/app/static/' : 'http://localhost:8080/',
+    's3://' : s3_url,
   }
 
   def __init__(self, location):
@@ -76,15 +93,24 @@ class Blob(db.Model):
       self.latitude, self.longitude = (None, None)
 
 
-  # This needs to download the Blob to a tempfile if not local, and
-  # implement some sort of caching scheme so that multiple opens don't
-  # require double download.
   def open(self):
-    return open(self.location, "rb")
+    return open(self.materialize(), "rb")
+
+  def materialize(self):
+    if self.local:
+      return self.location
+
+    assert self.id
+    filename = "blob-"+str(self.id)+self.ext;
+    complete = os.path.join(config.CACHE_DIR, filename)
+
+    if not os.path.exists(complete):
+      urllib.urlretrieve(self.url, complete)
+    return complete
 
 
   def read_lat_lon(self):
-    return exif.get_lat_lon(exif.get_data(self.location))
+    return exif.get_lat_lon(exif.get_data(blob.materialize()))
 
   @property
   def features(self):
@@ -93,11 +119,18 @@ class Blob(db.Model):
         yield feature
 
   @property
+  def local(self):
+    return self.location[0] == '/'
+
+  @property
   def url(self):
     url = self.location
-    for prefix, replacement in Blob.URL_MAP.iteritems():
-      url = url.replace(prefix, replacement, 1)
-    return url;
+    for prefix, change in Blob.URL_MAP.iteritems():
+      if url.startswith(prefix):
+        if hasattr(change, '__call__'):
+          return change(url)
+        return url.replace(prefix, change, 1)
+    return url
 
   def __repr__(self):
     return "Blob:"+self.location
@@ -145,7 +178,7 @@ class PatchSpec(db.Model):
       + upto + " with " + overlap
 
   def count_blob_patches(self, blob):
-    img = Image.open(blob.location)
+    img = Image.open(blob.materialize())
 
     w = self.width
     h = self.height
@@ -177,7 +210,7 @@ class PatchSpec(db.Model):
         yield patch
 
   def create_blob_patches(self, blob):
-    img = Image.open(blob.location)
+    img = Image.open(blob.materialize())
 
     w = self.width
     h = self.height
@@ -297,12 +330,6 @@ class Dataset(db.Model):
   @property
   def images(self):
     return len(self.blobs)
-
-  def present(self):
-    for blob in self.blobs[:10]:
-      if os.path.exists(blob.location):
-        return True
-    return False
 
 
 class Keyword(db.Model):
@@ -471,7 +498,8 @@ class Patch(db.Model):
   y = db.Column(db.Integer, nullable = False)
   width = db.Column(db.Integer, nullable = False)
   height = db.Column(db.Integer, nullable = False)
-  fliplr = db.Column(db.Boolean(), nullable=False, default=False)
+  fliplr = db.Column(db.Boolean, nullable=False, default=False)
+  rotation = db.Column(db.Double, nullable=False, default=0.0)
 
   blob_id = db.Column(db.Integer, db.ForeignKey('blob.id'), index = True)
   blob = db.relationship('Blob', backref = db.backref('patches', lazy = 'dynamic'))
@@ -481,22 +509,16 @@ class Patch(db.Model):
     assert self.width == self.height
     return self.width
 
-
-  # Support later
-  @property
-  def rotate(self):
-    return 0
-
   @classmethod
   def ifNew(cls, **kwargs):
     if not cls.query.filter_by(**kwargs).first():
       return cls(**kwargs)
 
   def materialize(self):
-    blob = self.blob
-    ext = blob.ext
+    assert self.id
+    ext = self.blob.ext
     filename = "patch-"+str(self.id)+ext;
-    complete = os.path.join(config.PATCH_DIR, filename)
+    complete = os.path.join(config.CACHE_DIR, filename)
 
     if not os.path.exists(complete):
         misc.imsave(complete, self.image)
@@ -510,8 +532,8 @@ class Patch(db.Model):
 
       if self.fliplr:
         img = np.fliplr(img)
-      if self.rotate != 0:
-        img = rotate(img, self.rotate)
+      if self.rotation != 0.0:
+        img = rotate(img, self.rotation)
 
       crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
@@ -527,16 +549,6 @@ class Patch(db.Model):
 
   def __repr__(self):
     return model_debug(self)
-
-  @staticmethod
-  def clean_cache(s):
-      dir = config.PATCH_DIR
-      now = time.time()
-      for fn in os.listdir(dir):
-          complete = os.path.join(dir, fn)
-          last_access = os.path.getatime(complete)
-          if now - last_access > 24 * 60 * 60:
-              os.remove(complete)
       
 
 class Feature(db.Model):
@@ -651,7 +663,7 @@ class HitResponse(db.Model):
   confidence = db.Column(db.Integer)
   
   # the user that labeled the associated PatchResponses
-  user_id = db.Column(db.Integer, db.ForeignKey('user.id'),  nullable=False)
+  user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
   user = db.relationship('User', backref = db.backref('hits', lazy = 'dynamic'))
 
   def __repr__(self):

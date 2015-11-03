@@ -59,9 +59,9 @@ function active_query() {
           visible = $(img).css('visibility') == 'visible'
           pid = img.id.split("-")[2]
           if (visible) {
-            pos_patches.push(pid)
-          } else {
             neg_patches.push(pid)
+          } else {
+            pos_patches.push(pid)
           }
         });
         

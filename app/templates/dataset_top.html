@@ -14,15 +14,11 @@
     <li><a href = "/dataset/{{ds.id}}">{{ds.name}}</a>:
       {{ds.images}} images.
 
-      {% if ds.present() %}
-        <ul>
-          {% for m in ds.classifiers %}
-            <li><a href="/classifier/{{m.id}}/">{{m.keyword.name}}: {{m.name}}</a> @ iteration {{m.rounds[-1].number}}</li>
-          {% endfor %}
-        </ul>
-      {% elif ds.location %}
-        (requires {{ds.location}})
-      {% endif %}
+      <ul>
+        {% for m in ds.classifiers %}
+        <li><a href="/classifier/{{m.id}}/">{{m.keyword.name}}: {{m.name}}</a> @ iteration {{m.rounds[-1].number}}</li>
+        {% endfor %}
+      </ul>
     {% endfor %}
 
   </ul>

@@ -195,6 +195,7 @@ End of floating div property
 
 .patch {
   height: 100px;
+  width: 100px;
 }
 
 .patch-container .patch {

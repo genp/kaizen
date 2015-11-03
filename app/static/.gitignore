@@ -1,3 +1,4 @@
-datasets
-patches
 blobs
+cache
+datasets
+logs

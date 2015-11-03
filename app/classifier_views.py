@@ -8,7 +8,7 @@ from models import User, Classifier, PatchQuery, PatchResponse, HitResponse, Est
 
 import tasks
 
-import time
+import time, itertools
 
 @app.route('/classifier/', methods = ['GET', 'POST'])
 def classifier_top():
@@ -56,10 +56,11 @@ def classifier_update(id):
         print 'form.user.data '+form.user.data
         user = current_user
 
-        if user.is_anonymous:
+        if user.is_anonymous and form.user.data:
             user = User.find(form.user.data)
-            assert user.password == None
-            if user == None:
+            if user:
+                assert user.password == None
+            else:
                 user = User(username=form.user.data, password=None)
                 db.session.add(user)
         
@@ -69,7 +70,7 @@ def classifier_update(id):
         
         hit_resp = HitResponse(time = form.time.data,
                                confidence = form.confidence.data,
-                               user = user)
+                               user = None if user.is_anonymous else user)
         db.session.add(hit_resp)
         db.session.commit()
         print str(time.time()) + ": " + str(hit_resp)
