@@ -16,9 +16,10 @@ fi
 
 dropdb kaizen && createdb kaizen || exit 1
 
-for dir  in datasets blobs patches; do
+for dir  in datasets blobs cache; do
   rm -rf ./app/static/$dir
 done
 
+rm -rf db_repository
 ./bin/db_create.py
 

@@ -16,7 +16,7 @@
 
       <ul>
         {% for m in ds.classifiers %}
-        <li><a href="/classifier/{{m.id}}/">{{m.keyword.name}}: {{m.name}}</a> @ iteration {{m.rounds[-1].number}}</li>
+        <li><a href="/classifier/{{m.id}}/">{{m.keyword.name}}: {{m.name}}</a> @ iteration {{m.rounds.count()}}</li>
         {% endfor %}
       </ul>
     {% endfor %}

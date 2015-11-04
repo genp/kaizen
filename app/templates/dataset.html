@@ -70,8 +70,10 @@
   <h2>Classifiers</h2>
   <ul>
     {% for c in classifiers %}
-    <li><a href="{{c.url}}">{{c.name}}</a> @ iteration {{c.iteration.number}}</li>
-  {% endfor %}
+    <li>
+      <a href="{{c.url}}">{{c.keyword.name}}</a>
+      @ iteration {{c.rounds.count()}}</li>
+    {% endfor %}
   </ul>
 
 </div>

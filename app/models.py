@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from app import db, lm
 
+import boto3
 import config
 import os, time
 import numpy as np
@@ -16,6 +17,8 @@ from sqlalchemy.dialects import postgresql
 import exif
 import tasks
 
+s3 = boto3.resource('s3')
+
 # TODO: Consider this for easier form creation from existing models.
 # https://wtforms-alchemy.readthedocs.org/en/latest/index.html
 # from wtforms_alchemy import ModelForm
@@ -24,11 +27,11 @@ import tasks
 # Very basic. Consider Flask-User before getting more complex.
 class User(db.Model, UserMixin):
   id = db.Column(db.Integer, primary_key = True)
-  username = db.Column(db.String(), nullable = False,
+  username = db.Column(db.String, nullable = False,
                        index = True, unique = True)
   # TODO: Password should be redone to store a hash, not the clear text
   # if password is null, then can't login in, except by mturk-like bypass
-  password = db.Column(db.String(), nullable = True)
+  password = db.Column(db.String, nullable = True)
 
   @staticmethod
   def find(username):
@@ -71,11 +74,11 @@ def clean_cache(s):
 
 class Blob(db.Model):
   id = db.Column(db.Integer, primary_key = True)
-  ext = db.Column(db.String())
-  mime = db.Column(db.String())
-  location = db.Column(db.String())
-  latitude = db.Column(db.Float())
-  longitude = db.Column(db.Float())
+  ext = db.Column(db.String)
+  mime = db.Column(db.String)
+  location = db.Column(db.String)
+  latitude = db.Column(db.Float)
+  longitude = db.Column(db.Float)
 
   URL_MAP = {
     config.clroot + '/app/static/' : 'http://localhost:8080/',
@@ -101,16 +104,14 @@ class Blob(db.Model):
       return self.location
 
     assert self.id
-    filename = "blob-"+str(self.id)+self.ext;
-    complete = os.path.join(config.CACHE_DIR, filename)
+    complete = os.path.join(config.CACHE_DIR, self.filename)
 
     if not os.path.exists(complete):
       urllib.urlretrieve(self.url, complete)
     return complete
 
-
   def read_lat_lon(self):
-    return exif.get_lat_lon(exif.get_data(blob.materialize()))
+    return exif.get_lat_lon(exif.get_data(self.materialize()))
 
   @property
   def features(self):
@@ -121,6 +122,9 @@ class Blob(db.Model):
   @property
   def local(self):
     return self.location[0] == '/'
+  @property
+  def on_s3(self):
+    return self.location.startswith("s3://")
 
   @property
   def url(self):
@@ -132,6 +136,17 @@ class Blob(db.Model):
         return url.replace(prefix, change, 1)
     return url
 
+  @property
+  def filename(self):
+    return 'blob-'+str(self.id)+self.ext
+
+  def migrate_to_s3(self):
+    if self.on_s3:
+      return
+    with self.open() as body:
+      s3.Bucket('kaizen-blobs').put_object(Key=self.filename, Body=body)
+    self.location = "s3://%s/%s" % ('kaizen-blobs', self.filename)
+
   def __repr__(self):
     return "Blob:"+self.location
 
@@ -142,7 +157,7 @@ dataset_x_patchspec = db.Table('dataset_x_patchspec', db.Model.metadata,
 
 class PatchSpec(db.Model):
   id = db.Column(db.Integer, primary_key = True)
-  name = db.Column(db.String())
+  name = db.Column(db.String)
 
   # Starting size (smallest patches)
   width = db.Column(db.Integer, nullable=False)
@@ -258,7 +273,7 @@ dataset_x_featurespec = db.Table('dataset_x_featurespec', db.Model.metadata,
 class FeatureSpec(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   name = db.Column(db.String)
-  cls = db.Column(db.String(), nullable = False)
+  cls = db.Column(db.String, nullable = False)
   params = db.Column(postgresql.JSON)
 
   def __init__(self, **kwargs):
@@ -310,7 +325,7 @@ class FeatureSpec(db.Model):
 
 class Dataset(db.Model):
   id = db.Column(db.Integer, primary_key = True)
-  name = db.Column(db.String())
+  name = db.Column(db.String)
 
   blobs = db.relationship("Blob", secondary=dataset_x_blob)
   patchspecs = db.relationship("PatchSpec",
@@ -319,6 +334,10 @@ class Dataset(db.Model):
   featurespecs = db.relationship("FeatureSpec",
                                  secondary=dataset_x_featurespec,
                                  backref="datasets")
+
+  def migrate_to_s3(self):
+    for blob in self.blobs:
+      blob.migrate_to_s3()
 
   @property
   def url(self):
@@ -334,7 +353,7 @@ class Dataset(db.Model):
 
 class Keyword(db.Model):
   id = db.Column(db.Integer, primary_key = True)
-  name = db.Column(db.String())
+  name = db.Column(db.String)
 
   geoquery_id = db.Column(db.Integer, db.ForeignKey('geo_query.id'))
   geoquery = db.relationship('GeoQuery', backref = db.backref('keywords', lazy = 'dynamic'))
@@ -348,7 +367,7 @@ class Keyword(db.Model):
 
 class GeoQuery(db.Model):
   id = db.Column(db.Integer, primary_key = True)
-  name = db.Column(db.String())
+  name = db.Column(db.String)
 
   @property
   def url(self):
@@ -365,7 +384,7 @@ estimators = [
 
 class Estimator(db.Model):
   id = db.Column(db.Integer, primary_key = True)
-  cls = db.Column(db.String(), nullable = False)
+  cls = db.Column(db.String, nullable = False)
   params = db.Column(postgresql.JSON)
 
   @classmethod
@@ -499,7 +518,7 @@ class Patch(db.Model):
   width = db.Column(db.Integer, nullable = False)
   height = db.Column(db.Integer, nullable = False)
   fliplr = db.Column(db.Boolean, nullable=False, default=False)
-  rotation = db.Column(db.Double, nullable=False, default=0.0)
+  rotation = db.Column(db.Float, nullable=False, default=0.0)
 
   blob_id = db.Column(db.Integer, db.ForeignKey('blob.id'), index = True)
   blob = db.relationship('Blob', backref = db.backref('patches', lazy = 'dynamic'))
@@ -591,7 +610,7 @@ class Feature(db.Model):
 
 class Example(db.Model):
   id = db.Column(db.Integer, primary_key = True)
-  value = db.Column(db.Boolean(), nullable=False)
+  value = db.Column(db.Boolean, nullable=False)
   
   patch_id = db.Column(db.Integer, db.ForeignKey('patch.id'), index = True, nullable=False)
   patch = db.relationship('Patch', backref = db.backref('examples', lazy = 'dynamic'))
@@ -609,7 +628,7 @@ class Example(db.Model):
 
 class Prediction(db.Model):
   id = db.Column(db.BigInteger, primary_key = True)
-  value = db.Column(db.Float(), index = True, nullable=False)
+  value = db.Column(db.Float, index = True, nullable=False)
 
   feature_id = db.Column(db.Integer, db.ForeignKey('feature.id'), index = True, nullable=False)
   feature = db.relationship('Feature', backref = db.backref('predictions', lazy = 'dynamic'))
@@ -625,7 +644,7 @@ class Prediction(db.Model):
 class PatchQuery(db.Model):
   """A Classifier thinks it would be a good idea to ask about a patch."""
   id = db.Column(db.Integer, primary_key = True)
-  predicted = db.Column(db.Float(), nullable=False)
+  predicted = db.Column(db.Float, nullable=False)
   
   patch_id = db.Column(db.Integer, db.ForeignKey('patch.id'), nullable=False)
   patch = db.relationship('Patch', backref = db.backref('queries', lazy = 'dynamic'))
@@ -642,7 +661,7 @@ class PatchQuery(db.Model):
 class PatchResponse(db.Model):
   """A human has answered a PatchQuery (as part of a HitResponse)"""
   id = db.Column(db.Integer, primary_key = True)
-  value = db.Column(db.Boolean(), nullable=False)
+  value = db.Column(db.Boolean, nullable=False)
   
   query_id = db.Column(db.Integer, db.ForeignKey('patch_query.id'), nullable=False)
   patchquery = db.relationship('PatchQuery', backref = db.backref('responses', lazy = 'dynamic'))
@@ -671,8 +690,8 @@ class HitResponse(db.Model):
 
 class GeoQueryResult(db.Model):
   id = db.Column(db.Integer, primary_key = True)
-  value = db.Column(db.Float(), nullable=False)
-  gps_distance = db.Column(db.Float())
+  value = db.Column(db.Float, nullable=False)
+  gps_distance = db.Column(db.Float)
   
   geo_query_id = db.Column(db.Integer, db.ForeignKey('geo_query.id'), index = True, nullable=False)
   geo_query = db.relationship('GeoQuery', backref = db.backref('results', lazy = 'dynamic'))
