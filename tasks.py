@@ -1,8 +1,10 @@
-import config
+#!/usr/bin/env python
+import sys
 
 from app import db
-from celery import Celery, current_task, group, chord, chain
 import app.models
+from celery import Celery, current_task, group, chord, chain
+import celery.registry as registry
 import config
 from functools import wraps
 
@@ -169,3 +171,11 @@ def predict_round(r_id):
         
     db.session.commit()
 
+
+if __name__ == "__main__":
+    function = sys.argv[1]
+    ids = [int(s) for s in sys.argv[2:]]
+    print function, ids
+    task = registry.tasks["tasks."+function]
+    task(*ids)
+    
