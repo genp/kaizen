@@ -121,7 +121,7 @@ class Blob(db.Model):
 
   @property
   def local(self):
-    return self.location[0] == '/'
+    return self.location[0] == '/' and os.path.exists(self.location)
   @property
   def on_s3(self):
     return self.location.startswith("s3://")
@@ -140,12 +140,13 @@ class Blob(db.Model):
   def filename(self):
     return 'blob-'+str(self.id)+self.ext
 
+  BUCKET = config.APPNAME+'-blobs'
   def migrate_to_s3(self):
     if self.on_s3:
       return
     with self.open() as body:
-      s3.Bucket('kaizen-blobs').put_object(Key=self.filename, Body=body)
-    self.location = "s3://%s/%s" % ('kaizen-blobs', self.filename)
+      s3.Bucket(Blob.BUCKET).put_object(Key=self.filename, Body=body)
+    self.location = "s3://%s/%s" % (Blob.BUCKET, self.filename)
 
   def __repr__(self):
     return "Blob:"+self.location

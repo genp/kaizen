@@ -77,7 +77,7 @@ for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR):
     if not os.path.exists(dir):
         os.mkdir(dir)
 
-SQLALCHEMY_DATABASE_URI = 'postgresql://'+user+'@localhost/kaizen'
+SQLALCHEMY_DATABASE_URI = 'postgresql://'+user+'@localhost/'+APPNAME
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
 
 BROKER_URL="sqla+"+SQLALCHEMY_DATABASE_URI
