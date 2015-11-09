@@ -17,26 +17,33 @@
 
   <link rel="apple-touch-icon-precomposed" href="/favicon/k-arrow-152.png">
 
-  <link rel="stylesheet" href="/css/normalize.css">
-  <link rel="stylesheet" href="/css/base.css">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/cluster.css">
-  <link rel="stylesheet" href="/css/imgareaselect-default.css">
-  <link rel="stylesheet" href="/css/basic.css">
-  <link rel="stylesheet" href="/css/dropzone.css">
-  <link rel="stylesheet" href="/css/radios-to-slider.css">
+  {% assets filters="cssmin,scss", output="packed.css",
+  "css/normalize.css",
+  "css/base.css",
+  "css/main.css",
+  "css/cluster.css",
+  "css/imgareaselect-default.css",
+  "css/basic.css",
+  "css/dropzone.css",
+  "css/radios-to-slider.css" %}
+  <link rel="stylesheet" href="{{ ASSET_URL }}">
+  {% endassets %}
 
-  <script src="/js/jquery-1.10.2.js"></script>
-  <script src="/js/jquery-ui.js"></script>
-  <script src="/js/jquery.imgareaselect.js"></script>
-  <script src="/js/dropzone.js"></script>
-  <script src="/js/jquery.maphilight.js"></script>
-  <script src="/js/show_upload_image_multi_select.js"></script>
-  <script src="/js/load_patches.js"></script>
-  <script src="/js/jquery.radios-to-slider.js"></script>
-  <script src="/js/modernizr-latest.js"></script>
-  <script src="/js/plugins.js"></script>
-  <script src="/js/main.js"></script>
+  {% assets filters="jsmin", output="packed.js",
+  "js/jquery-1.10.2.js",
+  "js/jquery-ui.js",
+  "js/jquery.imgareaselect.js",
+  "js/dropzone.js",
+  "js/jquery.maphilight.js",
+  "js/show_upload_image_multi_select.js",
+  "js/load_patches.js",
+  "js/jquery.radios-to-slider.js",
+  "js/modernizr-latest.js",
+  "js/plugins.js",
+  "js/main.js" %}
+  <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
+
 </head>
   <body>
     <div id = "nav_bar">

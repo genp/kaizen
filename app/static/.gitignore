@@ -2,3 +2,6 @@ blobs
 cache
 datasets
 logs
+packed.css
+packed.js
+.webassets-cache
