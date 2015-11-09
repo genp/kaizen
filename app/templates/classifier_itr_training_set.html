@@ -1,9 +1,0 @@
-{% extends "base.html" %}
-{% block content %}
-<p>{{classifier.keyword.name}} at iteration {{classifier.iteration.number}}</p>
-
-
-{% import "_active_query_training_set.html" as forms %}
-{{ forms.display_training_set(classifier, examples, pos, neg, row_width) }}
-
-{% endblock %}
