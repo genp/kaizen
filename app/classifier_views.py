@@ -119,35 +119,3 @@ def make_hit(examples, patch_queries):
         "negatives": [ex.patch.id for ex in examples if not ex.value],
         "queries": [pq.patch.id for pq in patch_queries]
     }
-
-def make_training_set(examples, train_ex):
-    ex = {}
-    pos = {}
-    neg = {}
-    ex["exemplar.file"] = []
-    ex["exemplar.loc"] = []
-    pos["TopConf.file"] = []
-    pos["TopConf.loc"] = []
-    neg["TopConf.file"] = []
-    neg["TopConf.loc"] = []
-    
-    for example in examples:
-        patch = example.patch
-        tup = [patch.x, patch.y, patch.size]
-        ex["exemplar.file"].append(patch.blob_id)
-        ex["exemplar.loc"].append(tup)
-
-    for tex in train_ex:
-        patch = tex.patch
-        tup = [patch.x, patch.y, patch.size, tex.id]
-        if tex.value:
-            pos["TopConf.file"].append(patch.blob_id)
-            pos["TopConf.loc"].append(tup)
-        else:
-            neg["TopConf.file"].append(patch.blob_id)
-            neg["TopConf.loc"].append(tup)
-
-    neg["TopConf.file"] = neg["TopConf.file"][:100]
-    neg["TopConf.loc"] = neg["TopConf.loc"][:100]
-
-    return ex, pos, neg
