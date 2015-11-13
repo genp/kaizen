@@ -55,9 +55,6 @@ class User(db.Model, UserMixin):
   def __repr__(self):
     return model_debug(self)
 
-user_manager = UserManager(SQLAlchemyAdapter(db, User), app)
-
-
 dataset_x_blob = db.Table('dataset_x_blob', db.Model.metadata,
     db.Column('dataset_id', db.Integer, db.ForeignKey('dataset.id')),
     db.Column('blob_id', db.Integer, db.ForeignKey('blob.id'))

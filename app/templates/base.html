@@ -53,9 +53,9 @@
         <a href="{{ url_for('classifier_top') }}">Classifiers</a>
       </div>
       {% if current_user.is_anonymous %}
-        <a href="/user/sign-in">login</a> | <a href="/user/register">register</a>
+        <a href="{{url_for('user.login')}}">login</a> | <a href="{{url_for('user.login')}}">register</a>
       {% else %}
-        Hello, {{current_user.username}} (<a href="/user/sign-out">logout</a>)
+        Hello, {{current_user.username}} (<a href="{{url_for('user.logout')}}">logout</a>)
       {% endif %}
     </div>
 

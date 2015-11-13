@@ -72,8 +72,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 BLOB_DIR = os.path.join(basedir, 'app', 'static', 'blobs')
 DATASET_DIR = os.path.join(basedir, 'app', 'static', 'datasets')
 CACHE_DIR = os.path.join(basedir, 'app', 'static', 'cache')
+LOG_DIR = os.path.join(clroot, 'app', 'static', 'logs')
+LOG_FILE = os.path.join(LOG_DIR, APPNAME+'.log')
 
-for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR):
+for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR, LOG_DIR):
     if not os.path.exists(dir):
         os.mkdir(dir)
 
@@ -91,9 +93,6 @@ MAIL_PASSWORD = None
 
 # administrator list
 ADMINS = ['gen@cs.brown.edu']
-
-log_path = os.path.join(clroot, 'app', 'static', 'logs')
-log_file = os.path.join(log_path, APPNAME+'.log')
 
 USER_ENABLE_CONFIRM_EMAIL = False
 USER_ENABLE_EMAIL = False
