@@ -11,12 +11,11 @@
 
   <ul>
     {% for ds in datasets %}
-    <li><a href = "/dataset/{{ds.id}}">{{ds.name}}</a>:
-      {{ds.images}} images.
+    <li><a href = "{{ds.url}}">{{ds.name}}</a>: {{ds.images}} images.
 
       <ul>
-        {% for m in ds.classifiers %}
-        <li><a href="/classifier/{{m.id}}/">{{m.keyword.name}}: {{m.name}}</a> @ iteration {{m.rounds.count()}}</li>
+        {% for c in ds.classifiers %}
+        <li><a href="{{c.url}}">{{c.keyword.name}}: {{c.name}}</a> @ iteration {{c.rounds.count()}}</li>
         {% endfor %}
       </ul>
     {% endfor %}

@@ -2,7 +2,7 @@
 {% block content %}
 
 <div id="container" > 
-  <form action="/file-upload/" class="dropzone" id="seed-drop"  enctype="multipart/form-data">
+  <form action="/file-upload/" class="dropzone" id="seed-drop" enctype="multipart/form-data">
     {{blob_form.hidden_tag()}}
     <div class="fallback">
       {{blob_form.file}}
