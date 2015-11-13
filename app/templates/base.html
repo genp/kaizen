@@ -30,7 +30,7 @@
   {% endassets %}
 
   {% assets filters="jsmin", output="packed.js",
-  "js/jquery-1.10.2.js",
+  "js/jquery.js",
   "js/jquery-ui.js",
   "js/jquery.imgareaselect.js",
   "js/dropzone.js",
@@ -52,7 +52,11 @@
         <a href="{{ url_for('keyword_top') }}">Keywords</a>
         <a href="{{ url_for('classifier_top') }}">Classifiers</a>
       </div>
-      {{current_user}}
+      {% if current_user.is_anonymous %}
+        <a href="{{url_for('user.login')}}">login</a> | <a href="{{url_for('user.login')}}">register</a>
+      {% else %}
+        Hello, <a href="{{url_for('user.profile')}}">{{current_user.username}}</a> (<a href="{{url_for('user.logout')}}">logout</a>)
+      {% endif %}
     </div>
 
     <div id = "main">

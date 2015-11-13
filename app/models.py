@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from app import db, lm
+from app import app, db
 
 import boto3
 import config
@@ -8,11 +8,11 @@ import numpy as np
 import importlib
 import urllib
 from PIL import Image
-from flask.ext.login import UserMixin
 from scipy import misc
 from scipy.ndimage.interpolation import rotate
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
+from flask_user import UserManager, UserMixin, SQLAlchemyAdapter
 
 import exif
 import tasks
@@ -27,11 +27,18 @@ s3 = boto3.resource('s3')
 # Very basic. Consider Flask-User before getting more complex.
 class User(db.Model, UserMixin):
   id = db.Column(db.Integer, primary_key = True)
-  username = db.Column(db.String, nullable = False,
-                       index = True, unique = True)
-  # TODO: Password should be redone to store a hash, not the clear text
+  username = db.Column(db.String, nullable = False, unique = True)
   # if password is null, then can't login in, except by mturk-like bypass
   password = db.Column(db.String, nullable = True)
+  reset_password_token = db.Column(db.String, nullable= True)
+
+  email = db.Column(db.String, nullable=True, unique=True)
+  confirmed_at = db.Column(db.DateTime())
+
+  is_enabled = db.Column(db.Boolean, nullable=False, default=False)
+
+  def is_active(self):
+    return self.is_enabled
 
   @staticmethod
   def find(username):
@@ -47,10 +54,6 @@ class User(db.Model, UserMixin):
 
   def __repr__(self):
     return model_debug(self)
-
-@lm.user_loader
-def load_user(id):
-    return User.query.get(int(id))
 
 dataset_x_blob = db.Table('dataset_x_blob', db.Model.metadata,
     db.Column('dataset_id', db.Integer, db.ForeignKey('dataset.id')),

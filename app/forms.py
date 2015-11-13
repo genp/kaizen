@@ -91,7 +91,7 @@ class SeedForm(Form):
     '''
     Specifies the img, bounding box, and keyword membership of a seed patch
     '''
-    keyword = HiddenField('keyword', validators = [Required()])
+    keyword = TextField('Keyword Name', validators = [Required()])
     seeds = HiddenField('seeds', validators = [Required()])
 
 class BlobForm(Form):

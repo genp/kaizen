@@ -2,22 +2,18 @@
 {% block content %}
 
 <div id="container" > 
-    <h1> Create New Dataset </h1>
-    <hr>
+  <h1> Create New Dataset </h1>
+  <hr>
     
-   <h1> Upload Zip File of Images </h1>
-    <form action="/dataset-upload/" class="dropzone" id="dataset-drop"  enctype="multipart/form-data">
-      {{dataset_form.hidden_tag()}}
-      <div class="fallback">
-        {{dataset_form.file}}
-      </div>
-      {{dataset_form.patchspec}}
-      {{dataset_form.featurespec}}
-    </form>
-
-    
-
+  <h1> Upload Zip File of Images </h1>
+  <form action="/dataset-upload/" class="dropzone" id="dataset-drop"  enctype="multipart/form-data">
+    {{dataset_form.hidden_tag()}}
+    <div class="fallback">
+      {{dataset_form.file}}
+    </div>
+    {{dataset_form.patchspec}}
+    {{dataset_form.featurespec}}
+  </form>
 </div>
-
 
 {% endblock %}

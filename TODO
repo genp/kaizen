@@ -1,43 +1,32 @@
-Blobs lose url column, bu keep .url property
- (Blob class can map from locations to urls)
-REMOVE, PROPERTY ADDED, UNTESTED
+Express desired rotations in PatchSpec
 
-Many-to-many for Datsets and Blobs, so Blobs can be put "into"
-Datasets, and can find dataset(s) of a Blob.
+Flesh out Dataset support:
+ - UI for migrate to S3
+ - Add an S3 bucket as a dataset
+ - UI for adding/removing PatchSpec, FeatureSpec associations
 
-Patches lose location column they just specifies a "piece" of an image
-Blob.
+Keyword UI
+ - Add negative examples too
 
-Patches get width and height, so that they need not be square.
- Should get rotation, too. Easiest to think of it as rotating the
- original image, and pulling out square pieces (that don't include the
- border). Small rotations are as important as 90 degree rotations.
+Classifiers
+ - Pick PatchQueries based on differes FS predictions
+ - Advance to next round after more than one ActiveQuery
+    - Both for more data, and for corroborating data
 
- Should get flip too.  (flip up and flip side? ir express with rotation)
+Mechanical Turk
 
-Patches lose dataset_id, as they have a blob which has dataset(s)
+Monitor progress of celery work
+ - Show progress in UI
+ - Prevent performing operations before prereqs available
+   - Or make that work
 
-Add Feature model.  A FeatureSpec says how features should be
-extracted from a Patch. A Feature object stores the info, and points
-to the FeatureSpec to "explain" it
-
-Fix zip import so that a Dataset is created, which is just a directory
-full of image Blobs, which are associated to the named Dataset.
-
-Web interface to PatchSpec, FeatureSpec
- - add/remove them from Dataset
-
-Create the Patch and Feature objects for a Datatset when associations are made.
-
- Think about how to monitor progress of celery work, and either not
- allow UI to do things "too early", or make it end up working anyway,
- but waiting on the background jobs.
-
-Make sass work
-
-JS minification, combining
+Organize Sass
 
 Investigate pyflakes/pylint/pychecker for some static checks
 
-Make predictions and PatchQuery point to feature, not patch
+PatchQuery points at patch. Should it also point at Feature?
+ - No, it might be from two "good" predictions, not one great one
 
+Public/private ownership of datasets, etc
+ - Users should see public + their own
+ 
