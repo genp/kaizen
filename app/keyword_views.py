@@ -1,6 +1,6 @@
 from app import app, db
 from flask import render_template, redirect, request, url_for, g, jsonify
-from forms import ClassifierForm, SeedForm
+from forms import BlobForm, ClassifierForm, SeedForm
 from models import User, Blob, Dataset, Keyword, Classifier, Patch, Example
 import json
 
