@@ -1,9 +1,7 @@
-from app import app, db, lm, manage
-
+from app import app, db
 from flask import render_template, redirect, url_for, jsonify
-from flask.ext.login import current_user
 
-from forms import *
+from forms import ActiveQueryForm, ClassifierForm
 from models import User, Classifier, PatchQuery, PatchResponse, HitResponse, Estimator
 
 import tasks
@@ -64,7 +62,7 @@ def classifier_update(id):
                 user = User(username=form.user.data, password=None)
                 db.session.add(user)
         
-        user.location = form.location.data
+                user.location = form.location.data
         user.nationality = form.nationality.data
         print 'update classifier %s from %s.....' % (id, user)
         

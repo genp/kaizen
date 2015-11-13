@@ -52,7 +52,11 @@
         <a href="{{ url_for('keyword_top') }}">Keywords</a>
         <a href="{{ url_for('classifier_top') }}">Classifiers</a>
       </div>
-      {{current_user}}
+      {% if current_user.is_anonymous %}
+        <a href="/user/sign-in">login</a> | <a href="/user/register">register</a>
+      {% else %}
+        Hello, {{current_user.username}} (<a href="/user/sign-out">logout</a>)
+      {% endif %}
     </div>
 
     <div id = "main">

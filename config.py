@@ -95,6 +95,5 @@ ADMINS = ['gen@cs.brown.edu']
 log_path = os.path.join(clroot, 'app', 'static', 'logs')
 log_file = os.path.join(log_path, APPNAME+'.log')
 
-
-# HITs are repeated for this many workers
-hit_repeat = 3 #9
+USER_ENABLE_CONFIRM_EMAIL = False
+USER_ENABLE_EMAIL = False

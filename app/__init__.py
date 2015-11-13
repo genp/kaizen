@@ -5,16 +5,13 @@ from flask.ext.sqlalchemy import SQLAlchemy
 import logging
 from logging.handlers import RotatingFileHandler, SMTPHandler
 from config import APPNAME, log_file, log_path
-from flask.ext.login import LoginManager
 from flask.ext.assets import Environment, Bundle
 
 app = Flask(__name__, static_url_path='')
 app.config.from_object('config')
+
 assets = Environment(app)
 db = SQLAlchemy(app)
-lm = LoginManager()
-lm.init_app(app)
-lm.login_view = 'login'
 
 from app import views
 

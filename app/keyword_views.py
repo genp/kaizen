@@ -1,12 +1,8 @@
-from app import app, db, lm, manage
+from app import app, db
 from flask import render_template, redirect, request, url_for, g, jsonify
-from forms import *
+from forms import ClassifierForm, SeedForm
 from models import User, Blob, Dataset, Keyword, Classifier, Patch, Example
-import config
-import os
 import json
-import time
-import numpy as np
 
 @app.route('/keyword/', methods = ['GET'])
 def keyword_top():
