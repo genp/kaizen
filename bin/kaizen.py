@@ -40,6 +40,11 @@ fs = FeatureSpec.ifNew(name = 'RGB', cls = 'extract.ColorHist')
 if fs:
     db.session.add(fs)
 
+fs = FeatureSpec.ifNew(name = 'RGB coarse', cls = 'extract.ColorHist')
+if fs:
+    fs.params = {'bins': 3}
+    db.session.add(fs)
+
 e = Estimator.ifNew(cls = 'sklearn.neighbors.KNeighborsRegressor')
 if e:
     e.params = {'weights' : 'distance', 'n_neighbors': 2}

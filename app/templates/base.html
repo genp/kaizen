@@ -30,15 +30,15 @@
   {% endassets %}
 
   {% assets filters="jsmin", output="packed.js",
+  "js/native-console.js",
+  "js/modernizr.js",
   "js/jquery.js",
   "js/jquery-ui.js",
   "js/jquery.imgareaselect.js",
-  "js/dropzone.js",
-  "js/jquery.maphilight.js",
-  "js/show_upload_image_multi_select.js",
   "js/jquery.radios-to-slider.js",
-  "js/modernizr-latest.js",
-  "js/plugins.js",
+  "js/jquery.maphilight.js",
+  "js/dropzone.js",
+  "js/show_upload_image_multi_select.js",
   "js/main.js" %}
   <script type="text/javascript" src="{{ ASSET_URL }}"></script>
   {% endassets %}
@@ -50,7 +50,8 @@
       <div id="links">
         <a href="{{ url_for('dataset_top') }}">Datasets</a>
         <a href="{{ url_for('keyword_top') }}">Keywords</a>
-        <a href="{{ url_for('classifier_top') }}">Classifiers</a>
+        <a href="{{ url_for('classifier_top') }}">Train</a>
+        <a href="{{ url_for('classify') }}">Classify</a>
       </div>
       {% if current_user.is_anonymous %}
         <a href="{{url_for('user.login')}}">login</a> | <a href="{{url_for('user.login')}}">register</a>

@@ -29,21 +29,6 @@ Dropzone.options.datasetDrop = {
   }
 }
 
-
-// testDrop is found in the test.html file. It's the form with id : bens-drop
-Dropzone.options.testDrop = {
-    maxFiles: 1,
-    addRemoveLinks: true,
-    init: function() {
-        // what happens when a file is successfully uploaded
-        this.on("success", function(file, response) {
-            console.log(file, response);
-            analyzeImage(response.results);
-        });
-    }
-}
-
-
 /*
 function that analyzes the image uploaded on the test page. Response contains a path to the image in the database.
 */

@@ -1,15 +1,19 @@
 Express desired rotations in PatchSpec
 
+Create extra rotations of seeds (and maybe PatchResponses?)
+
 Flesh out Dataset support:
  - UI for migrate to S3
  - Add an S3 bucket as a dataset
- - UI for adding/removing PatchSpec, FeatureSpec associations
+ - UI for adding PatchSpec, FeatureSpec associations
+ - UI for removing PatchSpec, FeatureSpec associations
 
 Keyword UI
- - Add negative examples too
+ - Add negative examples
 
 Classifiers
- - Pick PatchQueries based on differes FS predictions
+ - Pick PatchQueries based on different FS predictions
+ - Avoid picking the "same" patch modulo flips/rotations
  - Advance to next round after more than one ActiveQuery
     - Both for more data, and for corroborating data
 
@@ -29,4 +33,9 @@ PatchQuery points at patch. Should it also point at Feature?
 
 Public/private ownership of datasets, etc
  - Users should see public + their own
+
+Test images against classifiers
+ - User tests one image against all their classifiers
+ - User runs some firehose against classifiers
+ 
  
