@@ -114,8 +114,8 @@ class DatasetForm(Form):
         
     file = FileField('archive',  validators=[
         FileRequired(),
-        FileAllowed(['zip', 'tar', 'gz', 'bz2'],
-                    'Upload a zip or tar file of images here.')
+        FileAllowed(['zip', 'tar', 'gz', 'bz2', 'txt', 'csv'],
+                    'Upload a zip or tar file of images, or a txt file of image urls.')
     ])
 
     patchspec = QuerySelectField(get_label='name',

@@ -91,13 +91,13 @@ class Blob(db.Model):
   def __init__(self, location):
     self.location = location
     self.ext = os.path.splitext(location)[1]
+    self.latitude, self.longitude = (None, None)
     if self.ext == '.jpg':
       self.mime = 'image/jpeg'
-      self.latitude, self.longitude = self.read_lat_lon()
     else:
       self.mime = 'image/'+self.ext.replace('.', '')
-      self.latitude, self.longitude = (None, None)
-
+    if self.local:
+      self.latitude, self.longitude = self.read_lat_lon()
 
   def open(self):
     return open(self.materialize(), "rb")

@@ -6,10 +6,20 @@ import tempfile
 import config
 import os
 import json
-import zipfile, tarfile
+import zipfile, tarfile, csv
 import random
 import tasks
 
+def as_url(str):
+    if str.startswith("http://"):
+        return str
+    if str.startswith("https://"):
+        return str
+    if str.startswith("ftp://"):
+        return str
+    if str.startswith("www."):
+        return "http://"+str
+    return None
 
 @app.route('/dataset-upload/', methods = ['POST'])
 def dataset_upload():
@@ -52,6 +62,26 @@ def dataset_upload():
                                 mytar.extract(item, tmpd)
                                 blob = Blob(str(tmpd) + "/" + item.name)
                                 dset.blobs.append(blob)
+        elif ext == ".txt":
+            dset = Dataset(name = name)
+            db.session.add(dset)
+            for url in upload:
+                url = url[:-1]
+                _, ext = os.path.splitext(url)
+                if ext in acceptable:
+                    blob = Blob(url)
+                    dset.blobs.append(blob)
+        elif ext == ".csv":
+            dset = Dataset(name = name)
+            db.session.add(dset)
+            for row in csv.reader(upload):
+                for entry in row:
+                    url = as_url(entry)
+                    if url:
+                        _, ext = os.path.splitext(url)
+                        if ext in acceptable:
+                            blob = Blob(url)
+                            dset.blobs.append(blob)
         if dset != None:
             if form.patchspec.data:
                 dset.patchspecs.append(form.patchspec.data)
