@@ -35,7 +35,7 @@ Install opencv:
      ~/.virtualenvs/kaizen/lib/python*/site-packages
   Linux: ???
 
-sudo -u postgres createuser -sdr jj
+sudo -u postgres createuser -sdr $USER
 #change ident to trust in pg_hba.conf
 createdb kaizen
 ./bin/db_create.py

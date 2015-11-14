@@ -5,6 +5,8 @@ def get_data(file):
     """Returns a dictionary from the exif data of an PIL Image item. Also converts the GPS Tags"""
     exif_data = {}
     image = Image.open(file)
+    if not hasattr(image, '_getexif'):
+        return {}
     info = image._getexif()
     if info:
         for tag, value in info.items():

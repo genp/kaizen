@@ -117,10 +117,9 @@ def patchspec_new():
                           width=psform.width.data,
                           height=psform.height.data,
                           scale=psform.scale.data,
-                          steps=psform.steps.data,
                           xoverlap=psform.xoverlap.data,
                           yoverlap=psform.yoverlap.data,
-                          fliplr=psform.fliplr.data)
+                          fliplr=psform.flip.data)
         db.session.add(pspec)
         if psform.dataset.data:
             psform.dataset.data.patchspecs.append(pspec)
