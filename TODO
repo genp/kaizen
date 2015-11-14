@@ -38,4 +38,5 @@ Test images against classifiers
  - User tests one image against all their classifiers
  - User runs some firehose against classifiers
  
- 
+Change scikit-image HoG feature to Pedro Felzenswalb HoG implementation
+Make slide-in-feature-space extractor -- faster than slide-in-image-space

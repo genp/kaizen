@@ -45,6 +45,14 @@ if fs:
     fs.params = {'bins': 3}
     db.session.add(fs)
 
+fs = FeatureSpec.ifNew(name = 'HoG Dalal_Triggs', cls = 'extract.HoGDalal')
+if fs:
+    db.session.add(fs)
+
+fs = FeatureSpec.ifNew(name = 'TinyImage', cls = 'extract.TinyImage')
+if fs:
+    db.session.add(fs)
+
 e = Estimator.ifNew(cls = 'sklearn.neighbors.KNeighborsRegressor')
 if e:
     e.params = {'weights' : 'distance', 'n_neighbors': 2}

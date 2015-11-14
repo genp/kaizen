@@ -296,8 +296,9 @@ class FeatureSpec(db.Model):
       classname = parts[-1]
       self.instance = eval("importlib.import_module('%s').%s()" %
                            (module, classname))
-      if self.params:
-          self.instance.set_params(**self.params)
+      if not self.params:
+        self.params = {}
+      self.instance.set_params(**self.params)
 
   @property
   def simple_class(self):
@@ -610,7 +611,7 @@ class Feature(db.Model):
     return sqrt(self.squared_distance(other))
 
   def __repr__(self):
-    return str(self.spec.kind) + ' ' + str(self.vector)
+    return str(self.spec.name) + ' ' + str(self.vector)
 
 class Example(db.Model):
   id = db.Column(db.Integer, primary_key = True)
