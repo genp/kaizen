@@ -110,7 +110,11 @@ def classifier_new():
         print 'did not validate'
         print form.dataset.errors
         return redirect(url_for('classifier_top'))
-    
+
+@app.route('/classify/', methods = ['GET', 'POST'])
+def classify():
+    pass
+   
 def make_hit(examples, patch_queries):
     return {
         "positives":  [ex.patch.id for ex in examples if ex.value],
