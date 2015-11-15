@@ -61,8 +61,8 @@
   You can specify a new feature to analyze:
   <form action="/featurespec/new" method="post">
     {{ fsform.hidden_tag() }}
-    {{ m.field(fsform.name) }}
-    {{ m.field(fsform.kind) }}
+    {{ m.field(fsform.name, required=True) }}
+    {{ m.field(fsform.cls, required=True) }}
     {{ m.field(fsform.params) }}
     <input type="submit" value="Analyze">
   </form>

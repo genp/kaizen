@@ -274,6 +274,7 @@ dataset_x_featurespec = db.Table('dataset_x_featurespec', db.Model.metadata,
     db.Column('featurespec_id', db.Integer, db.ForeignKey('feature_spec.id'))
 )
 
+
 class FeatureSpec(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   name = db.Column(db.String)

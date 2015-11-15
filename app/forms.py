@@ -5,6 +5,7 @@ from wtforms.widgets import TextInput, HiddenInput
 from wtforms.validators import Required, Optional, NumberRange
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from models import Blob, User, Dataset, PatchSpec, FeatureSpec, Keyword, Estimator, Classifier, Patch, Round
+import extract
 
 class ObjectField(Field):
     widget = HiddenInput()
@@ -155,9 +156,10 @@ class FeatureSpecForm(Form):
     Form for specifying how to run features on a dataset.
     '''
     name = TextField('Name', validators = [Required()])
-    kind = SelectField('Kind', choices = [('cnn','Convnet'),
-                                          ('rgb', 'Color Histogram')],
-                       validators = [Required()])
+    cls = SelectField('Kind',
+                      choices = [("extract."+k.__name__, k.__name__)
+                                 for k in extract.kinds],
+                      validators = [Required()])
     params = FloatsField('Parameters')
 
     dataset = ObjectField(model=Dataset)

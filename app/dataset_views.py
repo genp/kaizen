@@ -178,7 +178,7 @@ def featurespec_new():
     next = "/featurespec/";
     if fsform.validate_on_submit():
         fspec = FeatureSpec(name=fsform.name.data,
-                            kind=fsform.kind.data,
+                            cls=fsform.cls.data,
                             params=fsform.params.data)
         db.session.add(fspec)
         if fsform.dataset.data:

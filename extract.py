@@ -41,3 +41,4 @@ class TinyImage:
         tiny = np.reshape(tiny, (-1))
         return tiny
 
+kinds = [ColorHist, HoGDalal, TinyImage]

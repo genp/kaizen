@@ -7,6 +7,7 @@ Flesh out Dataset support:
  - Add an S3 bucket as a dataset
  - UI for adding PatchSpec, FeatureSpec associations
  - UI for removing PatchSpec, FeatureSpec associations
+ - Failed blob downloads shouldn't put 404 page into blob-n.jpg
 
 Keyword UI
  - Add negative examples
