@@ -7,7 +7,7 @@ import argparse
 import hashlib
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
-from app.models import Blob, Dataset, Keyword, Classifier, Example, Prediction, GeoQuery, HitResponse, GeoQueryResult
+from app.models import Blob, Dataset, Keyword, Classifier, Example, Prediction, HitResponse
 #from lib.features import utils
 import numpy as np
 import signal

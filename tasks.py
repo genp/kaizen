@@ -144,12 +144,12 @@ def classifier(c_id):
 @that_retries
 def advance_classifier(c_id):
     classifier = app.models.Classifier.query.get(c_id)
-    last_round = classifier.rounds[-1]
+    latest_round = classifier.latest_round
     round = app.models.Round(classifier = classifier,
-                             number = last_round.number+1)
+                             number = latest_round.number+1)
     db.session.add(round)
 
-    for pq in last_round.queries:
+    for pq in latest_round.queries:
         value = pq.responses[0].value # should be a vote, avg, etc
         ex = app.models.Example(value=value, patch=pq.patch, round=round)
         db.session.add(ex)
@@ -171,6 +171,27 @@ def predict_round(r_id):
         
     db.session.commit()
 
+@celery.task
+@that_retries
+def detect(d_id):
+    detect = app.models.Detection.query.get(d_id)
+    dense = app.models.PatchSpec.query.filter_by(name='Dense').one()
+    # Patch the blob
+    for patch in dense.create_blob_patches(detect.blob):
+        db.session.add(patch)
+    for c in app.models.Classifier.query.all():
+        print c
+        # Create features for the patches
+        for fs in c.dataset.featurespecs:
+            print " ",fs
+            for f in fs.create_blob_features(detect.blob):
+                print "  ",f
+                db.session.add(f)
+        # Test the patches of the blob, saving Predictions
+        for p in c.latest_round.detect(detect.blob):
+            print " p"
+            db.session.add(p)
+    db.session.commit()
 
 if __name__ == "__main__":
     function = sys.argv[1]

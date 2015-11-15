@@ -4,7 +4,8 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.widgets import TextInput, HiddenInput
 from wtforms.validators import Required, Optional, NumberRange
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from models import User, Dataset, PatchSpec, FeatureSpec, Keyword, Estimator, Classifier, Patch, Round
+from models import Blob, User, Dataset, PatchSpec, FeatureSpec, Keyword, Estimator, Classifier, Patch, Round
+import extract
 
 class ObjectField(Field):
     widget = HiddenInput()
@@ -137,10 +138,10 @@ class PatchSpecForm(Form):
     height = IntegerField('Minimum height',
                           validators = [Required(), NumberRange(10,1000)])
 
-    xoverlap =  FloatField('Fraction to slide over for next patch.',
-                           validators = [Required(), NumberRange(0.01,1)])
-    yoverlap =  FloatField('Fraction to slide down for next patch.',
-                           validators = [Required(), NumberRange(0.01,1)])
+    xoverlap =  FloatField('Fraction to overlap when sliding over for next patch.',
+                           validators = [Required(), NumberRange(0.01,0.99)])
+    yoverlap =  FloatField('Fraction to overlap when sliding down for next patch.',
+                           validators = [Required(), NumberRange(0.01,0.99)])
 
 
     scale = FloatField('Scale up patches by this factor',
@@ -155,9 +156,10 @@ class FeatureSpecForm(Form):
     Form for specifying how to run features on a dataset.
     '''
     name = TextField('Name', validators = [Required()])
-    kind = SelectField('Kind', choices = [('cnn','Convnet'),
-                                          ('rgb', 'Color Histogram')],
-                       validators = [Required()])
+    cls = SelectField('Kind',
+                      choices = [("extract."+k.__name__, k.__name__)
+                                 for k in extract.kinds],
+                      validators = [Required()])
     params = FloatsField('Parameters')
 
     dataset = ObjectField(model=Dataset)
@@ -171,11 +173,8 @@ class ClassifierForm(Form):
     dataset = QuerySelectField(get_label='name',
                                query_factory=lambda:Dataset.query.all())
     estimator = QuerySelectField(query_factory=lambda:Estimator.query.all())
-#     feature = ?
-#     params = TextField('params', validators = [Required()])
 
 
-#TODO!! this form exists in active_query.html, but is complex
 class ActiveQueryForm(Form):
     classifier = ObjectField(model=Classifier, validators = [Required()])
     round = ObjectField(model=Round, validators = [Required()])
@@ -186,3 +185,8 @@ class ActiveQueryForm(Form):
     confidence = HiddenField(validators = [Required()])
     pos_patches = ObjectsField(model=Patch)
     neg_patches = ObjectsField(model=Patch)
+
+class DetectForm(Form):
+    blobs = ObjectsField(model=Blob, validators = [Required()])
+    # Eventually, form should say which to run against. For now, we'll run all
+    # rounds = ObjectsField(model=Round, validators = [Required()])

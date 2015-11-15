@@ -1,123 +1,31 @@
-var user_patches = {};
-var img_ids = {}
-var image_ratio_width = {}
-
-
-
 Dropzone.options.datasetDrop = {
   maxFiles: 1,
   addRemoveLinks: true, 
   init: function() {
     this.on("success", function(file, response) {
         console.log(response);
-        window.location = response.url
+        if (response.errors)
+          alert(response.errors)
+        else
+          window.location = response.url
     });
   }
 }
 
-
-/*
-function that analyzes the image uploaded on the test page. Response contains a path to the image in the database.
-*/
-function analyzeImage(file) {
-
-    // create random name for the image
-    imgName = "bbox-"+Math.floor(Math.random()*1000).toString();
-
-     // create the div to hold everything
-    $("#img-container").append($('<div>', { id: imgName+"_div", class: "bbox"}));
-    $("#img-container").append($('<h1> Select Seed Patch(es) </h1>'));
-    // make the actual image element
-    $("#"+imgName+"_div").html($('<img>', { id: imgName, usemap: "#"+imgName+"_map" }));
-    // create the map for the image, used later to highlight patches
-    $("#"+imgName+"_div").append($('<map>', {id: imgName+"_map", name: imgName + "_map"}));
-    // load in the image to the img element
-    $("#"+imgName).attr('src', '/blob/'+file);
-
-
-    // initially, set the highlighting to be off. Will be turned on later
-    $('#'+imgName).maphilight({ neverOn : true});
-    
-
-    // for now, there are just some hardcoded bounding boxes to be highlighted
-    coordinates = [30,30,150,150];
-    testImage(imgName, coordinates, 1.0, "horn");
-    coordinates = [50,50,200,200];
-    testImage(imgName, coordinates, 0.8, "horn");
-    createScrollover("horn", imgName);
-
-    coordinates = [80,0,100,40];
-    testImage(imgName, coordinates, 1.0, "leaf");
-    createScrollover("leaf", imgName);
-
-    coordinates = [60,60,120,120];
-    testImage(imgName, coordinates, -1.0, "beak");
-    createScrollover("beak", imgName);
-}
-
-
-/*
-coordinates is a size 4 array. 0 and 1 are top left of bounding box. 2 and 3 are bottom right.
-
-imgName is the id of the image we're working with. ex: bbox-4352
-
-confidence is a float, usually between -1 and 1, with higher values meaning there's a more confident detection.
-
-for now, keyword is a string, the name of the keyword we're trying to recognize, but later it will probably involve 
-hey keyword's ID, or other parameters as well, depending on how unique we need to make it
-*/
-function testImage(imgName, coordinates, confidence, keyword) {
-
-    // set an intial border color. it changes based on confidence level
-    borderColor = "ff0000";
-
-    // This will be set differently later
-    if (confidence > .9){
-        borderColor = "00ff00";
-    }
-
-    // add the actual area to be highlighted to the map.
-    // it's set to not be clickable, to not fill in, and to use the given border color.
-    $("#"+imgName+"_map").append($('<area>', {style : {cursor : "default"} ,onclick  : "return false" ,data : {"maphilight" : {fill: false, strokeColor : borderColor}}, class : keyword , shape: "rect", coords: coordinates[0] + "," + coordinates[1] + "," + coordinates[2] + "," + coordinates[3]}));
-}
-
-
-/*
-Function that creates something you can scrollover, highlighting all the matches 
-*/
-function createScrollover(keyword, imgName) {
-
-    // add the div that can be scrolled over. later can be something else instead.
-    $("#img-container").append($("<div>", { id : keyword+"_scrollover", text : keyword}));
-
-
-    $("#"+keyword+"_scrollover").mouseover(function(e) {
-        $('#'+imgName).maphilight();
-        $("." + keyword).mouseover();
-    }).mouseout(function(e){
-        $('#'+imgName).maphilight({ neverOn : true});
-        $("." + keyword).mouseout();
-    }).click(function(e){
-        e.preventDefault();
-        $("." + keyword).each(function(){
-            var data = $(this).data('maphilight');
-            data.alwaysOn = !data.alwaysOn;
-            $(this).data('maphilight', data);
-        });
-    });
-}
-
+var user_patches = {};
+var img_ids = {}
+var image_ratio_width = {}
 
 Dropzone.options.seedDrop = {
   addRemoveLinks: true,
   init: function() {
     this.on("success", function(file, response) {
-
-        console.log(file, response);
+        if (response.results == 0) {
+            alert(response.errors);
+            return;
+        }
         img_ids[file.name] = response.results;
         readURL(response.results);
-
-
     });
     this.on("removedfile", function(file) {  
         removeBbox(img_ids[file.name]);
@@ -126,10 +34,8 @@ Dropzone.options.seedDrop = {
 };
 
 function readURL(fileNumber) {
-
     addNewBboxSelector(fileNumber);
     displayImg(fileNumber);
-    
 }
 
 function displayImg(fileNumber) {
@@ -143,27 +49,23 @@ function displayImg(fileNumber) {
             ratio = container_width / image_width;
             $("#" + this.id + "_div").css("width", container_width + "px");
             $("#" + this.id).css("width", "100%");
-        }else {
+        } else {
             ratio = 1.0;
         }
         image_ratio_width[fileNumber] = [ratio,image_width];
 
     });
     $("#"+fileNumber).attr('src', '/blob/'+fileNumber);
-
 }
 
 function addNewBboxSelector(fileNumber) {
     createBbox(fileNumber, "img-container");
     addBboxHandles(fileNumber);
-
 }
 
 function createBbox(imgName, containerName) {
-
     $("#"+containerName).append($('<div>', { id: imgName+"_div"}));
     $("#"+imgName+"_div").html($('<img>', { id: imgName}));
-
 }
 
 function removeBbox(fileName) {
@@ -181,7 +83,7 @@ function addBboxHandles(fileName) {
         parent: "#"+fileName+"_div",
         onSelectEnd: function (img, selection) {
             ratio = image_ratio_width[fileName][0];
-                if(typeof user_patches[fileName] === 'undefined'){
+                if (typeof user_patches[fileName] === 'undefined') {
                     user_patches[fileName] = [[Math.floor(selection.x1 / ratio), Math.floor(selection.y1 / ratio),Math.floor( selection.width / ratio)]];
                 }
                 else{
@@ -220,7 +122,6 @@ function createSeedPreview(fileName) {
 }
 
 function removeSeedPreview(obj) {
-
     $(obj).hide();
     console.dir(obj.id.split("_"));
     info = obj.id.split("_");
@@ -228,12 +129,10 @@ function removeSeedPreview(obj) {
     count = parseInt(info[1]);
     if (user_patches[filename].length == 1) {
 	delete user_patches[filename];
-    }
-    else {
+    } else {
 	user_patches[filename].splice(count, 1);
     }
     console.dir(JSON.stringify(user_patches));
-
 }
 
 function removeSeedPreviews(fileName) {
@@ -243,3 +142,20 @@ function removeSeedPreviews(fileName) {
         });
 }
 
+var detect_blobs = [];
+Dropzone.options.detectDrop = {
+  addRemoveLinks: true,
+  init: function() {
+    this.on("success", function(file, response) {
+        if (response.results == 0) {
+            alert(response.errors);
+            return;
+        }
+      detect_blobs.push(response.results)
+      $("#blobs").val(detect_blobs.join(","));
+    });
+    this.on("removedfile", function(file) {  
+        removeBbox(img_ids[file.name]);
+    });
+  }
+};

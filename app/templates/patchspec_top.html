@@ -16,19 +16,19 @@
 
   <form action="/patchspec/new" method="post">
     {{ psform.hidden_tag() }}
-    {{ m.field(psform.name) }}
+    {{ m.field(psform.name, required=True) }}
 
     <fieldset>
-      {{ m.field(psform.width, size = 5) }}
-      {{ m.field(psform.height, size = 5) }}
+      {{ m.field(psform.width, size = 5, required=True) }}
+      {{ m.field(psform.height, size = 5, required=True) }}
     </fieldset>
 
     <fieldset>
-      {{ m.field(psform.xoverlap, size = 3) }}
-      {{ m.field(psform.yoverlap, size = 3) }}
+      {{ m.field(psform.xoverlap, size = 3, required=True) }}
+      {{ m.field(psform.yoverlap, size = 3, required=True) }}
     </fieldset>
 
-    {{ m.field(psform.scale, size = 4) }}
+    {{ m.field(psform.scale, size = 4, required=True) }}
     {{ m.field(psform.flip) }}
     <input type="submit" value="Make new PatchSpec">
   

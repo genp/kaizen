@@ -7,7 +7,9 @@
   </div>
 
   <hr>
-
+  <p>Patch {{patch.id}} is from {{patch.blob}}</p>
+  <img class="patch" src="{{patch.url}}">
+  <img class="patch" src="{{patch.blob.url}}">
   <h2>Features</h2>
   <ul>
     {% for f in patch.features %}

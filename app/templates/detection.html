@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id="container">
+  <ul>
+  {% for p in detect.blob.patches %}
+    <li>
+      <a href="{{p.url}}/debug"><img class="patch" src="{{p.url}}"/></a>
+      <ul>
+        {% for f in p.features %}
+          {% for pred in f.predictions %}
+          <li>{{pred}}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </li>
+ {% endfor %}
+  </ul>
+</div>
+
+{% endblock %}

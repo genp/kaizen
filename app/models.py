@@ -152,7 +152,7 @@ class Blob(db.Model):
     self.location = "s3://%s/%s" % (Blob.BUCKET, self.filename)
 
   def __repr__(self):
-    return "Blob:"+self.location
+    return "Blob#"+str(self.id)+":"+self.location
 
 dataset_x_patchspec = db.Table('dataset_x_patchspec', db.Model.metadata,
     db.Column('dataset_id', db.Integer, db.ForeignKey('dataset.id')),
@@ -210,8 +210,8 @@ class PatchSpec(db.Model):
 
   def count_sized_blob_patches(self, blob, size, width, height):
     # How far each slide will go
-    xstep = int(self.xoverlap * width)
-    ystep = int(self.yoverlap * height)
+    xstep = int(width * (1-self.xoverlap))
+    ystep = int(height * (1-self.yoverlap))
 
     # The available room for sliding
     xdelta = size[0]-width
@@ -241,8 +241,8 @@ class PatchSpec(db.Model):
 
   def create_sized_blob_patches(self, blob, size, width, height):
     # How far each slide will go
-    xstep = int(self.xoverlap * width)
-    ystep = int(self.yoverlap * height)
+    xstep = int(width * (1-self.xoverlap))
+    ystep = int(height * (1-self.yoverlap))
 
     # The available room for sliding
     xdelta = size[0]-width
@@ -273,6 +273,7 @@ dataset_x_featurespec = db.Table('dataset_x_featurespec', db.Model.metadata,
     db.Column('dataset_id', db.Integer, db.ForeignKey('dataset.id')),
     db.Column('featurespec_id', db.Integer, db.ForeignKey('feature_spec.id'))
 )
+
 
 class FeatureSpec(db.Model):
   id = db.Column(db.Integer, primary_key = True)
@@ -457,6 +458,9 @@ class Classifier(db.Model):
       if r == round:
         return
 
+  @property
+  def latest_round(self):
+    return self.rounds[-1]
 
   @property
   def url(self):
@@ -477,29 +481,40 @@ class Round(db.Model):
                                                     lazy = 'dynamic'))
   def predict(self):
     '''Yield Predictions for all Patches in the Dataset, as of this Round.
-    Creates an estimator for each FeatureSpec used by the Dataset,
-    then trains each on the Features of that type.  Finally, uses each
-    Estimator to make predictions against its Features.
-
+    Uses estimators trained on examples for each FeatureSpec to make
+    predictions against its Features.
     '''
     classifier = self.classifier
+    estimators = self.trained_estimators()
 
+    for blob in classifier.dataset.blobs:
+      for patch in blob.patches:
+        for feature in patch.features:
+          value = estimators[feature.spec.id].predict(feature.vector)
+          yield Prediction(value=value, feature=feature, round=self)
+
+  def detect(self, blob):
+    estimators = self.trained_estimators()
+    for patch in blob.patches:
+      for feature in patch.features:
+        value = estimators[feature.spec.id].predict(feature.vector)
+        yield Prediction(value=value, feature=feature, round=self)
+
+  def trained_estimators(self):
+    '''Creates an estimator for each FeatureSpec used by the Dataset,
+    then trains each on the features of known examples.
+    '''
     estimators = {}
-    for fs in classifier.dataset.featurespecs:
+    for fs in self.classifier.dataset.featurespecs:
       samples, results = ([], [])
-      for ex in classifier.examples_upto(self):
+      for ex in self.classifier.examples_upto(self):
         feat = Feature.of(patch=ex.patch, spec=fs)
         samples.append(feat.vector)
         results.append(1 if ex.value else -1)
 
-      estimators[fs.id] = classifier.estimator.instantiate()
+      estimators[fs.id] = self.classifier.estimator.instantiate()
       estimators[fs.id].fit(samples, results)
-
-      for blob in classifier.dataset.blobs:
-        for patch in blob.patches:
-          for feature in patch.features:
-            value = estimators[feature.spec.id].predict(feature.vector)
-            yield Prediction(value=value, feature=feature, round=self)
+    return estimators
 
   def choose_queries(self):
     '''Yield PatchQueries to ask humans about some Patches.  Currently,
@@ -611,7 +626,7 @@ class Feature(db.Model):
     return sqrt(self.squared_distance(other))
 
   def __repr__(self):
-    return str(self.spec.name) + ' ' + str(self.vector)
+    return "Feature#"+str(self.id)+":"+str(self.spec.name) + ' ' + str(self.vector)
 
 class Example(db.Model):
   id = db.Column(db.Integer, primary_key = True)
@@ -693,16 +708,17 @@ class HitResponse(db.Model):
   def __repr__(self):
     return model_debug(self)
 
-class GeoQueryResult(db.Model):
-  id = db.Column(db.Integer, primary_key = True)
-  value = db.Column(db.Float, nullable=False)
-  gps_distance = db.Column(db.Float)
-  
-  geo_query_id = db.Column(db.Integer, db.ForeignKey('geo_query.id'), index = True, nullable=False)
-  geo_query = db.relationship('GeoQuery', backref = db.backref('results', lazy = 'dynamic'))
 
-  blob_id = db.Column(db.Integer, db.ForeignKey('blob.id'), nullable=False)
-  blob = db.relationship('Blob', backref = db.backref('gq_results', lazy = 'dynamic'))
+
+class Detection(db.Model):
+  id = db.Column(db.Integer, primary_key = True)
+
+  blob_id = db.Column(db.Integer, db.ForeignKey('blob.id'), index = True)
+  blob = db.relationship('Blob', backref = db.backref('detections', lazy = 'dynamic'))
+
+  @property
+  def url(self):
+    return "/detect/"+str(self.id);
 
   def __repr__(self):
     return model_debug(self)
@@ -711,7 +727,9 @@ class GeoQueryResult(db.Model):
 def model_debug(m):
   c = dict.copy(m.__dict__)
   del c['_sa_instance_state']
-  return type(m).__name__+":"+str(c)
+  id = c['id']
+  del c['id']
+  return type(m).__name__+"#"+str(id)+":"+str(c)
 
 # This adapts (1-dimensional) numpy arrays to Postgres
 # We should make it do n-dimensionals eventually.

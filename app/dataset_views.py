@@ -89,9 +89,10 @@ def dataset_upload():
                 dset.featurespecs.append(form.featurespec.data)
             db.session.commit()
             tasks.dataset.delay(dset.id)
+            return jsonify(name=dset.name, id=dset.id, url = dset.url)
     else:
         print form.errors
-    return jsonify(name=dset.name, id=dset.id, url = dset.url)
+        return jsonify(errors=form.file.errors)
 
 @app.route('/dataset/', methods = ['GET'])
 def dataset_top():
@@ -177,7 +178,7 @@ def featurespec_new():
     next = "/featurespec/";
     if fsform.validate_on_submit():
         fspec = FeatureSpec(name=fsform.name.data,
-                            kind=fsform.kind.data,
+                            cls=fsform.cls.data,
                             params=fsform.params.data)
         db.session.add(fspec)
         if fsform.dataset.data:

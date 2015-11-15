@@ -31,16 +31,16 @@
   You can specify a new way to make patches:
   <form action="/patchspec/new" method="post">
     {{ psform.hidden_tag() }}
-    {{ m.field(psform.name) }}
+    {{ m.field(psform.name, required = True) }}
 
     <fieldset>
-      {{ m.field(psform.width, size = 5) }}
-      {{ m.field(psform.height, size = 5) }}
+      {{ m.field(psform.width, size = 5, required = True) }}
+      {{ m.field(psform.height, size = 5, required = True) }}
     </fieldset>
 
     <fieldset>
-      {{ m.field(psform.xoverlap, size = 3) }}
-      {{ m.field(psform.yoverlap, size = 3) }}
+      {{ m.field(psform.xoverlap, size = 3, required = True) }}
+      {{ m.field(psform.yoverlap, size = 3, required = True) }}
     </fieldset>
 
     {{ m.field(psform.scale, size = 4) }}
@@ -61,8 +61,8 @@
   You can specify a new feature to analyze:
   <form action="/featurespec/new" method="post">
     {{ fsform.hidden_tag() }}
-    {{ m.field(fsform.name) }}
-    {{ m.field(fsform.kind) }}
+    {{ m.field(fsform.name, required=True) }}
+    {{ m.field(fsform.cls, required=True) }}
     {{ m.field(fsform.params) }}
     <input type="submit" value="Analyze">
   </form>

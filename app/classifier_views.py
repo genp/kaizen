@@ -1,8 +1,8 @@
 from app import app, db
 from flask import render_template, redirect, url_for, jsonify
 
-from forms import ActiveQueryForm, ClassifierForm
-from models import User, Classifier, PatchQuery, PatchResponse, HitResponse, Estimator
+from forms import ActiveQueryForm, ClassifierForm, BlobForm, DetectForm
+from models import User, Classifier, PatchQuery, PatchResponse, HitResponse, Estimator, Detection
 
 import tasks
 
@@ -111,10 +111,32 @@ def classifier_new():
         print form.dataset.errors
         return redirect(url_for('classifier_top'))
 
-@app.route('/classify/', methods = ['GET', 'POST'])
-def classify():
-    pass
-   
+
+@app.route('/detect', methods = ['GET', 'POST'])
+def detect_top():
+    form = BlobForm()
+    detect_form = DetectForm()
+    if detect_form.validate_on_submit():
+        blobs = detect_form.blobs.data
+        detects = []
+        for blob in blobs:
+            d = Detection(blob=blob)
+            db.session.add(d)
+            detects.append(d)
+        db.session.commit()
+        for d in detects:
+            tasks.detect.delay(d.id)
+
+    return render_template('detect.html', title='Detect', form=form,
+                           detect_form=detect_form, detects=Detection.query.all())
+
+@app.route('/detect/<int:id>')
+def detect(id):
+    detect = Detection.query.get_or_404(id)
+
+    return render_template('detection.html', detect=detect,
+                           title='Detect %d' % (detect.id))
+
 def make_hit(examples, patch_queries):
     return {
         "positives":  [ex.patch.id for ex in examples if ex.value],
