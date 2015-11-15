@@ -27,13 +27,14 @@ if ps:
 
 ps = PatchSpec.ifNew(name='Dense')
 if ps:
-    ps.width = 300
-    ps.height = 300
-    ps.xoverlap = 0.6
-    ps.yoverlap = 0.6
-    ps.scale = 2.0
+    ps.width = 200
+    ps.height = 200
+    ps.xoverlap = 0.75
+    ps.yoverlap = 0.75
+    ps.scale = 1.5
     ps.fliplr = True
     db.session.add(ps)
+
 
 
 fs = FeatureSpec.ifNew(name = 'RGB', cls = 'extract.ColorHist')

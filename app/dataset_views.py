@@ -89,9 +89,10 @@ def dataset_upload():
                 dset.featurespecs.append(form.featurespec.data)
             db.session.commit()
             tasks.dataset.delay(dset.id)
+            return jsonify(name=dset.name, id=dset.id, url = dset.url)
     else:
         print form.errors
-    return jsonify(name=dset.name, id=dset.id, url = dset.url)
+        return jsonify(errors=form.file.errors)
 
 @app.route('/dataset/', methods = ['GET'])
 def dataset_top():

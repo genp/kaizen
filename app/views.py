@@ -68,6 +68,6 @@ def file_upload():
         blob = Blob(tmp.name)
         db.session.add(blob)
         db.session.commit();
+        return jsonify(results=blob.id)
     else:
-        print form.errors
-    return jsonify(results=blob.id)
+        return jsonify(results=0, errors=form.file.errors)

@@ -17,7 +17,7 @@
 
   <link rel="apple-touch-icon-precomposed" href="/favicon/k-arrow-152.png">
 
-  {% assets filters="cssmin,scss", output="packed.css",
+  {% assets filters="cssmin,scss", output="css/packed.css",
   "css/normalize.css",
   "css/base.css",
   "css/main.css",
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="{{ ASSET_URL }}">
   {% endassets %}
 
-  {% assets filters="jsmin", output="packed.js",
+  {% assets filters="jsmin", output="js/packed.js",
   "js/native-console.js",
   "js/modernizr.js",
   "js/jquery.js",
@@ -38,7 +38,7 @@
   "js/jquery.radios-to-slider.js",
   "js/jquery.maphilight.js",
   "js/dropzone.js",
-  "js/show_upload_image_multi_select.js",
+  "js/dropzone-config.js",
   "js/main.js" %}
   <script type="text/javascript" src="{{ ASSET_URL }}"></script>
   {% endassets %}
@@ -51,7 +51,7 @@
         <a href="{{ url_for('dataset_top') }}">Datasets</a>
         <a href="{{ url_for('keyword_top') }}">Keywords</a>
         <a href="{{ url_for('classifier_top') }}">Train</a>
-        <a href="{{ url_for('classify') }}">Classify</a>
+        <a href="{{ url_for('detect_top') }}">Detect</a>
       </div>
       {% if current_user.is_anonymous %}
         <a href="{{url_for('user.login')}}">login</a> | <a href="{{url_for('user.login')}}">register</a>
