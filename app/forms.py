@@ -109,10 +109,6 @@ class DatasetForm(Form):
     '''
     Upload an archive file of images for a new dataset
     '''
-
-    def __init__(self, *args, **kwargs):
-        super(DatasetForm,self).__init__(*args, **kwargs)
-        
     file = FileField('archive',  validators=[
         FileRequired(),
         FileAllowed(['zip', 'tar', 'gz', 'bz2', 'txt', 'csv'],
@@ -124,6 +120,18 @@ class DatasetForm(Form):
                                  query_factory=lambda:PatchSpec.query.all())
     featurespec = QuerySelectField(get_label='name',
                                    allow_blank=True, blank_text='Feature?',
+                                   query_factory=lambda:FeatureSpec.query.all())
+
+class DatasetAddSpecsForm(Form):
+    '''
+    Attach a new PatchSpec or FeatureSpec
+    '''
+    dataset = ObjectField(model=Dataset)
+    patchspec = QuerySelectField(get_label='name',
+                                 allow_blank=True, blank_text='Add PatchSpec',
+                                 query_factory=lambda:PatchSpec.query.all())
+    featurespec = QuerySelectField(get_label='name',
+                                   allow_blank=True, blank_text='Add FeatureSpec',
                                    query_factory=lambda:FeatureSpec.query.all())
 
 

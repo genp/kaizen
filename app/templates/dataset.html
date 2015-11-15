@@ -28,6 +28,12 @@
   </ul>
   {% endif %}
 
+  <form action="/dataset/attach" method="post">
+    {{ addfsform.hidden_tag() }}
+    {{ m.field(addpsform.patchspec) }}
+    <input type="submit" value="Attach">
+  </form>
+
   You can specify a new way to make patches:
   <form action="/patchspec/new" method="post">
     {{ psform.hidden_tag() }}
@@ -57,6 +63,12 @@
     {% endfor %}
   </ul>
   {% endif %}
+
+  <form action="/dataset/attach" method="post">
+    {{ addfsform.hidden_tag() }}
+    {{ m.field(addfsform.featurespec) }}
+    <input type="submit" value="Attach">
+  </form>
 
   You can specify a new feature to analyze:
   <form action="/featurespec/new" method="post">

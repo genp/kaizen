@@ -94,6 +94,18 @@ def dataset_upload():
         print form.errors
         return jsonify(errors=form.file.errors)
 
+@app.route('/dataset/attach', methods = ['POST'])
+def dataset_attach():
+    form = DatasetAddSpecsForm()
+    dset = form.dataset.data
+    if form.patchspec.data:
+        dset.patchspecs.append(form.patchspec.data)
+    if form.featurespec.data:
+        dset.featurespecs.append(form.featurespec.data)
+    db.session.commit()
+    tasks.dataset.delay(dset.id)
+    return redirect(dset.url)
+
 @app.route('/dataset/', methods = ['GET'])
 def dataset_top():
     datasets = Dataset.query.all()
@@ -116,19 +128,20 @@ def dataset(id, psform=None, fsform=None):
     num_ex = 20
     blobs = dataset.blobs[:num_ex]
     if not psform:
-        psform = PatchSpecForm()
-    psform.dataset.data = dataset
+        psform = PatchSpecForm(dataset=dataset)
     if not fsform:
-        fsform = FeatureSpecForm()
-    fsform.dataset.data = dataset
+        fsform = FeatureSpecForm(dataset=dataset)
+
+    addpsform = DatasetAddSpecsForm(dataset=dataset)
+    addfsform = DatasetAddSpecsForm(dataset=dataset)
 
     return render_template('dataset.html',
                            title = dataset.name,
                            dataset = dataset,
                            blobs = blobs,
                            classifiers = classifiers,
-                           psform = psform,
-                           fsform = fsform)
+                           addpsform=addpsform, psform = psform,
+                           addfsform=addfsform, fsform = fsform)
 
 @app.route('/patchspec/', methods = ['GET'])
 def patchspec_top(psform=None):
