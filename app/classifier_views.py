@@ -1,6 +1,6 @@
 from app import app, db
 from flask import render_template, redirect, url_for, jsonify
-
+from flask.ext.login import current_user
 from forms import ActiveQueryForm, ClassifierForm, BlobForm, DetectForm
 from models import User, Classifier, PatchQuery, PatchResponse, HitResponse, Estimator, Detection
 

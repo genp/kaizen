@@ -708,8 +708,6 @@ class HitResponse(db.Model):
   def __repr__(self):
     return model_debug(self)
 
-
-
 class Detection(db.Model):
   id = db.Column(db.Integer, primary_key = True)
 
@@ -725,9 +723,9 @@ class Detection(db.Model):
 
 # Convenience routine simple repr implementation of models.
 def model_debug(m):
+  id = m.id
   c = dict.copy(m.__dict__)
   del c['_sa_instance_state']
-  id = c['id']
   del c['id']
   return type(m).__name__+"#"+str(id)+":"+str(c)
 
