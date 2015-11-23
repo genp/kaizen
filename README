@@ -3,7 +3,7 @@ README - This file
 app - The main flask webserver
 bin - scripts for setting up db, recreating, and running main server
  db_create.py
- run.py
+ kaizen.py
  db_migrate.py
  reset-all
 
