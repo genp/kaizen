@@ -1,6 +1,6 @@
 from app import app, db
 from flask import render_template, redirect, url_for, jsonify
-from flask.ext.login import current_user
+from flask_user import current_user
 from forms import ActiveQueryForm, ClassifierForm, BlobForm, DetectForm
 from models import User, Classifier, PatchQuery, PatchResponse, HitResponse, Estimator, Detection
 
@@ -8,14 +8,14 @@ import tasks
 
 import time, itertools
 
-@app.route('/classifier/', methods = ['GET', 'POST'])
+@app.route('/classifier/')
 def classifier_top():
     classifiers = Classifier.query.order_by(Classifier.id.desc()).limit(50)
     return render_template('classifier_top.html',
                            title='Classifier Library',
                            classifiers=classifiers)
     
-@app.route('/classifier/<int:id>', methods = ['GET'])
+@app.route('/classifier/<int:id>')
 def classifier(id):
     classifier = Classifier.query.get_or_404(id)
 
@@ -31,7 +31,7 @@ def classifier(id):
                                             classifier.rounds.count()),
                            form=form, hits = hits)
 
-@app.route('/classifier/<int:id>/<int:i>/', methods = ['GET'])
+@app.route('/classifier/<int:id>/<int:i>/')
 def classifier_round(id, i):
     classifier = Classifier.query.get_or_404(id)
 
