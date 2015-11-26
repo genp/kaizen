@@ -12,7 +12,7 @@ from scipy import misc
 from scipy.ndimage.interpolation import rotate
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
-from flask_user import UserManager, UserMixin, SQLAlchemyAdapter
+from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
 
 import exif
 import tasks
@@ -333,6 +333,9 @@ class Dataset(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   name = db.Column(db.String)
 
+  owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+  owner = db.relationship('User', backref = db.backref('datasets', lazy = 'dynamic'))
+
   blobs = db.relationship("Blob", secondary=dataset_x_blob)
   patchspecs = db.relationship("PatchSpec",
                                secondary=dataset_x_patchspec,
@@ -340,6 +343,11 @@ class Dataset(db.Model):
   featurespecs = db.relationship("FeatureSpec",
                                  secondary=dataset_x_featurespec,
                                  backref="datasets")
+
+  def __init__(self, **kwargs):
+      super(Dataset, self).__init__(**kwargs)
+      if self.owner is None and current_user.is_authenticated:
+        self.owner = current_user
 
   def migrate_to_s3(self):
     for blob in self.blobs:
@@ -361,8 +369,17 @@ class Keyword(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   name = db.Column(db.String)
 
+  owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+  owner = db.relationship('User', backref = db.backref('keywords', lazy = 'dynamic'))
+
   geoquery_id = db.Column(db.Integer, db.ForeignKey('geo_query.id'))
   geoquery = db.relationship('GeoQuery', backref = db.backref('keywords', lazy = 'dynamic'))
+
+  def __init__(self, **kwargs):
+      super(Keyword, self).__init__(**kwargs)
+      if self.owner is None and current_user.is_authenticated:
+        self.owner = current_user
+
 
   @property
   def url(self):
@@ -432,6 +449,9 @@ class Classifier(db.Model):
 
   id = db.Column(db.Integer, primary_key = True)
 
+  owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+  owner = db.relationship('User', backref = db.backref('classifiers', lazy = 'dynamic'))
+
   dataset_id = db.Column(db.Integer, db.ForeignKey('dataset.id'), nullable=False)
   dataset = db.relationship('Dataset', backref = db.backref('classifiers', lazy = 'dynamic'))
   
@@ -443,8 +463,10 @@ class Classifier(db.Model):
 
   def __init__(self, **kwargs):
       super(Classifier, self).__init__(**kwargs)
+      if self.owner is None and current_user.is_authenticated:
+        self.owner = current_user
       zero = Round(classifier = self)
-
+      
   @property
   def examples(self):
     for round in self.rounds:
