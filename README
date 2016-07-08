@@ -42,6 +42,10 @@ Install opencv3:
      ~/.virtualenvs/kaizen/lib/python*/site-packages
   Linux: ???
 
+For OS X:
+  sudo gem install sass
+  INSTALL caffe
+  pip install protobuf
 
 sudo -u postgres createuser -sdr $USER
 #change ident to trust in pg_hba.conf

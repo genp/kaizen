@@ -15,6 +15,11 @@ if u:
     u.is_enabled = True;
     db.session.add(u)
 
+u = User.ifNew(username="Darius")
+if u:
+    u.password = user_manager.hash_password("dariuspass")
+    u.is_enabled = True;
+    db.session.add(u)
 
 ps = PatchSpec.ifNew(name='Sparse')
 if ps:
