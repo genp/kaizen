@@ -94,6 +94,18 @@ def analyze_blob(blob_id, *fs_ids):
             db.session.add(feat)
     db.session.commit()
 
+@celery.task
+@that_retries
+def add_examples(k_id, *fs_ids):
+    k = app.models.Keyword.query.get(k_id)
+    # get definition file
+    # create examples for each row
+    # check if patch exists
+    # create new patch and feature
+    # add example to db
+
+    db.session.commit()
+
 
 
 def if_classifier(c):

@@ -59,7 +59,8 @@ def dataset_upload():
                 db.session.add(dset)
 
                 for item in myzip.infolist():
-                    kw, ext = os.path.splitext(item.filename)
+                    fname, ext = os.path.splitext(item.filename)
+                    kw = os.path.basename(fname)
                     if ext in acceptable and not item.filename.startswith("__MACOSX"):
                         unarchive_blob(item, dset, tmpd, myzip)
                     if ext in label_acceptable and kw.startswith('_'):
@@ -78,7 +79,8 @@ def dataset_upload():
 
                     for item in mytar:
                         if item.isreg():
-                            kw, ext = os.path.splitext(item.name)
+                            fname, ext = os.path.splitext(item.filename)
+                            kw = os.path.basename(fname)
                             if ext in acceptable and not item.name.startswith("__MACOSX"):
                                 unarchive_blob(item, dset, tmpd, mytar)
                             if ext in label_acceptable and kw.startswith('_'):
