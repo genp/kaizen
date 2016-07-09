@@ -16,8 +16,8 @@ Linux:
 
 TO BEGIN:
 git clone git@github.com:genp/kaizen.git
-cd kaizen
 mkvirtualenv kaizen
+cd kaizen
 setvirtualenvproject kaizen
 ln -sf `pwd`/bin/postactivate ~/.virtualenvs/kaizen/bin
 ln -sf `pwd`/bin/postdeactivate ~/.virtualenvs/kaizen/bin
@@ -25,6 +25,7 @@ pip install --upgrade pip
 pip install numpy scipy
 pip install -r pip-freeze.txt
 add2virtualenv .
+gem install sass
 
 Install opencv:
   OS X:
