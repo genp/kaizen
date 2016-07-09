@@ -31,12 +31,10 @@ def dataset_upload():
         acceptable = ['.jpg', '.jpeg', '.png']
         label_acceptable = ['.csv']
 
-        def unarchive_blob(fname, dset, tmpd, archive):
-            _, ext = os.path.splitext(fname)
-            if ext in acceptable and not fname.startswith("__MACOSX"):
-                archive.extract(item, tmpd)
-                blob = Blob(str(tmpd) + "/" + fname)
-                dset.blobs.append(blob)
+        def unarchive_blob(item, dset, tmpd, archive):
+            archive.extract(item, tmpd)
+            blob = Blob(str(tmpd) + "/" + item.filename)
+            dset.blobs.append(blob)
             return
 
         def list_blob(url):
@@ -46,14 +44,10 @@ def dataset_upload():
                 dset.blobs.append(blob)
             return
 
-        def keyword_dataset(fname,dset, tmpd, archive):
-            kw, ext = os.path.splitext(fname)
-            if ext in label_acceptable:
-                # TODO: unarchive the csv file and store to tmpd
-                kw_fname = str(tmpd) + "/" + fname
-
-                k = Keyword(name=kw[1:],defn_file=kw_fname,dataset=dset)
-                dset.blobs.append(blob)
+        def keyword_dataset(kw, item, dset, tmpd, archive):
+            archive.extract(item, tmpd)
+            kw_fname = str(tmpd) + "/" + item.filename
+            k = Keyword(name=kw[1:],defn_file=kw_fname,dataset=dset)
             return
 
         dset = None
@@ -65,11 +59,12 @@ def dataset_upload():
                 db.session.add(dset)
 
                 for item in myzip.infolist():
-                    _, ext = os.path.splitext(item.filename)
+                    kw, ext = os.path.splitext(item.filename)
                     if ext in acceptable and not item.filename.startswith("__MACOSX"):
-                        myzip.extract(item, tmpd)
-                        blob = Blob(str(tmpd) + "/" + item.filename)
-                        dset.blobs.append(blob)
+                        unarchive_blob(item, dset, tmpd, myzip)
+                    if ext in label_acceptable and kw.startswith('_'):
+                        keyword_dataset(kw, item, dset, tmpd, myzip)
+
         elif ext == ".gz" or ext == ".bz2" or ext == ".tar":
             if ext != ".tar":
                 name, ext = os.path.splitext(name)
@@ -83,21 +78,17 @@ def dataset_upload():
 
                     for item in mytar:
                         if item.isreg():
-                            _, ext = os.path.splitext(item.name)
+                            kw, ext = os.path.splitext(item.name)
                             if ext in acceptable and not item.name.startswith("__MACOSX"):
-                                mytar.extract(item, tmpd)
-                                blob = Blob(str(tmpd) + "/" + item.name)
-                                dset.blobs.append(blob)
-        # TODO move this up so that the zip and tar files could also contain specs in a csv or txt file
+                                unarchive_blob(item, dset, tmpd, mytar)
+                            if ext in label_acceptable and kw.startswith('_'):
+                                keyword_dataset(kw, item, dset, tmpd, mytar)
         elif ext == ".txt":
             dset = Dataset(name = name)
             db.session.add(dset)
             for url in upload:
                 url = url[:-1]
-                _, ext = os.path.splitext(url)
-                if ext in acceptable:
-                    blob = Blob(url)
-                    dset.blobs.append(blob)
+                list_blob(url)
         elif ext == ".csv":
             dset = Dataset(name = name)
             db.session.add(dset)
@@ -105,11 +96,7 @@ def dataset_upload():
                 for entry in row:
                     url = as_url(entry)
                     if url:
-                        _, ext = os.path.splitext(url)
-                        if ext in acceptable:
-                            blob = Blob(url)
-                            dset.blobs.append(blob)
-
+                        list_blob(url)
 
         if dset != None:
             if form.patchspec.data:
