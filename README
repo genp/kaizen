@@ -44,9 +44,11 @@ Install opencv3:
   Linux: ???
 
 For OS X:
-  sudo gem install sass
   INSTALL caffe
   pip install protobuf
+
+To suppress pycaffe terminal output:
+  os.environ['GLOG_minloglevel'] = '2' 
 
 sudo -u postgres createuser -sdr $USER
 #change ident to trust in pg_hba.conf

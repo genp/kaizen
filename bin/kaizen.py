@@ -51,6 +51,15 @@ if fs:
     fs.params = {'bins': 3}
     db.session.add(fs)
 
+fs = FeatureSpec.ifNew(name = 'CNN_VGG', cls = 'extract.CNN')
+if fs:
+    fs.params = {'model':'VGG', 'layer_name': 'fc7'}
+    db.session.add(fs)
+
+fs = FeatureSpec.ifNew(name = 'CNN_CaffeNet', cls = 'extract.CNN')
+if fs:
+    db.session.add(fs)
+
 fs = FeatureSpec.ifNew(name = 'HoG Dalal_Triggs', cls = 'extract.HoGDalal')
 if fs:
     db.session.add(fs)

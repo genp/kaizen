@@ -43,12 +43,17 @@ class TinyImage:
         tiny = np.reshape(tiny, (-1))
         return tiny
 
+
+#Darius
+#CNN code may not work on Multi-GPU machines.
+#
 class CNN:
 
     max_batch_size = 500
 
     def initialize_cnn(self, batch_size):
         temp = tempfile.NamedTemporaryFile()
+
         def_path = "caffemodels/" + self.model +"/train.prototxt"
         weight_path = "caffemodels/" + self.model + "/weights.caffemodel"
         #go through and edit batch size
@@ -66,6 +71,7 @@ class CNN:
         self.transformer = caffe.io.Transformer({'data': self.net.blobs['data'].data.shape})
         self.transformer.set_transpose('data', self.transpose)
         self.transformer.set_channel_swap('data',self.channel_swap)
+
         temp.close()
 
     def set_params(self, model = "caffenet", layer_name = "fc7", transpose = (2,0,1), channel_swap = (2,1,0), initialize = True):
@@ -88,6 +94,7 @@ class CNN:
         self.layer_name = layer_name
         self.transpose = transpose
         self.channel_swap = channel_swap
+
         if initialize:
             self.initialize_cnn(1)
     #assume that we're getting a single image
@@ -101,8 +108,10 @@ class CNN:
         self.net.set_input_arrays(img, np.array([1],dtype=np.float32))
         p = self.net.forward()
         return self.net.blobs[self.layer_name].data[...].reshape(-1)
+    
     #expecting an array of images
     def extract_many(self, img):
+
         codes = np.array([])
         if img.shape[0] > self.max_batch_size:
             print 'exceeded max batch size. splitting into minibatches'
@@ -121,7 +130,6 @@ class CNN:
                 print 'final minibatch'
                 self.initialize_cnn(img.shape[0]-mult)
                 tim = img[mult:img.shape[0],0:int(self.w),0:int(self.h)]
-
                 #Lots of repeated code
                 tim = np.array([self.transformer.preprocess('data',i) for i in tim])
                 self.net.set_input_arrays(tim, np.ones(img.shape[0]-mult,dtype=np.float32))
@@ -136,6 +144,43 @@ class CNN:
             p = self.net.forward()
             codes = self.net.blobs[self.layer_name].data[...]
         return codes
+
+    def extract_many_pad(self, img):
+        
+        codes = np.array([])
+        if img.shape[0] > self.max_batch_size:
+            print 'exceeded max batch size. splitting into minibatches'
+            self.initialize_cnn(self.max_batch_size)
+            mult = np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size
+
+            for i in range(int(np.round(img.shape[0]/self.max_batch_size))):
+                print 'minibatch: ' + str(i)
+                tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,0:int(self.w),0:int(self.h)]
+                #Lots of repeated code
+                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+                self.net.set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
+                p = self.net.forward()
+                codes = np.append(codes,self.net.blobs[self.layer_name].data[...])
+            if np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size < img.shape[0]:
+                print 'final minibatch'
+                tim = img[mult:img.shape[0],0:int(self.w),0:int(self.h)]
+                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+                tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-(img.shape[0]-mult),self.net.blobs['data'].data.shape[1:]))))
+
+                #Lots of repeated code
+                self.net.set_input_arrays(tim.astype(np.float32), np.ones(self.max_batch_size,dtype=np.float32))
+                p = self.net.forward()
+                codes = np.append(codes,self.net.blobs[self.layer_name].data[...][0:img.shape[0]-mult])
+            codes = codes.reshape(np.append(-1,self.net.blobs[self.layer_name].data.shape[1:]))
+        else:
+            self.initialize_cnn(img.shape[0])
+            img = img[:,0:int(self.w),0:int(self.h)]
+            img = np.array([self.transformer.preprocess('data',i) for i in img])
+            self.net.set_input_arrays(img, np.ones(img.shape[0],dtype=np.float32))
+            p = self.net.forward()
+            codes = self.net.blobs[self.layer_name].data[...]
+        return codes
+
 
 def flatten(img):
     if img.shape[2] > 1:

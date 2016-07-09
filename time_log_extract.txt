@@ -1,0 +1,16 @@
+Test #1: Set Params
+6.00900697708
+Test #2: Single image extraction using extract()
+0.122276067734
+Test #3: Multiple image extraction using extract()
+32.0418601036
+Test #4: Multiple image extraction using extract_many()
+14.2276611328
+Test #5: Multiple image extraction using extract_many_pad()
+15.0708949566
+Test #6: Multiple image extraction using extract() batch_size > max batch size
+69.2314019203
+Test #7: Multiple image extraction using extract_many() batch_size > max batch size
+33.1534218788
+Test #8: Multiple image extraction using extract_many_pad() batch_size > max batch size 
+47.8241457939
