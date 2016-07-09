@@ -1,3 +1,15 @@
 *.pyc
 db_repository
+*~
+#*
+*#
+.#*
 *.caffemodel
+.DS_Store
+.Python
+
+app/run.py
+app/run.sh
+=======
+*.caffemodel
+

@@ -610,8 +610,16 @@ class Patch(db.Model):
       crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
       # Remove alpha channel if present
-      if crop.shape[2] == 4:
-        crop = crop[:,:,0:3]
+      try :
+        if crop.shape[2] == 4:
+          crop = crop[:,:,0:3]
+      # Replicate channels if image is Black and White
+      except IndexError, e:
+        tmp = np.zeros((crop.shape[0], crop.shape[1], 3))
+        tmp[:,:,0] = crop
+        tmp[:,:,1] = crop
+        tmp[:,:,2] = crop
+        crop = tmp
 
       return crop
 
