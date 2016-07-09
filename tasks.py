@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 import sys
+import csv
+
+from celery import Celery, current_task, group, chord, chain
+from functools import wraps
+import celery.registry as registry
 
 from app import db
 import app.models
-from celery import Celery, current_task, group, chord, chain
-import celery.registry as registry
 import config
-from functools import wraps
+
 
 celery = Celery('tasks',
                 broker="sqla+"+config.SQLALCHEMY_DATABASE_URI,
@@ -66,14 +69,17 @@ def if_dataset(ds):
 @that_retries
 def dataset(ds_id):
     ds = app.models.Dataset.query.get(ds_id)
-   
+    ks = app.models.Keyword.query.filter(Keyword.dataset_id==ds.id).all()
+
     patch = chord(group(patch_dataset.si(ds.id, ps.id)
                         for ps in ds.patchspecs), done.si())
         
     analyze = group(analyze_blob.si(blob.id,
                                     *[fs.id for fs in ds.featurespecs])
                     for blob in ds.blobs)
-    chain(patch, analyze).apply_async()
+    examples = chord(group(add_examples.si(k.id)
+                           for k in ks), done.si())
+    chain(patch, analyze, examples).apply_async()
 
 @celery.task
 @that_retries
@@ -96,15 +102,48 @@ def analyze_blob(blob_id, *fs_ids):
 
 @celery.task
 @that_retries
-def add_examples(k_id, *fs_ids):
+def add_examples(k_id):
     k = app.models.Keyword.query.get(k_id)
-    # get definition file
-    # create examples for each row
-    # check if patch exists
-    # create new patch and feature
-    # add example to db
+    # read definition file
+    for row in csv.reader(k.defn_file):
+        # create examples for each row        
+        blob_name, x, y, h, w, val = row # TODO format this for the expected types
 
-    db.session.commit()
+        # check if blob exists
+        blob = app.models.Blob.query.filter(app.models.Blob.location.like('%{}'.format(blob_name)))
+        if blob is None:
+            print 'Cannot add example for file {}'.format(blob_name)
+            # TODO: add log entry
+        # check if patch exists
+        patch = app.models.Patch.query.\
+                filter(app.models.Patch.blob==blob).\
+                filter(app.models.Patch.x==x).\
+                filter(app.models.Patch.y==y).\
+                filter(app.models.Patch.h==h).\
+                filter(app.models.Patch.w==w).first()
+
+        # create new patch and feature
+        if patch is None:
+            patch = app.models.Patch(blob=blob,
+                          x=x,
+                          y=y,
+                          width=w,
+                          height=h,
+                          fliplr=False, rotation=0.0)
+            db.session.add()
+            db.session.commit()
+
+            ds = k.dataset
+            fs_ids = [fs.id for fs in ds.featurespecs]
+            for fs in [app.models.FeatureSpec.query.get(fs_id) for fs_id in fs_ids]:
+                for feat in fs.create_patch_features(patch):
+                    db.session.add(feat)
+            db.session.commit()
+
+        # add example to db
+        ex = app.models.Example(value=val,patch=patch,keyword=k)
+        db.session.add(ex)
+        db.session.commit()
 
 
 
