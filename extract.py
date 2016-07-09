@@ -6,7 +6,14 @@ import caffe
 import tempfile
 import re
 
-class ColorHist:
+class BaseFeature:
+
+    def extract_many(self, img):
+        codes = np.array([self.extract(i) for i in img])
+        return codes
+
+
+class ColorHist(BaseFeature):
     def set_params(self, bins=4):
         self.bins = bins
 
@@ -17,7 +24,7 @@ class ColorHist:
         return hist
 
 
-class HoGDalal:
+class HoGDalal(BaseFeature):
     def set_params(self, ori=9, px_per_cell=(8,8), cells_per_block=(2,2), window_size=40):
         self.ori = ori
         self.px_per_cell = px_per_cell
@@ -31,7 +38,7 @@ class HoGDalal:
                                        cells_per_block=self.cells_per_block)
         return hog_feat
 
-class TinyImage:
+class TinyImage(BaseFeature):
     def set_params(self, flatten=False):
         self.flatten = flatten
 
