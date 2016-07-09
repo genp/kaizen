@@ -66,6 +66,7 @@ To suppress pycaffe terminal output:
 Install Caffe:
     git clone https://github.com/BVLC/caffe.git
     cp Makefile.config.example Makefile.config
+    #Edit config for proper system settings
     make all
     make test
     make runtest
