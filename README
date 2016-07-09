@@ -21,8 +21,8 @@ Linux:
 
 TO BEGIN:
 git clone git@github.com:genp/kaizen.git
-cd kaizen
 mkvirtualenv kaizen
+cd kaizen
 setvirtualenvproject kaizen
 ln -sf `pwd`/bin/postactivate ~/.virtualenvs/kaizen/bin
 ln -sf `pwd`/bin/postdeactivate ~/.virtualenvs/kaizen/bin
@@ -30,6 +30,7 @@ pip install --upgrade pip
 pip install numpy scipy
 pip install -r pip-freeze.txt
 add2virtualenv .
+gem install sass
 
 Install opencv:
   OS X:
@@ -38,6 +39,7 @@ Install opencv:
      ~/.virtualenvs/kaizen/lib/python*/site-packages
    ln -s /usr/local/Cellar/opencv/2*/lib/python2.7/site-packages/cv2.so \
      ~/.virtualenvs/kaizen/lib/python*/site-packages
+
   Linux: 
     git clone https://github.com/Itseez/opencv.git
     cd ~/opencv
@@ -47,12 +49,17 @@ Install opencv:
     make
     sudo make install
 
-sudo -u postgres createuser -sdr $USER
-#change ident to trust in pg_hba.conf
-createdb kaizen
-./bin/db_create.py
-./bin/kaizen.py
-celery -A tasks.celery worker --loglevel=debug
+Install opencv3:
+  OS X:
+   brew install opencv
+   ln -s /usr/local/Cellar/opencv3/3*/lib/python2.7/site-packages/cv2.so \
+     ~/.virtualenvs/kaizen/lib/python*/site-packages
+  Linux: ???
+
+For OS X:
+  sudo gem install sass
+  INSTALL caffe
+  pip install protobuf
 
 Install Caffe:
     git clone https://github.com/BVLC/caffe.git
@@ -77,3 +84,14 @@ Install dependencies first:
     brew install lmdb
     brew install homebrew/science/opencv
     edit caffe/Makefile.config to install CPU only version
+
+Create Database and start Kaizen and Celery Servers:
+----------------------------------------------------
+sudo -u postgres createuser -sdr $USER
+#change ident to trust in pg_hba.conf
+createdb kaizen
+./bin/db_create.py
+./bin/kaizen.py
+celery -A tasks.celery worker --loglevel=debug
+
+

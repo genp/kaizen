@@ -1,3 +1,7 @@
+Add to README:
+ - have to download caffenet, googlenet, vgg caffemodels! (all renamed to "weights.caffemodel")
+
+
 Celery
  - Have a celery worker built in, so dev-box works immediately
  - Show work queue progress in UI

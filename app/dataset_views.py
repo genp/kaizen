@@ -169,7 +169,7 @@ def patchspec_new():
             psform.dataset.data.patchspecs.append(pspec)
             next = psform.dataset.data.url
         db.session.commit()
-        tasks.if_dataset(fsform.dataset.data)
+        tasks.if_dataset(psform.dataset.data)
         return redirect(next)
     if psform.dataset.data:
         return dataset(psform.dataset.data.id, psform=psform)

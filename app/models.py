@@ -317,6 +317,7 @@ class FeatureSpec(db.Model):
       for feature in self.create_blob_features(blob):
         yield feature
 
+  # TODO: change to return self.instance.extract_many([p.image for p in blob.patches])
   def create_blob_features(self, blob):
     for patch in blob.patches:
       feat = self.create_patch_feature(patch)
