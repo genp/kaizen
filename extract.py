@@ -68,7 +68,7 @@ class CNN:
         self.transformer.set_channel_swap('data',self.channel_swap)
         temp.close()
 
-    def set_params(self, model = "caffenet", layer_name = "fc7", transpose = (2,0,1), channel_swap = (2,1,0)):
+    def set_params(self, model = "caffenet", layer_name = "fc7", transpose = (2,0,1), channel_swap = (2,1,0), initialize = True):
         '''
         Parameters
         ------------
@@ -80,16 +80,20 @@ class CNN:
         
         see below for better idea of what "transpose" and "channel_swap" are used for
         http://nbviewer.jupyter.org/github/BVLC/caffe/blob/master/examples/00-classification.ipynb
+
+        set "initialize" to False when using extract_many.  Initialize makes single-patch feature extraction
+        significantly faster
         '''
         self.model = model
         self.layer_name = layer_name
         self.transpose = transpose
         self.channel_swap = channel_swap
-        
+        if initialize:
+            self.initialize_cnn(1)
     #assume that we're getting a single image
     #Img comes in format (x,y,c)
     def extract(self, img):
-        self.initialize_cnn(1)
+        
         img = img[0:int(self.w),0:int(self.h)]
         img = self.transformer.preprocess('data',img)
         if len(img.shape) == 3:
