@@ -84,7 +84,7 @@ class Blob(db.Model):
   longitude = db.Column(db.Float)
 
   URL_MAP = {
-    config.clroot + '/app/static/' : 'http://localhost:8080/',
+    config.kairoot + '/app/static/' : 'http://localhost:8080/',
     's3://' : s3_url,
   }
 
@@ -367,6 +367,12 @@ class Dataset(db.Model):
 
 
 class Keyword(db.Model):
+  '''
+  Keywords can be created individually or be asscociated with a dataset
+  When associated with a dataset, the keyword will have a defn_file that contains
+  the location of a csv listing the images, patch locations, and label values of the 
+  examples associated with this keyword. 
+  '''
   id = db.Column(db.Integer, primary_key = True)
   name = db.Column(db.String)
 
@@ -375,6 +381,10 @@ class Keyword(db.Model):
 
   geoquery_id = db.Column(db.Integer, db.ForeignKey('geo_query.id'))
   geoquery = db.relationship('GeoQuery', backref = db.backref('keywords', lazy = 'dynamic'))
+
+  defn_file = db.Column(db.String)
+  dataset_id = db.Column(db.Integer, db.ForeignKey('dataset.id'))
+  dataset = db.relationship('Dataset', backref = db.backref('keywords', lazy = 'dynamic'))
 
   def __init__(self, **kwargs):
       super(Keyword, self).__init__(**kwargs)
@@ -600,8 +610,16 @@ class Patch(db.Model):
       crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
       # Remove alpha channel if present
-      if crop.shape[2] == 4:
-        crop = crop[:,:,0:3]
+      try :
+        if crop.shape[2] == 4:
+          crop = crop[:,:,0:3]
+      # Replicate channels if image is Black and White
+      except IndexError, e:
+        tmp = np.zeros((crop.shape[0], crop.shape[1], 3))
+        tmp[:,:,0] = crop
+        tmp[:,:,1] = crop
+        tmp[:,:,2] = crop
+        crop = tmp
 
       return crop
 
