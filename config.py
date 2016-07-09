@@ -3,11 +3,17 @@
 Sets up global variables for Kaizen.
 
 '''
-import os
-clroot = os.getenv('CLROOT')
-if not clroot:
-    clroot = os.path.dirname(os.path.abspath(__file__))
-DEVELOPMENT = False
+import os,sys
+kairoot = os.getenv('KAIROOT')
+if not kairoot:
+    kairoot = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(kairoot)
+
+cafferoot = os.getenv('CAFFEROOT')
+if not cafferoot:
+    cafferoot = '~/caffe'
+sys.path.append(cafferoot)
+DEVELOPMENT = True
 
 
 user = os.environ['USER']
@@ -33,10 +39,10 @@ if False:                       # Bring this back if needed, from crowd_learner
 if False:                       # Bring this back if needed, from crowd_learner
     import sys
 
-    sys.path.append(os.path.join(clroot, 'bin/empty_patch/'))
+    sys.path.append(os.path.join(kairoot, 'bin/empty_patch/'))
     # import ep_classifier
 
-    # epc = ep_classifier.EmptyPatchClassifier(os.path.join(clroot, 'bin/empty_patch'))
+    # epc = ep_classifier.EmptyPatchClassifier(os.path.join(kairoot, 'bin/empty_patch'))
     # epc.load()
 
 """
@@ -72,7 +78,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 BLOB_DIR = os.path.join(basedir, 'app', 'static', 'blobs')
 DATASET_DIR = os.path.join(basedir, 'app', 'static', 'datasets')
 CACHE_DIR = os.path.join(basedir, 'app', 'static', 'cache')
-LOG_DIR = os.path.join(clroot, 'app', 'static', 'logs')
+LOG_DIR = os.path.join(kairoot, 'app', 'static', 'logs')
 LOG_FILE = os.path.join(LOG_DIR, APPNAME+'.log')
 
 for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR, LOG_DIR):
