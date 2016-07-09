@@ -29,6 +29,32 @@ def dataset_upload():
         name, ext = os.path.splitext(upload.filename)
 
         acceptable = ['.jpg', '.jpeg', '.png']
+        label_acceptable = ['.csv']
+
+        def unarchive_blob(fname, dset, tmpd, archive):
+            _, ext = os.path.splitext(fname)
+            if ext in acceptable and not fname.startswith("__MACOSX"):
+                archive.extract(item, tmpd)
+                blob = Blob(str(tmpd) + "/" + fname)
+                dset.blobs.append(blob)
+            return
+
+        def list_blob(url):
+            _, ext = os.path.splitext(url)
+            if ext in acceptable:
+                blob = Blob(url)
+                dset.blobs.append(blob)
+            return
+
+        def keyword_dataset(fname,dset, tmpd, archive):
+            kw, ext = os.path.splitext(fname)
+            if ext in label_acceptable:
+                # TODO: unarchive the csv file and store to tmpd
+                kw_fname = str(tmpd) + "/" + fname
+
+                k = Keyword(name=kw[1:],defn_file=kw_fname,dataset=dset)
+                dset.blobs.append(blob)
+            return
 
         dset = None
         if ext == ".zip":
@@ -62,6 +88,7 @@ def dataset_upload():
                                 mytar.extract(item, tmpd)
                                 blob = Blob(str(tmpd) + "/" + item.name)
                                 dset.blobs.append(blob)
+        # TODO move this up so that the zip and tar files could also contain specs in a csv or txt file
         elif ext == ".txt":
             dset = Dataset(name = name)
             db.session.add(dset)
@@ -82,6 +109,8 @@ def dataset_upload():
                         if ext in acceptable:
                             blob = Blob(url)
                             dset.blobs.append(blob)
+
+
         if dset != None:
             if form.patchspec.data:
                 dset.patchspecs.append(form.patchspec.data)
@@ -93,6 +122,8 @@ def dataset_upload():
     else:
         print form.errors
         return jsonify(errors=form.file.errors)
+
+
 
 @app.route('/dataset/attach', methods = ['POST'])
 def dataset_attach():
