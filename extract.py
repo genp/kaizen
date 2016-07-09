@@ -75,7 +75,7 @@ class CNN:
                 self.w = re.findall('\d+',arch[i])[0]
         temp.writelines(arch)
         temp.seek(0)
-        self.net[network] = caffe.Net(temp.name,weight_path,caffe.TEST)
+        self.net[network] = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
         self.transformer = caffe.io.Transformer({'data': self.net[network].blobs['data'].data.shape})
         self.transformer.set_transpose('data', self.transpose)
         self.transformer.set_channel_swap('data',self.channel_swap)
