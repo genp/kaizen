@@ -73,7 +73,6 @@ def time_tests():
 	print >> log, "Test #5: Multiple image extraction using extract_many_pad()"
 	a.stop(log)
 
-	c.set_params()
 	a.start()
 	for i in img_manymore:
 		out = c.extract(i)
