@@ -1,2 +1,10 @@
 *.pyc
 db_repository
+*~
+#*
+*#
+.#*
+*.caffemodel
+
+app/run.py
+app/run.sh
