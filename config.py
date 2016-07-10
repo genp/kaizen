@@ -13,7 +13,7 @@ cafferoot = os.getenv('CAFFEROOT')
 if not cafferoot:
     cafferoot = '~/caffe'
 sys.path.append(cafferoot)
-DEVELOPMENT = True
+DEVELOPMENT = False
 
 
 user = os.environ['USER']

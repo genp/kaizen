@@ -69,7 +69,7 @@ def if_dataset(ds):
 @that_retries
 def dataset(ds_id):
     ds = app.models.Dataset.query.get(ds_id)
-    ks = app.models.Keyword.query.filter(Keyword.dataset_id==ds.id).all()
+    ks = app.models.Keyword.query.filter(app.models.Keyword.dataset_id==ds.id).all()
 
     patch = chord(group(patch_dataset.si(ds.id, ps.id)
                         for ps in ds.patchspecs), done.si())
@@ -105,45 +105,51 @@ def analyze_blob(blob_id, *fs_ids):
 def add_examples(k_id):
     k = app.models.Keyword.query.get(k_id)
     # read definition file
-    for row in csv.reader(k.defn_file):
-        # create examples for each row        
-        blob_name, x, y, h, w, val = row # TODO format this for the expected types
+    with open(k.defn_file) as defn:
+        for row in csv.reader(defn):
+            # create examples for each row        
+            blob_name, x, y, h, w, val = row # TODO format this for the expected types
 
-        # check if blob exists
-        blob = app.models.Blob.query.filter(app.models.Blob.location.like('%{}'.format(blob_name)))
-        if blob is None:
-            print 'Cannot add example for file {}'.format(blob_name)
-            # TODO: add log entry
-        # check if patch exists
-        patch = app.models.Patch.query.\
-                filter(app.models.Patch.blob==blob).\
-                filter(app.models.Patch.x==x).\
-                filter(app.models.Patch.y==y).\
-                filter(app.models.Patch.h==h).\
-                filter(app.models.Patch.w==w).first()
+            # check if blob exists
+            # TODO join with dataset_x_blob table and only select blobs from this dataset
+            d = app.models.Dataset.query.get(k.dataset.id).blobs
+            blob = app.models.Blob.query.\
+                   filter(app.models.Blob.location.like('%{}'.format(blob_name))).\
+                   filter(app.models.Blob.id.in_([tmp.id for tmp in d])).\
+                   first()
+            if blob is None:
+                print 'Cannot add example for file {}'.format(blob_name)
+                # TODO: add log entry
+            # check if patch exists
+            patch = app.models.Patch.query.\
+                    filter(app.models.Patch.blob==blob).\
+                    filter(app.models.Patch.x==x).\
+                    filter(app.models.Patch.y==y).\
+                    filter(app.models.Patch.height==h).\
+                    filter(app.models.Patch.width==w).first()
 
-        # create new patch and feature
-        if patch is None:
-            patch = app.models.Patch(blob=blob,
-                          x=x,
-                          y=y,
-                          width=w,
-                          height=h,
-                          fliplr=False, rotation=0.0)
-            db.session.add()
-            db.session.commit()
+            # create new patch and feature
+            if patch is None:
+                patch = app.models.Patch(blob=blob,
+                              x=x,
+                              y=y,
+                              width=w,
+                              height=h,
+                              fliplr=False, rotation=0.0)
+                db.session.add(patch)
+                db.session.commit()
 
-            ds = k.dataset
-            fs_ids = [fs.id for fs in ds.featurespecs]
-            for fs in [app.models.FeatureSpec.query.get(fs_id) for fs_id in fs_ids]:
-                for feat in fs.create_patch_features(patch):
+                ds = k.dataset
+                fs_ids = [fs.id for fs in ds.featurespecs]
+                for fs in [app.models.FeatureSpec.query.get(fs_id) for fs_id in fs_ids]:
+                    feat = fs.create_patch_feature(patch)
                     db.session.add(feat)
-            db.session.commit()
+                db.session.commit()
 
-        # add example to db
-        ex = app.models.Example(value=val,patch=patch,keyword=k)
-        db.session.add(ex)
-        db.session.commit()
+            # add example to db
+            ex = app.models.Example(value=val,patch=patch,keyword=k)
+            db.session.add(ex)
+            db.session.commit()
 
 
 

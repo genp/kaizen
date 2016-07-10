@@ -23,6 +23,7 @@ def as_url(str):
 
 @app.route('/dataset-upload/', methods = ['POST'])
 def dataset_upload():
+    print '*****************************Dataset Upload'
     form = DatasetForm()
     if form.validate_on_submit():
         upload = form.file.data
@@ -135,6 +136,7 @@ def dataset_top():
 
 @app.route('/dataset/new', methods = ['GET', 'POST'])
 def dataset_new():
+    print '*****************************Dataset New'
     dataset_form = DatasetForm()
     return render_template('dataset_new.html',
                            title = 'New Dataset',
