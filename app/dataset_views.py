@@ -61,8 +61,10 @@ def dataset_upload():
 
                 for item in myzip.infolist():
                     fname, ext = os.path.splitext(item.filename)
+                    if "__MACOSX" in item.filename:
+                        continue
                     kw = os.path.basename(fname)
-                    if ext in acceptable and not item.filename.startswith("__MACOSX"):
+                    if ext in acceptable:
                         unarchive_blob(item, dset, tmpd, myzip)
                     elif ext in label_acceptable and kw.startswith('_'):
                         keyword_dataset(kw, item, dset, tmpd, myzip)
@@ -95,19 +97,21 @@ def dataset_upload():
                     for item in mytar:
                         if item.isreg():
                             fname, ext = os.path.splitext(item.filename)
+                            if "__MACOSX" in item.filename:
+                                continue
                             kw = os.path.basename(fname)
-                            if ext in acceptable and not item.name.startswith("__MACOSX"):
+                            if ext in acceptable:
                                 unarchive_blob(item, dset, tmpd, mytar)
                             if ext in label_acceptable and kw.startswith('_'):
                                 keyword_dataset(kw, item, dset, tmpd, mytar)
                             elif ext == ".txt":
-                                myzip.extract(item, tmpd)
+                                mytar.extract(item, tmpd)
                                 with open(os.path.join(str(tmpd),item.filename)) as img_list:
                                     for url in img_list:
                                         url = url.rstrip()
                                         list_blob(url)
                             elif ext == ".csv" and not kw.startswith('_'):
-                                myzip.extract(item, tmpd)
+                                mytar.extract(item, tmpd)
                                 with open(os.path.join(str(tmpd),item.filename)) as img_list:
                                     for row in csv.reader(img_list):
                                         for entry in row:
@@ -134,7 +138,6 @@ def dataset_upload():
                 dset.patchspecs.append(form.patchspec.data)
             if form.featurespec.data:
                 dset.featurespecs.append(form.featurespec.data)
-            print '*** committing'
             db.session.commit()
             tasks.dataset.delay(dset.id)
             return jsonify(name=dset.name, id=dset.id, url = dset.url)
