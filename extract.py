@@ -2,6 +2,11 @@ import numpy as np
 import skimage.feature
 import skimage.color
 import skimage.transform
+import os
+
+#set logging level to 2 to suppress caffe output
+os.environ['GLOG_minloglevel'] = '2' 
+
 import caffe
 import tempfile
 import re
