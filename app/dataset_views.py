@@ -70,7 +70,7 @@ def dataset_upload():
                         myzip.extract(item, tmpd)
                         with open(os.path.join(str(tmpd),item.filename)) as img_list:
                             for url in img_list:
-                                url = url[:-1]
+                                url = url.rstrip()
                                 list_blob(url)
                     elif ext == ".csv" and not kw.startswith('_'):
                         myzip.extract(item, tmpd)
@@ -101,12 +101,14 @@ def dataset_upload():
                             if ext in label_acceptable and kw.startswith('_'):
                                 keyword_dataset(kw, item, dset, tmpd, mytar)
                             elif ext == ".txt":
-                                with open(item) as img_list:
+                                myzip.extract(item, tmpd)
+                                with open(os.path.join(str(tmpd),item.filename)) as img_list:
                                     for url in img_list:
-                                        url = url[:-1]
+                                        url = url.rstrip()
                                         list_blob(url)
-                            elif ext == ".csv":
-                                with open(item) as img_list:
+                            elif ext == ".csv" and not kw.startswith('_'):
+                                myzip.extract(item, tmpd)
+                                with open(os.path.join(str(tmpd),item.filename)) as img_list:
                                     for row in csv.reader(img_list):
                                         for entry in row:
                                             url = as_url(entry)
@@ -116,7 +118,7 @@ def dataset_upload():
             dset = Dataset(name = name)
             db.session.add(dset)
             for url in upload:
-                url = url[:-1]
+                url = url.rstrip()
                 list_blob(url)
         elif ext == ".csv":
             dset = Dataset(name = name)
@@ -132,6 +134,7 @@ def dataset_upload():
                 dset.patchspecs.append(form.patchspec.data)
             if form.featurespec.data:
                 dset.featurespecs.append(form.featurespec.data)
+            print '*** committing'
             db.session.commit()
             tasks.dataset.delay(dset.id)
             return jsonify(name=dset.name, id=dset.id, url = dset.url)
