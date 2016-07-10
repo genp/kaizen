@@ -34,7 +34,7 @@ def dataset_upload():
 
         def unarchive_blob(item, dset, tmpd, archive):
             archive.extract(item, tmpd)
-            blob = Blob(str(tmpd) + "/" + item.filename)
+            blob = Blob(os.path.join(str(tmpd),item.filename))
             dset.blobs.append(blob)
             return
 
@@ -64,8 +64,22 @@ def dataset_upload():
                     kw = os.path.basename(fname)
                     if ext in acceptable and not item.filename.startswith("__MACOSX"):
                         unarchive_blob(item, dset, tmpd, myzip)
-                    if ext in label_acceptable and kw.startswith('_'):
+                    elif ext in label_acceptable and kw.startswith('_'):
                         keyword_dataset(kw, item, dset, tmpd, myzip)
+                    elif ext == ".txt":
+                        myzip.extract(item, tmpd)
+                        with open(os.path.join(str(tmpd),item.filename)) as img_list:
+                            for url in img_list:
+                                url = url[:-1]
+                                list_blob(url)
+                    elif ext == ".csv" and not kw.startswith('_'):
+                        myzip.extract(item, tmpd)
+                        with open(os.path.join(str(tmpd),item.filename)) as img_list:
+                            for row in csv.reader(img_list):
+                                for entry in row:
+                                    url = as_url(entry)
+                                    if url:
+                                        list_blob(url)
 
         elif ext == ".gz" or ext == ".bz2" or ext == ".tar":
             if ext != ".tar":
@@ -86,6 +100,18 @@ def dataset_upload():
                                 unarchive_blob(item, dset, tmpd, mytar)
                             if ext in label_acceptable and kw.startswith('_'):
                                 keyword_dataset(kw, item, dset, tmpd, mytar)
+                            elif ext == ".txt":
+                                with open(item) as img_list:
+                                    for url in img_list:
+                                        url = url[:-1]
+                                        list_blob(url)
+                            elif ext == ".csv":
+                                with open(item) as img_list:
+                                    for row in csv.reader(img_list):
+                                        for entry in row:
+                                            url = as_url(entry)
+                                            if url:
+                                                list_blob(url)
         elif ext == ".txt":
             dset = Dataset(name = name)
             db.session.add(dset)
