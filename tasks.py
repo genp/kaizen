@@ -108,17 +108,21 @@ def add_examples(k_id):
     with open(k.defn_file) as defn:
         for row in csv.reader(defn):
             # create examples for each row        
-            blob_name, x, y, h, w, val = row # TODO format this for the expected types
+            blob_name, x, y, w, h, val = row # TODO format this for the expected types
 
             # check if blob exists
             # TODO join with dataset_x_blob table and only select blobs from this dataset
             d = app.models.Dataset.query.get(k.dataset.id).blobs
+            if len(d) == 0:
+                print 'Cannot add example from empty dataset{}'.format(k.dataset)
+                return
             blob = app.models.Blob.query.\
                    filter(app.models.Blob.location.like('%{}'.format(blob_name))).\
                    filter(app.models.Blob.id.in_([tmp.id for tmp in d])).\
                    first()
             if blob is None:
                 print 'Cannot add example for file {}'.format(blob_name)
+                return
                 # TODO: add log entry
             # check if patch exists
             patch = app.models.Patch.query.\

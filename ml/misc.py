@@ -21,12 +21,12 @@ def overlap_squares(patch_a, patch_b, overlap):
 
 def overlap_rect(patch_a, patch_b, overlap):
     '''
-    checks for overlap of bboxes specified as tuples (x, y, hieght, width)
+    checks for overlap of bboxes specified as tuples (x, y, width, height)
     check if rectangles overlap by IoU >= overlap
     '''    
     # intersection
-    y_in = np.intersect1d(range(patch_a[1], patch_a[1]+patch_a[2]), range(patch_b[1], patch_b[1]+patch_b[2]))
-    x_in = np.intersect1d(range(patch_a[0], patch_a[0]+patch_a[3]), range(patch_b[0], patch_b[0]+patch_b[3]))
+    y_in = np.intersect1d(range(patch_a[1], patch_a[1]+patch_a[3]), range(patch_b[1], patch_b[1]+patch_b[3]))
+    x_in = np.intersect1d(range(patch_a[0], patch_a[0]+patch_a[2]), range(patch_b[0], patch_b[0]+patch_b[2]))
     intersection = float(len(y_in))*float(len(x_in))
 
     # union
