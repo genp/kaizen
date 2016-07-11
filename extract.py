@@ -17,6 +17,9 @@ class BaseFeature:
         codes = np.array([self.extract(i) for i in img])
         return codes
 
+    def reduce(self):
+        
+
 
 class ColorHist(BaseFeature):
     def set_params(self, bins=4):

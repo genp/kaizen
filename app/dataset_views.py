@@ -74,7 +74,7 @@ def dataset_upload():
                             for url in img_list:
                                 url = url.rstrip()
                                 list_blob(url)
-                    elif ext == ".csv" and not kw.startswith('_'):
+                    elif ext == ".csv" and not kw.startswith('_') :
                         myzip.extract(item, tmpd)
                         with open(os.path.join(str(tmpd),item.filename)) as img_list:
                             for row in csv.reader(img_list):
