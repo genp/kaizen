@@ -114,8 +114,9 @@ def add_examples(k_id):
             # TODO join with dataset_x_blob table and only select blobs from this dataset
             d = app.models.Dataset.query.get(k.dataset.id).blobs
             if len(d) == 0:
-                print 'Cannot add example from empty dataset{}'.format(k.dataset)
+                print 'Cannot add example from empty dataset {}'.format(k.dataset)
                 return
+
             blob = app.models.Blob.query.\
                    filter(app.models.Blob.location.like('%{}'.format(blob_name))).\
                    filter(app.models.Blob.id.in_([tmp.id for tmp in d])).\

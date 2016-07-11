@@ -41,6 +41,7 @@ class HoGDalal(BaseFeature):
         flat_img = skimage.transform.resize(img[:,:,1], (self.window_size, self.window_size))
         hog_feat = skimage.feature.hog(flat_img, orientations=self.ori, pixels_per_cell=self.px_per_cell,
                                        cells_per_block=self.cells_per_block)
+        hog_feat = np.reshape(hog_feat, (-1))
         return hog_feat
 
 class TinyImage(BaseFeature):
@@ -80,10 +81,10 @@ class CNN:
                 self.w = re.findall('\d+',arch[i])[0]
         temp.writelines(arch)
         temp.seek(0)
-        # self.net[network] = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
-        # self.transformer = caffe.io.Transformer({'data': self.net[network].blobs['data'].data.shape})
-        # self.transformer.set_transpose('data', self.transpose)
-        # self.transformer.set_channel_swap('data',self.channel_swap)
+        self.net[network] = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
+        self.transformer = caffe.io.Transformer({'data': self.net[network].blobs['data'].data.shape})
+        self.transformer.set_transpose('data', self.transpose)
+        self.transformer.set_channel_swap('data',self.channel_swap)
 
         temp.close()
 
@@ -121,7 +122,9 @@ class CNN:
             img = np.expand_dims(img,axis=0)
         self.net["one"].set_input_arrays(img, np.array([1],dtype=np.float32))
         p = self.net["one"].forward()
-        return self.net["one"].blobs[self.layer_name].data[...].reshape(-1)
+        feat = self.net["one"].blobs[self.layer_name].data[...].reshape(-1)
+        feat = np.reshape(feat, (-1))
+        return feat
     
     #expecting an array of images
     def extract_many(self, img):
