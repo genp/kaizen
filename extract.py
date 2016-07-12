@@ -12,13 +12,12 @@ import tempfile
 import re
 
 class BaseFeature:
-
     def extract_many(self, img):
         codes = np.array([self.extract(i) for i in img])
         return codes
 
     def reduce(self):
-        
+        pass
 
 
 class ColorHist(BaseFeature):
