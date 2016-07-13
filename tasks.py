@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import csv
+import os
 
 from celery import Celery, current_task, group, chord, chain
 from functools import wraps
@@ -90,13 +91,14 @@ def add_examples(k):
 
             # check if blob exists
             blobs = k.dataset.blobs
-            if blobs.isempty():
+            if not blobs:
                 print 'Cannot add example from empty dataset {}'.format(k.dataset)
                 return
+            print blobs    
             blobs = [b for b in blobs
                      if os.path.basename(b.location) == blob_name]
             
-            if blobs.isempty():
+            if not blobs:
                 print 'Cannot add example for file {}'.format(blob_name)
                 return
             # TODO: add log entry
