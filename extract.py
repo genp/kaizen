@@ -18,8 +18,8 @@ class BaseFeature:
 
     def reduce(self, codes, type = "subsample", output_dim = 1024):
         '''
-        "codes" should be an array of codes for either a single or multiple images in the form of:
-        (N, c) where "N" is the number of images and "c" is the array of codes.  Can also take in input of the form:
+        "codes" should be an array of codes for either a single or multiple images of shape:
+        (N, c) where "N" is the number of images and "c" is the array of codes.  Can also take in input of shape:
         (c,) where "c" is the array of codes
 
         "type" indicates the process to perform on the given feature.
@@ -30,16 +30,26 @@ class BaseFeature:
         '''
 
         if type == "subsample":
-            if output_dim < codes.shape[1]:
-                return codes[0:output_dim]
-            else:
-                raise ValueError('output_dim is larger than the codes! ')
 
+            if len(codes.shape) > 1:
+                if output_dim <= codes.shape[1]:
+                    return codes[0:output_dim]
+                else:
+                    raise ValueError('output_dim is larger than the codes! ')
+            elif len(codes.shape) == 1:
+                if output_dim <= codes.shape[0]:
+                    return codes[0:output_dim]
+                else:
+                    raise ValueError('output_dim is larger than the codes! ')
         elif type == "normalization":
+            mean = np.mean(codes)
+            std = np.std(codes)
+            norm = np.divide((codes - mean),std)
+            return norm
 
-        #subsample
-        #normalization
-        #power norm  ?
+        #subsample - check
+        #normalization - check
+        #power norm - ?
 
 class ColorHist(BaseFeature):
     def set_params(self, bins=4):
@@ -83,7 +93,7 @@ class TinyImage(BaseFeature):
 #Darius
 #CNN code may not work on Multi-GPU machines.
 #
-class CNN:
+class CNN(BaseFeature):
 
     max_batch_size = 500
     net = {}
