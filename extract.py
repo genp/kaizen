@@ -36,9 +36,8 @@ class BaseFeature:
                 raise ValueError('output_dim is larger than the codes! ')
 
         elif type == "normalization":
+            pass
 
-        #subsample
-        #normalization
         #power norm  ?
 
 class ColorHist(BaseFeature):
