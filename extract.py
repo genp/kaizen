@@ -17,8 +17,30 @@ class BaseFeature:
         codes = np.array([self.extract(i) for i in img])
         return codes
 
-    def reduce(self):
-        
+    def process(self, codes, type = "subsample", output_dim = 1024):
+        '''
+        "codes" should be an array of codes for either a single or multiple images in the form of:
+        (N, c) where "N" is the number of images and "c" is the array of codes.  Can also take in input of the form:
+        (c,) where "c" is the array of codes
+
+        "type" indicates the process to perform on the given feature.
+        Currently supported operations: subsample, normalization
+
+        "output_dim" is the number of dimensions requested for output of a dimensionality reduction operation.
+        Not needed for non dimensionality reduction operations (ie "normalization")
+        '''
+
+        if type == "subsample":
+            if output_dim < codes.shape[1]:
+                return codes[0:output_dim]
+            else:
+                raise ValueError('output_dim is larger than the codes! ')
+
+        elif type == "normalization":
+
+        #subsample
+        #normalization
+        #power norm  ?
 
 
 class ColorHist(BaseFeature):
