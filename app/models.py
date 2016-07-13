@@ -196,38 +196,6 @@ class PatchSpec(db.Model):
     return self.name + ": " + str(self.height) + "x" + str(self.width) \
       + upto + " with " + overlap
 
-  def count_blob_patches(self, blob):
-    img = Image.open(blob.materialize())
-
-    w = self.width
-    h = self.height
-    sum = 0
-    while w < img.size[0] and h < img.size[1]:
-      sum += self.count_sized_blob_patches(blob, img.size, w, h)
-      w = int(w * self.scale)
-      h = int(h * self.scale)
-    return sum
-
-  def count_sized_blob_patches(self, blob, size, width, height):
-    # How far each slide will go
-    xstep = int(width * (1-self.xoverlap))
-    ystep = int(height * (1-self.yoverlap))
-
-    # The available room for sliding
-    xdelta = size[0]-width
-    ydelta = size[1]-height
-
-    # How many slides, and how much unused "slide space"
-    xsteps, extra_width = divmod(xdelta, xstep)
-    ysteps, extra_height = divmod(ydelta, ystep)
-    return (1+xsteps) * (1+ysteps)
-
-
-  def create_dataset_patches(self, ds):
-    for blob in ds.blobs:
-      for patch in self.create_blob_patches(blob):
-        yield patch
-
   def create_blob_patches(self, blob):
     img = Image.open(blob.materialize())
 
@@ -258,16 +226,12 @@ class PatchSpec(db.Model):
 
     for x in xrange(left_indent, xdelta, xstep):
       for y in xrange(top_indent, ydelta, ystep):
-        patch = Patch.ifNew(blob=blob, x=x, y=y,
-                            width=width, height=height, fliplr=False)
-        if patch:
-          yield patch
+        yield Patch.ensure(blob=blob, x=x, y=y,
+                           width=width, height=height, fliplr=False)
         if not self.fliplr:
           continue
-        patch = Patch.ifNew(blob=blob, x=x, y=y,
-                            width=width, height=height, fliplr=True)
-        if patch:
-          yield patch
+        yield Patch.ensure(blob=blob, x=x, y=y,
+                           width=width, height=height, fliplr=True)
 
 dataset_x_featurespec = db.Table('dataset_x_featurespec', db.Model.metadata,
     db.Column('dataset_id', db.Integer, db.ForeignKey('dataset.id')),
@@ -312,21 +276,18 @@ class FeatureSpec(db.Model):
   def url(self):
     return "/featurespec/"+str(self.id)
 
-  def create_dataset_features(self, ds):
-    for blob in ds.blobs:
-      for feature in self.create_blob_features(blob):
-        yield feature
-
-  # TODO: change to return self.instance.extract_many([p.image for p in blob.patches])
-  def create_blob_features(self, blob):
+  # TODO: change to do the analysis for the entire blob at once, since
+  # that will be faster for some extracters.  Something like: return
+  # self.instance.extract_many([p.image for p in blob.patches])
+  def analyze_blob(self, blob):
     for patch in blob.patches:
-      feat = self.create_patch_feature(patch)
+      feat = self.analyze_patch(patch)
       if feat:
           yield feat
 
-  def create_patch_feature(self, patch):
+  def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
-      return
+      return None
     return Feature(patch=patch, spec=self,
                    vector=self.instance.extract(patch.image))
 
@@ -349,6 +310,16 @@ class Dataset(db.Model):
       super(Dataset, self).__init__(**kwargs)
       if self.owner is None and current_user.is_authenticated:
         self.owner = current_user
+
+  def create_blob_features(self, blob):
+    for ps in self.patchspecs:
+      print ps
+      for patch in ps.create_blob_patches(blob):
+        for fs in self.featurespecs:
+          print fs
+          feat = fs.analyze(patch)
+          if feat:
+            yield feat
 
   def migrate_to_s3(self):
     for blob in self.blobs:
@@ -580,6 +551,13 @@ class Patch(db.Model):
   def size(self):
     assert self.width == self.height
     return self.width
+
+  @classmethod
+  def ensure(model, **kwargs):
+    existing = model.query.filter_by(**kwargs).first()
+    if existing:
+      return existing
+    return model(**kwargs)
 
   @classmethod
   def ifNew(cls, **kwargs):
