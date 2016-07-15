@@ -16,7 +16,7 @@ class BaseFeature:
             # set up reduce params
             for key in ('use_reduce', 'ops', 'output_dim', 'alpha'): 
                 setattr(self, key, kwargs.get(key))            
-            set_params_func(self, kwargs)
+            set_params_func(self, **kwargs)
         return set_params_internal
 
     # Decorator for applying dimensionality reduction and normalization to output of feature extract functions
@@ -164,9 +164,10 @@ class CNN(BaseFeature):
         self.channel_swap = kwargs.get('channel_swap', (2,1,0))
         self.initialize = kwargs.get('initialize', False)
 
-        if initialize:
+        if self.initialize:
             self.initialize_cnn(1,"one")
             self.initialize_cnn(self.max_batch_size,"many")
+
     #assume that we're getting a single image
     #Img comes in format (x,y,c)
     @BaseFeature._reduce
