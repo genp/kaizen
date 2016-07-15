@@ -16,40 +16,43 @@ class BaseFeature:
         codes = np.array([self.extract(i) for i in img])
         return codes
 
-    def reduce(self, codes, type = "subsample", output_dim = 1024):
+    def reduce(self, codes, ops = "subsample", output_dim = 1024, alpha = 2.5):
         '''
-        "codes" should be an array of codes for either a single or multiple images of shape:
-        (N, c) where "N" is the number of images and "c" is the array of codes.  Can also take in input of shape:
-        (c,) where "c" is the array of codes
+        "codes" should be a numpy array of codes for either a single or multiple images of shape:
+        (N, c) where "N" is the number of images and "c" is the length of codes.  
 
-        "type" indicates the process to perform on the given feature.
-        Currently supported operations: subsample, normalization
+        "ops" indicates the processes to perform on the given feature.
+        Currently supported operations: subsample, normalization (normalize), power normalization (power_norm)
 
         "output_dim" is the number of dimensions requested for output of a dimensionality reduction operation.
         Not needed for non dimensionality reduction operations (ie "normalization")
+        
+        "alpha" is the power for the power normalization operation
         '''
 
-        if type == "subsample":
+        output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
+        for op in ops:
+            print op
+            if op == "subsample":
+                    if output_dim <= output_codes.shape[1]:
+                        output_codes = output_codes[:,0:output_dim]
+                    else:
+                        raise ValueError('output_dim is larger than the codes! ')
+            elif op == "normalize":
+                mean = np.mean(output_codes, 1)
+                std = np.std(output_codes, 1)
+                norm = np.divide((output_codes - mean[:, np.newaxis]),std[:, np.newaxis])
+                output_codes = norm
 
-            if len(codes.shape) > 1:
-                if output_dim <= codes.shape[1]:
-                    return codes[0:output_dim]
-                else:
-                    raise ValueError('output_dim is larger than the codes! ')
-            elif len(codes.shape) == 1:
-                if output_dim <= codes.shape[0]:
-                    return codes[0:output_dim]
-                else:
-                    raise ValueError('output_dim is larger than the codes! ')
-        elif type == "normalization":
-            mean = np.mean(codes)
-            std = np.std(codes)
-            norm = np.divide((codes - mean),std)
-            return norm
-
-        #subsample - check
-        #normalization - check
-        #power norm - ?
+            elif op == "power_norm":
+                alpha = 2.5
+                pownorm = lambda x: np.power(np.abs(x),alpha)
+                pw = pownorm(output_codes)
+                norm = np.linalg.norm(pw, axis=1)
+                output_codes = np.divide(pw,norm[:, np.newaxis])
+        if output_codes.shape[0] == 1:
+            output_codes = np.reshape(output_codes, -1)
+        return output_codes
 
 class ColorHist(BaseFeature):
     def set_params(self, bins=4):
@@ -121,7 +124,7 @@ class CNN(BaseFeature):
 
         temp.close()
 
-    def set_params(self, model = "caffenet", layer_name = "fc7", transpose = (2,0,1), channel_swap = (2,1,0), initialize = True):
+    def set_params(self, model = "caffenet", layer_name = "fc7", transpose = (2,0,1), channel_swap = (2,1,0), initialize = False):
         '''
         Parameters
         ------------
