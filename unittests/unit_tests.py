@@ -17,7 +17,7 @@ class TestExtractCNN(unittest.TestCase):
 		super(TestExtractCNN, self).__init__(*args, **kwargs)
 		print 'initializing unit test'
 		self.c = CNN()
-		self.c.set_params()
+		self.c.set_params(initialize = True)
 		p = models.Patch.query.all()[0]
 		self.img = p.image
 		self.many = np.repeat(np.expand_dims(self.img, axis=0),300,axis=0)
@@ -47,7 +47,7 @@ def time_tests():
 	log=open('time_log_extract.txt', 'w+')
 
 	a.start()
-	c.set_params()
+	c.set_params(initialize = True)        
 	print >> log, "Test #1: Set Params"
 	a.stop(log)
 

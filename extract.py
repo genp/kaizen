@@ -14,7 +14,8 @@ class BaseFeature:
     def _set_params(self, set_params_func):
         def set_params_internal(self, **kwargs):
             # set up reduce params
-            for key in ('use_reduce', 'ops', 'output_dim', 'alpha'): 
+            self.use_reduce = kwargs.get('use_reduce', False)
+            for key in ('ops', 'output_dim', 'alpha'): 
                 setattr(self, key, kwargs.get(key))            
             set_params_func(self, **kwargs)
         return set_params_internal
@@ -82,6 +83,7 @@ class ColorHist(BaseFeature):
 
 
 class HoGDalal(BaseFeature):
+    @BaseFeature._set_params
     def set_params(self, **kwargs): 
         self.ori = kwargs.get('ori', 9)
         self.px_per_cell = kwargs.get('px_per_cell', (8,8))
@@ -98,6 +100,7 @@ class HoGDalal(BaseFeature):
         return hog_feat
 
 class TinyImage(BaseFeature):
+    @BaseFeature._set_params
     def set_params(self, **kwargs):
         self.flatten = kwargs.get('flatten', False)
 
@@ -141,6 +144,7 @@ class CNN(BaseFeature):
 
         temp.close()
 
+    @BaseFeature._set_params
     def set_params(self, **kwargs):
         
         '''
