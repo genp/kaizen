@@ -1,63 +1,25 @@
+import re
+import tempfile
+
+import caffe
 import numpy as np
 import skimage.feature
 import skimage.color
 import skimage.transform
-import os
 
-#set logging level to 2 to suppress caffe output
-os.environ['GLOG_minloglevel'] = '2' 
-
-import caffe
-import tempfile
-import re
 
 class BaseFeature:
+
     def extract_many(self, img):
         codes = np.array([self.extract(i) for i in img])
         return codes
 
-    def reduce(self, codes, ops = "subsample", output_dim = 1024, alpha = 2.5):
-        '''
-        "codes" should be a numpy array of codes for either a single or multiple images of shape:
-        (N, c) where "N" is the number of images and "c" is the length of codes.  
-
-        "ops" indicates the processes to perform on the given feature.
-        Currently supported operations: subsample, normalization (normalize), power normalization (power_norm)
-
-        "output_dim" is the number of dimensions requested for output of a dimensionality reduction operation.
-        Not needed for non dimensionality reduction operations (ie "normalization")
-        
-        "alpha" is the power for the power normalization operation
-        '''
-
-        output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
-        for op in ops:
-            print op
-            if op == "subsample":
-                    if output_dim <= output_codes.shape[1]:
-                        output_codes = output_codes[:,0:output_dim]
-                    else:
-                        raise ValueError('output_dim is larger than the codes! ')
-            elif op == "normalize":
-                mean = np.mean(output_codes, 1)
-                std = np.std(output_codes, 1)
-                norm = np.divide((output_codes - mean[:, np.newaxis]),std[:, np.newaxis])
-                output_codes = norm
-
-            elif op == "power_norm":
-                alpha = 2.5
-                pownorm = lambda x: np.power(np.abs(x),alpha)
-                pw = pownorm(output_codes)
-                norm = np.linalg.norm(pw, axis=1)
-                output_codes = np.divide(pw,norm[:, np.newaxis])
-        if output_codes.shape[0] == 1:
-            output_codes = np.reshape(output_codes, -1)
-        return output_codes
 
 class ColorHist(BaseFeature):
     def set_params(self, bins=4):
         self.bins = bins
-
+    
+    @basefeature
     def extract(self, img):
         pixels = np.reshape(img, (img.shape[0]*img.shape[1],-1))
         hist,e = np.histogramdd(pixels, bins=self.bins, range=3*[[0,255]], normed=True)
@@ -241,5 +203,45 @@ def flatten(img):
     else:
         Y = img
     return Y
+
+# Decorator for applying dimensionality reduction and normalization to output of feature extract functions
+def reduce(orig_func):
+    def process(*args, **kwargs): #ops = ["subsample"], output_dim = 256, alpha = 2.5):
+        '''
+        "codes" should be a numpy array of codes for either a single or multiple images of shape:
+        (N, c) where "N" is the number of images and "c" is the length of codes.  
+
+        "ops" indicates the processes to perform on the given feature.
+        Currently supported operations: subsample, normalization (normalize), power normalization (power_norm)
+
+        "output_dim" is the number of dimensions requested for output of a dimensionality reduction operation.
+        Not needed for non dimensionality reduction operations (ie "normalization")
+        
+        "alpha" is the power for the power normalization operation
+        '''
+
+        output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
+        for op in ops:
+            print op
+            if op == "subsample":
+                    if output_dim <= output_codes.shape[1]:
+                        output_codes = output_codes[:,0:output_dim]
+                    else:
+                        raise ValueError('output_dim is larger than the codes! ')
+            elif op == "normalize":
+                mean = np.mean(output_codes, 1)
+                std = np.std(output_codes, 1)
+                norm = np.divide((output_codes - mean[:, np.newaxis]),std[:, np.newaxis])
+                output_codes = norm
+
+            elif op == "power_norm":
+                pownorm = lambda x: np.power(np.abs(x),alpha)
+                pw = pownorm(output_codes)
+                norm = np.linalg.norm(pw, axis=1)
+                output_codes = np.divide(pw,norm[:, np.newaxis])
+        if output_codes.shape[0] == 1:
+            output_codes = np.reshape(output_codes, -1)
+        return output_codes
+    return process
 
 kinds = [ColorHist, HoGDalal, TinyImage, CNN]
