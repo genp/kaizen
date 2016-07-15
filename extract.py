@@ -10,16 +10,70 @@ import skimage.transform
 
 class BaseFeature:
 
+    @classmethod
+    def _set_params(self, set_params_func):
+        def set_params_internal(self, **kwargs):
+            # set up reduce params
+            for key in ('use_reduce', 'ops', 'output_dim', 'alpha'): 
+                setattr(self, key, kwargs.get(key))            
+            set_params_func(self, kwargs)
+        return set_params_internal
+
+    # Decorator for applying dimensionality reduction and normalization to output of feature extract functions
+    @classmethod
+    def _reduce(self, extract_func):
+        def process(self, *args): 
+            '''
+            "codes" should be a numpy array of codes for either a single or multiple images of shape:
+            (N, c) where "N" is the number of images and "c" is the length of codes.  
+
+            "ops" indicates the processes to perform on the given feature.
+            Currently supported operations: subsample, normalization (normalize), power normalization (power_norm)
+
+            "output_dim" is the number of dimensions requested for output of a dimensionality reduction operation.
+            Not needed for non dimensionality reduction operations (ie "normalization")
+            
+            "alpha" is the power for the power normalization operation
+            '''
+            codes = extract_func(self, *args)            
+            if not self.use_reduce:
+                return codes
+            output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
+            for op in self.ops:
+                print op
+                if op == "subsample":
+                        if output_dim <= output_codes.shape[1]:
+                            output_codes = output_codes[:,0:self.output_dim]
+                        else:
+                            raise ValueError('output_dim is larger than the codes! ')
+                elif op == "normalize":
+                    mean = np.mean(output_codes, 1)
+                    std = np.std(output_codes, 1)
+                    norm = np.divide((output_codes - mean[:, np.newaxis]),std[:, np.newaxis])
+                    output_codes = norm
+
+                elif op == "power_norm":
+                    pownorm = lambda x: np.power(np.abs(x), self.alpha)
+                    pw = pownorm(output_codes)
+                    norm = np.linalg.norm(pw, axis=1)
+                    output_codes = np.divide(pw,norm[:, np.newaxis])
+            if output_codes.shape[0] == 1:
+                output_codes = np.reshape(output_codes, -1)
+            return output_codes
+        return process
+
     def extract_many(self, img):
-        codes = np.array([self.extract(i) for i in img])
+        ex_func = self._reduce(self.extract)
+        codes = np.array([ex_func(i) for i in img])
         return codes
 
 
 class ColorHist(BaseFeature):
-    def set_params(self, bins=4):
-        self.bins = bins
+    @BaseFeature._set_params
+    def set_params(self, **kwargs):
+        self.bins = kwargs.get('bins', 4)
     
-    @basefeature
+    @BaseFeature._reduce
     def extract(self, img):
         pixels = np.reshape(img, (img.shape[0]*img.shape[1],-1))
         hist,e = np.histogramdd(pixels, bins=self.bins, range=3*[[0,255]], normed=True)
@@ -28,12 +82,13 @@ class ColorHist(BaseFeature):
 
 
 class HoGDalal(BaseFeature):
-    def set_params(self, ori=9, px_per_cell=(8,8), cells_per_block=(2,2), window_size=40):
-        self.ori = ori
-        self.px_per_cell = px_per_cell
-        self.cells_per_block = cells_per_block
-        self.window_size = window_size
+    def set_params(self, **kwargs): 
+        self.ori = kwargs.get('ori', 9)
+        self.px_per_cell = kwargs.get('px_per_cell', (8,8))
+        self.cells_per_block = kwargs.get('cells_per_block', (2,2))
+        self.window_size = kwargs.get('window_size',40)
 
+    @BaseFeature._reduce
     def extract(self, img):
         flat_img = flatten(img)
         flat_img = skimage.transform.resize(img[:,:,1], (self.window_size, self.window_size))
@@ -43,9 +98,10 @@ class HoGDalal(BaseFeature):
         return hog_feat
 
 class TinyImage(BaseFeature):
-    def set_params(self, flatten=False):
-        self.flatten = flatten
+    def set_params(self, **kwargs):
+        self.flatten = kwargs.get('flatten', False)
 
+    @BaseFeature._reduce
     def extract(self, img):
         if self.flatten:
             img = flatten(img)
@@ -55,9 +111,7 @@ class TinyImage(BaseFeature):
         return tiny
 
 
-#Darius
-#CNN code may not work on Multi-GPU machines.
-#
+# Darius - CNN code may not work on Multi-GPU machines.
 class CNN(BaseFeature):
 
     max_batch_size = 500
@@ -79,14 +133,16 @@ class CNN(BaseFeature):
                 self.w = re.findall('\d+',arch[i])[0]
         temp.writelines(arch)
         temp.seek(0)
-        # self.net[network] = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
-        # self.transformer = caffe.io.Transformer({'data': self.net[network].blobs['data'].data.shape})
-        # self.transformer.set_transpose('data', self.transpose)
-        # self.transformer.set_channel_swap('data',self.channel_swap)
+
+        self.net[network] = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
+        self.transformer = caffe.io.Transformer({'data': self.net[network].blobs['data'].data.shape})
+        self.transformer.set_transpose('data', self.transpose)
+        self.transformer.set_channel_swap('data',self.channel_swap)
 
         temp.close()
 
-    def set_params(self, model = "caffenet", layer_name = "fc7", transpose = (2,0,1), channel_swap = (2,1,0), initialize = False):
+    def set_params(self, **kwargs):
+        
         '''
         Parameters
         ------------
@@ -102,16 +158,18 @@ class CNN(BaseFeature):
         set "initialize" to False when using extract_many.  Initialize makes single-patch feature extraction
         significantly faster
         '''
-        self.model = model
-        self.layer_name = layer_name
-        self.transpose = transpose
-        self.channel_swap = channel_swap
+        self.model = kwargs.get('model', "caffenet")
+        self.layer_name = kwargs.get('layer_name', "fc7")
+        self.transpose = kwargs.get('transpose', (2,0,1))
+        self.channel_swap = kwargs.get('channel_swap', (2,1,0))
+        self.initialize = kwargs.get('initialize', False)
 
         if initialize:
             self.initialize_cnn(1,"one")
             self.initialize_cnn(self.max_batch_size,"many")
     #assume that we're getting a single image
     #Img comes in format (x,y,c)
+    @BaseFeature._reduce
     def extract(self, img):
         
         img = img[0:int(self.w),0:int(self.h)]
@@ -125,6 +183,7 @@ class CNN(BaseFeature):
         return feat
     
     #expecting an array of images
+    @BaseFeature._reduce
     def extract_many(self, img):
 
         codes = np.array([])
@@ -203,45 +262,5 @@ def flatten(img):
     else:
         Y = img
     return Y
-
-# Decorator for applying dimensionality reduction and normalization to output of feature extract functions
-def reduce(orig_func):
-    def process(*args, **kwargs): #ops = ["subsample"], output_dim = 256, alpha = 2.5):
-        '''
-        "codes" should be a numpy array of codes for either a single or multiple images of shape:
-        (N, c) where "N" is the number of images and "c" is the length of codes.  
-
-        "ops" indicates the processes to perform on the given feature.
-        Currently supported operations: subsample, normalization (normalize), power normalization (power_norm)
-
-        "output_dim" is the number of dimensions requested for output of a dimensionality reduction operation.
-        Not needed for non dimensionality reduction operations (ie "normalization")
-        
-        "alpha" is the power for the power normalization operation
-        '''
-
-        output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
-        for op in ops:
-            print op
-            if op == "subsample":
-                    if output_dim <= output_codes.shape[1]:
-                        output_codes = output_codes[:,0:output_dim]
-                    else:
-                        raise ValueError('output_dim is larger than the codes! ')
-            elif op == "normalize":
-                mean = np.mean(output_codes, 1)
-                std = np.std(output_codes, 1)
-                norm = np.divide((output_codes - mean[:, np.newaxis]),std[:, np.newaxis])
-                output_codes = norm
-
-            elif op == "power_norm":
-                pownorm = lambda x: np.power(np.abs(x),alpha)
-                pw = pownorm(output_codes)
-                norm = np.linalg.norm(pw, axis=1)
-                output_codes = np.divide(pw,norm[:, np.newaxis])
-        if output_codes.shape[0] == 1:
-            output_codes = np.reshape(output_codes, -1)
-        return output_codes
-    return process
 
 kinds = [ColorHist, HoGDalal, TinyImage, CNN]
