@@ -41,9 +41,8 @@ class BaseFeature:
                 return codes
             output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
             for op in self.ops:
-                print op
                 if op == "subsample":
-                        if output_dim <= output_codes.shape[1]:
+                        if self.output_dim <= output_codes.shape[1]:
                             output_codes = output_codes[:,0:self.output_dim]
                         else:
                             raise ValueError('output_dim is larger than the codes! ')

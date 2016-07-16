@@ -2,9 +2,7 @@
 import numpy as np
 import os
 
-#set this to 2 to supress caffe python output
-os.environ['GLOG_minloglevel'] = '2' 
-
+import config
 import caffe
 from extract import CNN
 from apptimer import AppTimer
@@ -93,6 +91,37 @@ def time_tests():
 
 	log.close()
 
+def reduce_tests():
+	a = AppTimer()
+
+	img = np.random.rand(257,257,3)
+	img_many = np.expand_dims(img, axis=0)
+	img_many = np.repeat(img_many,300,axis=0)
+	img_manymore = np.repeat(img_many,2,axis=0)
+
+	c = CNN()
+
+	log=open('reduce_log_extract.txt', 'w+')
+
+	a.start()
+	c.set_params(initialize = True, use_reduce = True, ops = ["subsample", "power_norm"], output_dims = 200, alpha = 2.5)        
+	print >> log, "Test #1: Set Params"
+	a.stop(log)
+
+	a.start()
+	out = c.extract(img)
+	print >> log, "Test #2: Single image extraction using extract()"
+	a.stop(log)
+
+
+	a.start()
+	out = c.extract_many(img_many)
+	print >> log, "Test #4: Multiple image extraction using extract_many()"
+	a.stop(log)
+
+	log.close()
+
 if __name__ == '__main__':
     #unittest.main()
-    time_tests()
+    #time_tests()
+    reduce_tests()
