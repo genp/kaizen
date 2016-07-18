@@ -176,7 +176,6 @@ class CNN(BaseFeature):
     @BaseFeature._reduce
     def extract(self, img):
         
-        img = img[0:int(self.w),0:int(self.h)]
         img = self.transformer.preprocess('data',img)
         if len(img.shape) == 3:
             img = np.expand_dims(img,axis=0)
@@ -196,7 +195,7 @@ class CNN(BaseFeature):
             self.initialize_cnn(self.max_batch_size,"many")
             for i in range(int(np.round(img.shape[0]/self.max_batch_size))):
                 print 'minibatch: ' + str(i)
-                tim = img[i*500:(i+1)*500,0:int(self.w),0:int(self.h)]
+                tim = img[i*500:(i+1)*500,:,:]
 
                 #Lots of repeated code
                 tim = np.array([self.transformer.preprocess('data',i) for i in tim])
@@ -207,7 +206,7 @@ class CNN(BaseFeature):
                 mult = np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size
                 print 'final minibatch'
                 self.initialize_cnn(img.shape[0]-mult,"many")
-                tim = img[mult:img.shape[0],0:int(self.w),0:int(self.h)]
+                tim = img[mult:img.shape[0],:,:]
                 #Lots of repeated code
                 tim = np.array([self.transformer.preprocess('data',i) for i in tim])
                 self.net["many"].set_input_arrays(tim, np.ones(img.shape[0]-mult,dtype=np.float32))
@@ -216,7 +215,7 @@ class CNN(BaseFeature):
             codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
         else:
             self.initialize_cnn(img.shape[0],"many")
-            img = img[:,0:int(self.w),0:int(self.h)]
+            img = img[:,:,:]
             img = np.array([self.transformer.preprocess('data',i) for i in img])
             self.net["many"].set_input_arrays(img, np.ones(img.shape[0],dtype=np.float32))
             p = self.net["many"].forward()
@@ -233,7 +232,7 @@ class CNN(BaseFeature):
 
             for i in range(int(np.round(img.shape[0]/self.max_batch_size))):
                 print 'minibatch: ' + str(i)
-                tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,0:int(self.w),0:int(self.h)]
+                tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,:,:]
                 #Lots of repeated code
                 tim = np.array([self.transformer.preprocess('data',i) for i in tim])
                 self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
@@ -241,7 +240,7 @@ class CNN(BaseFeature):
                 codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
             if np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size < img.shape[0]:
                 print 'final minibatch'
-                tim = img[mult:img.shape[0],0:int(self.w),0:int(self.h)]
+                tim = img[mult:img.shape[0],:,:]
                 tim = np.array([self.transformer.preprocess('data',i) for i in tim])
                 tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-(img.shape[0]-mult),self.net["many"].blobs['data'].data.shape[1:]))))
 
@@ -252,7 +251,6 @@ class CNN(BaseFeature):
             codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
         else:
             self.initialize_cnn(img.shape[0],"many")
-            img = img[:,0:int(self.w),0:int(self.h)]
             img = np.array([self.transformer.preprocess('data',i) for i in img])
             self.net["many"].set_input_arrays(img, np.ones(img.shape[0],dtype=np.float32))
             p = self.net["many"].forward()
