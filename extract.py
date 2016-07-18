@@ -37,8 +37,9 @@ class BaseFeature:
             
             "alpha" is the power for the power normalization operation
             '''
-            print 'reducing ...'
+            print 'extracting ...'
             codes = extract_func(self, *args)            
+            print 'reducing ...'
             if not self.use_reduce:
                 return codes
             output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
@@ -56,6 +57,9 @@ class BaseFeature:
                 elif op == "normalize":
                     mean = np.mean(output_codes, 1)
                     std = np.std(output_codes, 1)
+                    if not np.any(std):
+                        warnings.warn("Normalization not evaluated due to 0 value std")
+                        continue
                     norm = np.divide((output_codes - mean[:, np.newaxis]),std[:, np.newaxis])
                     output_codes = norm
 
@@ -189,8 +193,9 @@ class CNN(BaseFeature):
     @BaseFeature._reduce
     def extract(self, img):
         
-
-        print img[0][0][:10]
+        print 'input img vals'
+        print np.max(img)
+        print np.min(img)
 
         img = self.transformer.preprocess('data',img)
         if len(img.shape) == 3:

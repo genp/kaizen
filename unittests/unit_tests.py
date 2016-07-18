@@ -94,9 +94,10 @@ def time_tests():
 def reduce_tests():
 	a = AppTimer()
 
-	img = np.random.rand(257,257,3)
+	img = np.random.rand(457,457,3)
         # img = 255*np.ones((257,257,3))
         # img = np.zeros((257,257,3))
+	# img = np.random.rand(157,157,3)
 	img_many = np.expand_dims(img, axis=0)
 	img_many = np.repeat(img_many,300,axis=0)
 	img_manymore = np.repeat(img_many,2,axis=0)
@@ -122,19 +123,19 @@ def reduce_tests():
 
 	a.start()
 
-	out = c.extract_many(img_many)
-	print np.min(out)
-	print np.max(out)
+	out2 = c.extract_many(img_many)
+	print np.min(out2)
+	print np.max(out2)
 	print >> log, "Test #4: Multiple image extraction using extract_many()"
 
 	a.stop(log)
 
 	log.close()
 
-        print all(out1 == out2[0])
-        print out1.shape
-        print out1
-        print sum(out1-out2[0])
+        print all(out == out2[0])
+        print out.shape
+        print out2.shape
+        print sum(out-out2[0])
 
 if __name__ == '__main__':
     #unittest.main()
