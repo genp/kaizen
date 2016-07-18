@@ -94,10 +94,7 @@ def time_tests():
 def reduce_tests():
 	a = AppTimer()
 
-	img = np.random.rand(457,457,3)
-        # img = 255*np.ones((257,257,3))
-        # img = np.zeros((257,257,3))
-	# img = np.random.rand(157,157,3)
+	img = 255 * np.random.rand(457,457,3)
 	img_many = np.expand_dims(img, axis=0)
 	img_many = np.repeat(img_many,300,axis=0)
 	img_manymore = np.repeat(img_many,2,axis=0)
@@ -107,7 +104,7 @@ def reduce_tests():
 	log=open('reduce_log_extract.txt', 'w+')
 
 	a.start()
-	c.set_params(initialize = True, use_reduce = True, ops = ["subsample", "power_norm"], output_dim = 200, alpha = 2.5)        
+	c.set_params(initialize = True, use_reduce = True, ops = ["subsample", "power_norm"], output_dim = 200, alpha = 2.5) # model= 'VGG'
 	print >> log, "Test #1: Set Params"
 	a.stop(log)
 
@@ -116,7 +113,7 @@ def reduce_tests():
 	out = c.extract(img)
 	print np.min(out)
 	print np.max(out)
-
+	print "Min and max values of extract feature output: ({}, {})".format(np.min(out),  np.max(out))
 	print >> log, "Test #2: Single image extraction using extract()"
 	a.stop(log)
 
@@ -124,18 +121,39 @@ def reduce_tests():
 	a.start()
 
 	out2 = c.extract_many(img_many)
-	print np.min(out2)
-	print np.max(out2)
-	print >> log, "Test #4: Multiple image extraction using extract_many()"
+	print "Min and max values of extract many feature output: ({}, {})".format(np.min(out2),  np.max(out2))
+	print >> log, "Test #3: Multiple image extraction using extract_many()"
+	a.stop(log)
 
+        print "Check that output of extract and extract many is the same: {}".format(np.allclose(out, out2[0]))
+
+
+        img = np.zeros((257,257,3))
+	img_many = np.expand_dims(img, axis=0)
+
+	a.start()
+	out = c.extract(img)
+	print np.min(out)
+	print np.max(out)
+	print "Min and max values of extract feature output on blank image: ({}, {})".format(np.min(out),  np.max(out))
+	print >> log, "Test #4: Single image extraction using extract()"
+	a.stop(log)
+
+
+	a.start()
+
+	out2 = c.extract_many(img_many)
+	print "Min and max values of extract many feature output on blank image: ({}, {})".format(np.min(out2),  np.max(out2))
+	print >> log, "Test #5: Multiple image extraction using extract_many()"
 	a.stop(log)
 
 	log.close()
 
-        print all(out == out2[0])
-        print out.shape
-        print out2.shape
-        print sum(out-out2[0])
+        print "Check that output of extract and extract many is the same: {}".format(np.allclose(out, out2[0]))
+
+
+        
+
 
 if __name__ == '__main__':
     #unittest.main()
