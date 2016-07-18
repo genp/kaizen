@@ -110,29 +110,23 @@ def reduce_tests():
 	print >> log, "Test #1: Set Params"
 	a.stop(log)
 
-<<<<<<< HEAD
-	a.start()        
-	out1 = c.extract(img)        
-=======
+
 	a.start()
 	out = c.extract(img)
 	print np.min(out)
 	print np.max(out)
->>>>>>> 35106e74f8f3554c0549212b5880782860fc7ab0
+
 	print >> log, "Test #2: Single image extraction using extract()"
 	a.stop(log)
 
 
 	a.start()
-<<<<<<< HEAD
-	out2 = c.extract_many(img_many)
-	print >> log, "Test #3: Multiple image extraction using extract_many()"
-=======
+
 	out = c.extract_many(img_many)
 	print np.min(out)
 	print np.max(out)
 	print >> log, "Test #4: Multiple image extraction using extract_many()"
->>>>>>> 35106e74f8f3554c0549212b5880782860fc7ab0
+
 	a.stop(log)
 
 	log.close()
