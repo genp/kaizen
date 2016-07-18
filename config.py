@@ -103,5 +103,5 @@ ADMINS = ['gen@cs.brown.edu']
 USER_ENABLE_CONFIRM_EMAIL = False
 USER_ENABLE_EMAIL = False
 
-#set logging level to 2 to suppress caffe output
+# set logging level to 2 to suppress caffe output
 os.environ['GLOG_minloglevel'] = '2'

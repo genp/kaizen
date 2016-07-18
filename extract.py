@@ -1,5 +1,6 @@
 import re
 import tempfile
+import warnings
 
 import caffe
 import numpy as np
@@ -36,16 +37,22 @@ class BaseFeature:
             
             "alpha" is the power for the power normalization operation
             '''
+            print 'reducing ...'
             codes = extract_func(self, *args)            
             if not self.use_reduce:
                 return codes
             output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
+            print output_codes.shape
+            print output_codes[0][:10]
             for op in self.ops:
+                print op
                 if op == "subsample":
-                        if self.output_dim <= output_codes.shape[1]:
-                            output_codes = output_codes[:,0:self.output_dim]
-                        else:
-                            raise ValueError('output_dim is larger than the codes! ')
+                    print self.output_dim 
+                    if self.output_dim <= output_codes.shape[1]:
+                        output_codes = output_codes[:,0:self.output_dim]
+                    else:
+                        raise ValueError('output_dim is larger than the codes! ')
+                    print output_codes.shape
                 elif op == "normalize":
                     mean = np.mean(output_codes, 1)
                     std = np.std(output_codes, 1)
@@ -56,9 +63,14 @@ class BaseFeature:
                     pownorm = lambda x: np.power(np.abs(x), self.alpha)
                     pw = pownorm(output_codes)
                     norm = np.linalg.norm(pw, axis=1)
+                    if not np.any(norm):
+                        warnings.warn("Power norm not evaluated due to 0 value norm")
+                        continue
+                    print norm
                     output_codes = np.divide(pw,norm[:, np.newaxis])
             if output_codes.shape[0] == 1:
                 output_codes = np.reshape(output_codes, -1)
+            print output_codes.shape
             return output_codes
         return process
 
@@ -122,6 +134,7 @@ class CNN(BaseFeature):
     def initialize_cnn(self, batch_size, network):
         temp = tempfile.NamedTemporaryFile()
 
+        # TODO: make set params assign this. Don't want to require this dir structure. 
         def_path = "caffemodels/" + self.model +"/train.prototxt"
         weight_path = "caffemodels/" + self.model + "/weights.caffemodel"
         #go through and edit batch size
@@ -176,7 +189,7 @@ class CNN(BaseFeature):
     @BaseFeature._reduce
     def extract(self, img):
         
-        img = img[0:int(self.w),0:int(self.h)]
+        print img[0][0][:10]
         img = self.transformer.preprocess('data',img)
         if len(img.shape) == 3:
             img = np.expand_dims(img,axis=0)
@@ -184,6 +197,8 @@ class CNN(BaseFeature):
         p = self.net["one"].forward()
         feat = self.net["one"].blobs[self.layer_name].data[...].reshape(-1)
         feat = np.reshape(feat, (-1))
+        print 'in extract'
+        print feat[:10]
         return feat
     
     #expecting an array of images

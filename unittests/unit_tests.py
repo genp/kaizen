@@ -95,31 +95,38 @@ def reduce_tests():
 	a = AppTimer()
 
 	img = np.random.rand(257,257,3)
+        # img = 255*np.ones((257,257,3))
+        # img = np.zeros((257,257,3))
 	img_many = np.expand_dims(img, axis=0)
 	img_many = np.repeat(img_many,300,axis=0)
 	img_manymore = np.repeat(img_many,2,axis=0)
 
 	c = CNN()
-
+        
 	log=open('reduce_log_extract.txt', 'w+')
 
 	a.start()
-	c.set_params(initialize = True, use_reduce = True, ops = ["subsample", "power_norm"], output_dims = 200, alpha = 2.5)        
+	c.set_params(initialize = True, use_reduce = True, ops = ["subsample", "power_norm"], output_dim = 200, alpha = 2.5)        
 	print >> log, "Test #1: Set Params"
 	a.stop(log)
 
-	a.start()
-	out = c.extract(img)
+	a.start()        
+	out1 = c.extract(img)        
 	print >> log, "Test #2: Single image extraction using extract()"
 	a.stop(log)
 
 
 	a.start()
-	out = c.extract_many(img_many)
-	print >> log, "Test #4: Multiple image extraction using extract_many()"
+	out2 = c.extract_many(img_many)
+	print >> log, "Test #3: Multiple image extraction using extract_many()"
 	a.stop(log)
 
 	log.close()
+
+        print all(out1 == out2[0])
+        print out1.shape
+        print out1
+        print sum(out1-out2[0])
 
 if __name__ == '__main__':
     #unittest.main()
