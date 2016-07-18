@@ -157,5 +157,5 @@ def reduce_tests():
 
 if __name__ == '__main__':
     #unittest.main()
-    #time_tests()
+    time_tests()
     reduce_tests()

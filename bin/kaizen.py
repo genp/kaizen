@@ -84,6 +84,11 @@ if e:
     e.params = {'normalize' : True, 'n_jobs' : 2}
     db.session.add(e)
 
+e = Estimator.ifNew(cls = 'sklearn.svm.LinearSVC')
+if e:
+    e.params = {}
+    db.session.add(e)
+
 db.session.commit()
 
 app.run(host='localhost', port=8080)

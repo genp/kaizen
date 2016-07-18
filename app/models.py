@@ -275,15 +275,11 @@ class FeatureSpec(db.Model):
   @property
   def url(self):
     return "/featurespec/"+str(self.id)
-
-  # TODO: change to do the analysis for the entire blob at once, since
-  # that will be faster for some extracters.  Something like: return
-  # self.instance.extract_many([p.image for p in blob.patches])
+  #TODO test
   def analyze_blob(self, blob):
-    for patch in blob.patches:
-      feat = self.analyze_patch(patch)
-      if feat:
-          yield feat
+    feats = self.instance.extract_many(np.array([p.image for p in blob.patches]))
+    if feats:
+      yield feats
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
@@ -310,16 +306,18 @@ class Dataset(db.Model):
       super(Dataset, self).__init__(**kwargs)
       if self.owner is None and current_user.is_authenticated:
         self.owner = current_user
-
+  #TODO test
   def create_blob_features(self, blob):
+
     for ps in self.patchspecs:
       print ps
-      for patch in ps.create_blob_patches(blob):
-        for fs in self.featurespecs:
-          print fs
-          feat = fs.analyze(patch)
-          if feat:
-            yield feat
+      ps.create_blob_patches(blob)
+
+    for fs in self.featurespecs:
+      print fs
+      feats = fs.analyze_blob(blob)
+      if feats:
+        yield feats
 
   def migrate_to_s3(self):
     for blob in self.blobs:
