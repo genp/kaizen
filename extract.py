@@ -54,10 +54,10 @@ def reduce(reducible_feature, codes):
     return output_codes
 
 def maybe_reduce(f):
-    def maybe_reducing_f(self, *args, **kwargs):
-        if self.use_reduce
-            return reduce(f(*args,**kwargs))
-        return f(*args, **kwargs)
+    def maybe_reducing_f(self, *args):
+        if self.use_reduce:
+            return reduce(self, f(self, *args))
+        return f(self, *args)
     return maybe_reducing_f
 
 

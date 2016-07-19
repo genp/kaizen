@@ -2,12 +2,14 @@
 import numpy as np
 import os
 
+import app
 import config
 import caffe
 from extract import CNN
 from apptimer import AppTimer
 import unittest
 from app import db, models
+
 
 class TestExtractCNN(unittest.TestCase):
 
@@ -94,16 +96,7 @@ def time_tests():
 def reduce_tests():
 	a = AppTimer()
 
-<<<<<<< HEAD
-	img = np.round(255 * np.random.rand(256,256,3))
-
-    #img = 255*np.ones((256,256,3))
-    #img = np.zeros((257,257,3))
-	#img = np.random.rand(157,157,3)
-
-=======
 	img = 255 * np.random.rand(457,457,3)
->>>>>>> 98a93ca2277fd87dd8d94482749f362890d6e32e
 	img_many = np.expand_dims(img, axis=0)
 	img_many = np.repeat(img_many,300,axis=0)
 	img_manymore = np.repeat(img_many,2,axis=0)
@@ -166,10 +159,13 @@ def reduce_tests():
 
 def extract_tests():
     # assumes one dataset and a blob with a least 10 patches loaded into database
-    d = app.models.Dataset.query.get(1)
-    blob = app.models.Blob.query.get(1)
+    d = models.Dataset.query.get(1)
+    print d
+    blob = models.Blob.query.get(1)
+    print blob
     imgs = [p.image for p in blob.patches[:10]]
-    fs = app.models.FeatureSpec.query.get(6)
+    fs = models.FeatureSpec.query.get(6)
+    print fs
     feat = fs.instance.extract_many(imgs)
     pfeat = fs.analyze_patch(blob.patches[0])
     
@@ -180,4 +176,3 @@ def extract_tests():
 if __name__ == '__main__':
     #unittest.main()
     time_tests()
-    reduce_tests()
