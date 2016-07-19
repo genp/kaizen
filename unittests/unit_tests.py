@@ -94,13 +94,19 @@ def time_tests():
 def reduce_tests():
 	a = AppTimer()
 
-	img = np.random.rand(457,457,3)
-        # img = 255*np.ones((257,257,3))
-        # img = np.zeros((257,257,3))
-	# img = np.random.rand(157,157,3)
+	img = np.round(255 * np.random.rand(256,256,3))
+
+    #img = 255*np.ones((256,256,3))
+    #img = np.zeros((257,257,3))
+	#img = np.random.rand(157,157,3)
+
 	img_many = np.expand_dims(img, axis=0)
 	img_many = np.repeat(img_many,300,axis=0)
 	img_manymore = np.repeat(img_many,2,axis=0)
+
+	print np.min(img)
+	print np.max(img)
+
 
 	c = CNN()
         

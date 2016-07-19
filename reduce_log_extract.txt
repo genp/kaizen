@@ -1,6 +1,6 @@
 Test #1: Set Params
-24.7299180031
+9.41442394257
 Test #2: Single image extraction using extract()
-0.666213035583
+0.177390098572
 Test #4: Multiple image extraction using extract_many()
-58.1827249527
+19.3252220154
