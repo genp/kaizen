@@ -23,15 +23,17 @@ def reduce(reducible_feature, codes):
     
     "alpha" is the power for the power normalization operation
     '''
-
-    if not reducible_feature.use_reduce:
-        return codes
     output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
-
-    for op in reducible_feature.ops:
+    print 'codes shape {}'.format(codes.shape)
+    print 'reducible_feature.ops {}'.format(reducible_feature.ops)
+    for op in eval(reducible_feature.ops):
+        print op
         if op == "subsample":
-            if reducible_feature.output_dim <= output_codes.shape[1]:
-                output_codes = output_codes[:,0:reducible_feature.output_dim]
+            print 'in subsample'
+            print reducible_feature.output_dim
+            odim = eval(reducible_feature.output_dim)
+            if odim <= output_codes.shape[1]:
+                output_codes = output_codes[:,0:odim]
             else:
                 raise ValueError('output_dim is larger than the codes! ')
         elif op == "normalize":
@@ -41,7 +43,9 @@ def reduce(reducible_feature, codes):
             output_codes = norm
 
         elif op == "power_norm":
-            pownorm = lambda x: np.power(np.abs(x), reducible_feature.alpha)
+            print 'in power norm'
+            alpha = eval(reducible_feature.alpha)
+            pownorm = lambda x: np.power(np.abs(x), alpha)
             pw = pownorm(output_codes)
             norm = np.linalg.norm(pw, axis=1)
             if not np.any(norm):
@@ -49,12 +53,14 @@ def reduce(reducible_feature, codes):
                 continue
             output_codes = np.divide(pw,norm[:, np.newaxis])
 
+    print 'output_codes.shape[0] {}'.format(output_codes.shape[0])
     if output_codes.shape[0] == 1:
         output_codes = np.reshape(output_codes, -1)
     return output_codes
 
 def maybe_reduce(f):
     def maybe_reducing_f(self, *args):
+        print '{} use reduce? {}'.format(self, self.use_reduce)
         if self.use_reduce:
             return reduce(self, f(self, *args))
         return f(self, *args)
@@ -66,7 +72,7 @@ class ReducibleFeature:
     def set_params(self, **kwargs):
         self.use_reduce = kwargs.get('use_reduce', False)
         for key in ('ops', 'output_dim', 'alpha'): 
-            setattr(self, key, kwargs.get(key))            
+            setattr(self, key, kwargs.get(key))
     
     @maybe_reduce
     def extract_many(self, img):

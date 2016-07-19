@@ -282,7 +282,7 @@ class FeatureSpec(db.Model):
     for feat in feats:
       if feat:
         yield feat
-  #TODO test
+
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
       return None

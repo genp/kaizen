@@ -167,9 +167,14 @@ def extract_tests():
     fs = models.FeatureSpec.query.get(6)
     print fs
     feat = fs.instance.extract_many(imgs)
-    pfeat = fs.analyze_patch(blob.patches[0])
-    
-    print 'extract_many and feature_spec.analyze_patch return same result: {}'.format(np.allclose(pfeat.vector, feat[0], atol=1e-6))
+    pfeat = fs.instance.extract(imgs[0])
+    print feat.shape
+    print pfeat.shape
+    print max(feat[0])
+    print min(feat[0])
+    print max(pfeat)
+    print min(pfeat)
+    print 'extract_many and feature_spec.analyze_patch return same result: {}'.format(np.allclose(pfeat, feat[0], atol=1e-6))
         
 
 
