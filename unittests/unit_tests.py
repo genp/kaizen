@@ -151,7 +151,16 @@ def reduce_tests():
 
         print "Check that output of extract and extract many is the same: {}".format(np.allclose(out, out2[0]))
 
-
+def extract_tests():
+    # assumes one dataset and a blob with a least 10 patches loaded into database
+    d = app.models.Dataset.query.get(1)
+    blob = app.models.Blob.query.get(1)
+    imgs = [p.image for p in blob.patches[:10]]
+    fs = app.models.FeatureSpec.query.get(6)
+    feat = fs.instance.extract_many(imgs)
+    pfeat = fs.analyze_patch(blob.patches[0])
+    
+    print 'extract_many and feature_spec.analyze_patch return same result: {}'.format(np.allclose(pfeat.vector, feat[0], atol=1e-6))
         
 
 

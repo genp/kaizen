@@ -9,17 +9,12 @@ import skimage.color
 import skimage.transform
 
 
-class BaseFeature:
+class ReducibleFeature:
 
-    @classmethod
-    def _set_params(self, set_params_func):
-        def set_params_internal(self, **kwargs):
-            # set up reduce params
-            self.use_reduce = kwargs.get('use_reduce', False)
-            for key in ('ops', 'output_dim', 'alpha'): 
-                setattr(self, key, kwargs.get(key))            
-            set_params_func(self, **kwargs)
-        return set_params_internal
+    def set_params(self, **kwargs):
+        self.use_reduce = kwargs.get('use_reduce', False)
+        for key in ('ops', 'output_dim', 'alpha'): 
+            setattr(self, key, kwargs.get(key))            
 
     # Decorator for applying dimensionality reduction and normalization to output of feature extract functions
     @classmethod
@@ -80,12 +75,12 @@ class BaseFeature:
         return codes
 
 
-class ColorHist(BaseFeature):
-    @BaseFeature._set_params
+class ColorHist(ReducibleFeature):
     def set_params(self, **kwargs):
+        ReducibleFeature.set_params(self, kwargs)
         self.bins = kwargs.get('bins', 4)
     
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract(self, img):
         pixels = np.reshape(img, (img.shape[0]*img.shape[1],-1))
         hist,e = np.histogramdd(pixels, bins=self.bins, range=3*[[0,255]], normed=True)
@@ -93,15 +88,15 @@ class ColorHist(BaseFeature):
         return hist
 
 
-class HoGDalal(BaseFeature):
-    @BaseFeature._set_params
-    def set_params(self, **kwargs): 
+class HoGDalal(ReducibleFeature):
+    def set_params(self, **kwargs):
+        ReducibleFeature.set_params(self, kwargs)
         self.ori = kwargs.get('ori', 9)
         self.px_per_cell = kwargs.get('px_per_cell', (8,8))
         self.cells_per_block = kwargs.get('cells_per_block', (2,2))
         self.window_size = kwargs.get('window_size',40)
 
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract(self, img):
         flat_img = flatten(img)
         flat_img = skimage.transform.resize(img[:,:,1], (self.window_size, self.window_size))
@@ -110,12 +105,12 @@ class HoGDalal(BaseFeature):
         hog_feat = np.reshape(hog_feat, (-1))
         return hog_feat
 
-class TinyImage(BaseFeature):
-    @BaseFeature._set_params
+class TinyImage(ReducibleFeature):
     def set_params(self, **kwargs):
+        ReducibleFeature.set_params(self, kwargs)
         self.flatten = kwargs.get('flatten', False)
 
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract(self, img):
         if self.flatten:
             img = flatten(img)
@@ -126,7 +121,7 @@ class TinyImage(BaseFeature):
 
 
 # Darius - CNN code may not work on Multi-GPU machines.
-class CNN(BaseFeature):
+class CNN(ReducibleFeature):
 
     max_batch_size = 500
     net = {}
@@ -156,9 +151,8 @@ class CNN(BaseFeature):
 
         temp.close()
 
-    @BaseFeature._set_params
     def set_params(self, **kwargs):
-        
+        ReducibleFeature.set_params(self, kwargs)        
         '''
         Parameters
         ------------
@@ -186,7 +180,7 @@ class CNN(BaseFeature):
 
     #assume that we're getting a single image
     #Img comes in format (x,y,c)
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract(self, img):
 
         # check that network is initialized
@@ -202,7 +196,7 @@ class CNN(BaseFeature):
         feat = np.reshape(feat, (-1))
         return feat
     
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract_many(self, imgs):
         '''
         imgs is a list of app.models.Patch.image, which are ndarrays of shape (x,y,3)

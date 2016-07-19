@@ -275,14 +275,14 @@ class FeatureSpec(db.Model):
   @property
   def url(self):
     return "/featurespec/"+str(self.id)
-  #TODO test
+
   def analyze_blob(self, blob):
     imgs = [p.image for p in blob.patches]
     feats = self.instance.extract_many(imgs)
     for feat in feats:
       if feat:
         yield feat
-
+  #TODO test
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
       return None
@@ -308,7 +308,7 @@ class Dataset(db.Model):
       super(Dataset, self).__init__(**kwargs)
       if self.owner is None and current_user.is_authenticated:
         self.owner = current_user
-  #TODO test
+
   def create_blob_features(self, blob):
 
     for ps in self.patchspecs:

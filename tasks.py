@@ -98,16 +98,17 @@ def add_examples(k):
                      if os.path.basename(b.location) == blob_name]
             
             if not blobs:
+                # TODO: add log entry
                 print 'Cannot add example for file {}'.format(blob_name)
                 return
-            # TODO: add log entry
+
 
             blob = blobs[0]
             patch = app.models.Patch.ensure(blob=blob, x=x, y=y, height=h, width=w,
                                             fliplr=False, rotation=0.0)
             # Calculate features for the example patches (as needed)
-            for fs in ds.featurespecs:
-                feat = fs.create_patch_feature(patch)
+            for fs in k.dataset.featurespecs:
+                feat = fs.analyze_patch(patch)
                 if feat:
                     db.session.add(feat)
 
