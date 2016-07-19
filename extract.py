@@ -8,62 +8,67 @@ import skimage.color
 import skimage.transform
 
 
+def reduce(reducible_feature, codes):
+    '''
+    "codes" should be a numpy array of codes for either a single or multiple images of shape:
+    (N, c) where "N" is the number of images and "c" is the length of codes.  
+
+    reducible_feature should be a class in the extract module with these member parameters: 
+
+    "ops" indicates the processes to perform on the given feature.
+    Currently supported operations: subsample, normalization (normalize), power normalization (power_norm)
+
+    "output_dim" is the number of dimensions requested for output of a dimensionality reduction operation.
+    Not needed for non dimensionality reduction operations (ie "normalization")
+    
+    "alpha" is the power for the power normalization operation
+    '''
+
+    if not reducible_feature.use_reduce:
+        return codes
+    output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
+
+    for op in reducible_feature.ops:
+        if op == "subsample":
+            if reducible_feature.output_dim <= output_codes.shape[1]:
+                output_codes = output_codes[:,0:reducible_feature.output_dim]
+            else:
+                raise ValueError('output_dim is larger than the codes! ')
+        elif op == "normalize":
+            mean = np.mean(output_codes, 1)
+            std = np.std(output_codes, 1)
+            norm = np.divide((output_codes - mean[:, np.newaxis]),std[:, np.newaxis])
+            output_codes = norm
+
+        elif op == "power_norm":
+            pownorm = lambda x: np.power(np.abs(x), reducible_feature.alpha)
+            pw = pownorm(output_codes)
+            norm = np.linalg.norm(pw, axis=1)
+            if not np.any(norm):
+                warnings.warn("Power norm not evaluated due to 0 value norm")
+                continue
+            output_codes = np.divide(pw,norm[:, np.newaxis])
+
+    if output_codes.shape[0] == 1:
+        output_codes = np.reshape(output_codes, -1)
+    return output_codes
+
+def maybe_reduce(f):
+    def maybe_reducing_f(self, *args, **kwargs):
+        if self.use_reduce
+            return reduce(f(*args,**kwargs))
+        return f(*args, **kwargs)
+    return maybe_reducing_f
+
+
 class ReducibleFeature:
 
     def set_params(self, **kwargs):
         self.use_reduce = kwargs.get('use_reduce', False)
         for key in ('ops', 'output_dim', 'alpha'): 
             setattr(self, key, kwargs.get(key))            
-
-    # Decorator for applying dimensionality reduction and normalization to output of feature extract functions
-    @classmethod
-    def _reduce(self, extract_func):
-        def process(self, *args): 
-            '''
-            "codes" should be a numpy array of codes for either a single or multiple images of shape:
-            (N, c) where "N" is the number of images and "c" is the length of codes.  
-
-            "ops" indicates the processes to perform on the given feature.
-            Currently supported operations: subsample, normalization (normalize), power normalization (power_norm)
-
-            "output_dim" is the number of dimensions requested for output of a dimensionality reduction operation.
-            Not needed for non dimensionality reduction operations (ie "normalization")
-            
-            "alpha" is the power for the power normalization operation
-            '''
-
-            codes = extract_func(self, *args)            
-
-            if not self.use_reduce:
-                return codes
-            output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
-
-            for op in self.ops:
-                if op == "subsample":
-                    if self.output_dim <= output_codes.shape[1]:
-                        output_codes = output_codes[:,0:self.output_dim]
-                    else:
-                        raise ValueError('output_dim is larger than the codes! ')
-                elif op == "normalize":
-                    mean = np.mean(output_codes, 1)
-                    std = np.std(output_codes, 1)
-                    norm = np.divide((output_codes - mean[:, np.newaxis]),std[:, np.newaxis])
-                    output_codes = norm
-
-                elif op == "power_norm":
-                    pownorm = lambda x: np.power(np.abs(x), self.alpha)
-                    pw = pownorm(output_codes)
-                    norm = np.linalg.norm(pw, axis=1)
-                    if not np.any(norm):
-                        warnings.warn("Power norm not evaluated due to 0 value norm")
-                        continue
-                    output_codes = np.divide(pw,norm[:, np.newaxis])
-
-            if output_codes.shape[0] == 1:
-                output_codes = np.reshape(output_codes, -1)
-            return output_codes
-        return process
-
+    
+    @maybe_reduce
     def extract_many(self, img):
         ex_func = self._reduce(self.extract)
         codes = np.array([ex_func(i) for i in img])
@@ -72,10 +77,10 @@ class ReducibleFeature:
 
 class ColorHist(ReducibleFeature):
     def set_params(self, **kwargs):
-        ReducibleFeature.set_params(self, kwargs)
+        ReducibleFeature.set_params(self, **kwargs)
         self.bins = kwargs.get('bins', 4)
     
-    @ReducibleFeature._reduce
+    @maybe_reduce
     def extract(self, img):
         pixels = np.reshape(img, (img.shape[0]*img.shape[1],-1))
         hist,e = np.histogramdd(pixels, bins=self.bins, range=3*[[0,255]], normed=True)
@@ -85,13 +90,13 @@ class ColorHist(ReducibleFeature):
 
 class HoGDalal(ReducibleFeature):
     def set_params(self, **kwargs):
-        ReducibleFeature.set_params(self, kwargs)
+        ReducibleFeature.set_params(self, **kwargs)
         self.ori = kwargs.get('ori', 9)
         self.px_per_cell = kwargs.get('px_per_cell', (8,8))
         self.cells_per_block = kwargs.get('cells_per_block', (2,2))
         self.window_size = kwargs.get('window_size',40)
 
-    @ReducibleFeature._reduce
+    @maybe_reduce
     def extract(self, img):
         flat_img = flatten(img)
         flat_img = skimage.transform.resize(img[:,:,1], (self.window_size, self.window_size))
@@ -102,10 +107,10 @@ class HoGDalal(ReducibleFeature):
 
 class TinyImage(ReducibleFeature):
     def set_params(self, **kwargs):
-        ReducibleFeature.set_params(self, kwargs)
+        ReducibleFeature.set_params(self, **kwargs)
         self.flatten = kwargs.get('flatten', False)
 
-    @ReducibleFeature._reduce
+    @maybe_reduce
     def extract(self, img):
         if self.flatten:
             img = flatten(img)
@@ -146,7 +151,7 @@ class CNN(ReducibleFeature):
         temp.close()
 
     def set_params(self, **kwargs):
-        ReducibleFeature.set_params(self, kwargs)        
+
         '''
         Parameters
         ------------
@@ -162,6 +167,8 @@ class CNN(ReducibleFeature):
         set "initialize" to False when using extract_many.  Initialize makes single-patch feature extraction
         significantly faster
         '''
+
+        ReducibleFeature.set_params(self, **kwargs)        
         self.model = kwargs.get('model', "caffenet")
         self.layer_name = kwargs.get('layer_name', "fc7")
         self.transpose = kwargs.get('transpose', (2,0,1))
@@ -174,7 +181,7 @@ class CNN(ReducibleFeature):
 
     #assume that we're getting a single image
     #Img comes in format (x,y,c)
-    @ReducibleFeature._reduce
+    @maybe_reduce
     def extract(self, img):
         # check that network is initialized
         if 'one' not in self.net.keys():
@@ -188,7 +195,7 @@ class CNN(ReducibleFeature):
         feat = np.reshape(feat, (-1))
         return feat
     
-    @ReducibleFeature._reduce
+    @maybe_reduce
     def extract_many(self, imgs):
         '''
         imgs is a list of app.models.Patch.image, which are ndarrays of shape (x,y,3)
