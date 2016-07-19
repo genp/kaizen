@@ -24,14 +24,11 @@ def reduce(reducible_feature, codes):
     "alpha" is the power for the power normalization operation
     '''
     output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
-    print 'codes shape {}'.format(codes.shape)
-    print 'reducible_feature.ops {}'.format(reducible_feature.ops)
-    for op in eval(reducible_feature.ops):
-        print op
+
+    for op in reducible_feature.ops:
+
         if op == "subsample":
-            print 'in subsample'
-            print reducible_feature.output_dim
-            odim = eval(reducible_feature.output_dim)
+            odim = reducible_feature.output_dim
             if odim <= output_codes.shape[1]:
                 output_codes = output_codes[:,0:odim]
             else:
@@ -43,8 +40,7 @@ def reduce(reducible_feature, codes):
             output_codes = norm
 
         elif op == "power_norm":
-            print 'in power norm'
-            alpha = eval(reducible_feature.alpha)
+            alpha = reducible_feature.alpha
             pownorm = lambda x: np.power(np.abs(x), alpha)
             pw = pownorm(output_codes)
             norm = np.linalg.norm(pw, axis=1)
@@ -53,14 +49,12 @@ def reduce(reducible_feature, codes):
                 continue
             output_codes = np.divide(pw,norm[:, np.newaxis])
 
-    print 'output_codes.shape[0] {}'.format(output_codes.shape[0])
     if output_codes.shape[0] == 1:
         output_codes = np.reshape(output_codes, -1)
     return output_codes
 
 def maybe_reduce(f):
     def maybe_reducing_f(self, *args):
-        print '{} use reduce? {}'.format(self, self.use_reduce)
         if self.use_reduce:
             return reduce(self, f(self, *args))
         return f(self, *args)
@@ -211,14 +205,17 @@ class CNN(ReducibleFeature):
             self.initialize_cnn(self.max_batch_size,"many")
 
         if len(imgs) > self.max_batch_size:
-            print 'exceeded max batch size. splitting into minibatches'
+            print 'exceeded max batch size. splitting into {} minibatches'.format(int(len(imgs)/self.max_batch_size)+1)
+            codes = np.asarray([])
             for i in range(int(len(imgs)/self.max_batch_size)+1):
                 print 'minibatch: ' + str(i)
                 tim = imgs[i*self.max_batch_size:min(len(imgs),(i+1)*self.max_batch_size)]
                 tim = np.array([self.transformer.preprocess('data',i) for i in tim])
                 num_imgs = len(tim)
                 if num_imgs < self.max_batch_size:
-                    tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]))))
+                    tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]),dtype=np.float32)))                 
+                print tim.shape
+                print tim.dtype
                 self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
                 p = self.net["many"].forward()
                 codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])

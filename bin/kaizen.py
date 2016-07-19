@@ -62,7 +62,7 @@ if fs:
 fs = FeatureSpec.ifNew(name = 'CNN_VGG_redux', cls = 'extract.CNN')
 if fs:
     print "adding CNN_VGG FeatureSpec with power norm and 200D"
-    fs.params = {'model':'VGG', 'layer_name': 'fc7', 'use_reduce' : 'True', 'ops' : '["subsample", "power_norm"]', 'output_dim' : '200', 'alpha' : '2.5'}
+    fs.params = {'model':'VGG', 'layer_name': 'fc7', 'use_reduce' : True, 'ops' : ["subsample", "power_norm"], 'output_dim' : 200, 'alpha' : 2.5}
     db.session.add(fs)
     print 'loaded CNN_VGG redux FeatureSpec'
 
@@ -76,7 +76,7 @@ if fs:
 fs = FeatureSpec.ifNew(name = 'CNN_CaffeNet_redux', cls = 'extract.CNN')
 if fs:
     print "adding CNN_CaffeNet redux FeatureSpec"
-    fs.params = {'use_reduce' : 'True', 'ops' : '["subsample", "power_norm"]', 'output_dim' : '200', 'alpha' : '2.5'}
+    fs.params = {'use_reduce' : True, 'ops' : ["subsample", "power_norm"], 'output_dim' : 200, 'alpha' : 2.5}
     db.session.add(fs)
     print "loaded CNN_CaffeNet redux FeatureSpec"
 
