@@ -48,6 +48,7 @@ def reduce(reducible_feature, codes):
                 warnings.warn("Power norm not evaluated due to 0 value norm")
                 continue
             output_codes = np.divide(pw,norm[:, np.newaxis])
+            output_codes = np.nan_to_num(output_codes)
 
     if output_codes.shape[0] == 1:
         output_codes = np.reshape(output_codes, -1)

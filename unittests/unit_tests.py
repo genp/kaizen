@@ -164,7 +164,7 @@ def extract_tests():
     blob = models.Blob.query.get(1)
     print blob
     imgs = [p.image for p in blob.patches[:10]]
-    fs = models.FeatureSpec.query.get(6)
+    fs = models.FeatureSpec.query.filter(models.FeatureSpec.name == 'CNN_CaffeNet_redux').first()
     print fs
     feat = fs.instance.extract_many(imgs)
     pfeat = fs.instance.extract(imgs[0])
@@ -174,9 +174,41 @@ def extract_tests():
     print min(feat[0])
     print max(pfeat)
     print min(pfeat)
-    print 'extract_many and feature_spec.analyze_patch return same result: {}'.format(np.allclose(pfeat, feat[0], atol=1e-6))
-        
+    print 'extract_many and extract return same result: {}'.format(np.allclose(pfeat, feat[0], atol=1e-6))
 
+def extract_multi_batch_tests():
+    # assumes one dataset and a blob with a least 10 patches loaded into database
+    d = models.Dataset.query.get(1)
+    print d
+    blob = models.Blob.query.get(1)
+    print blob
+    imgs = [p.image for p in blob.patches]
+    fs = models.FeatureSpec.query.filter(models.FeatureSpec.name == 'CNN_CaffeNet_redux').first()
+    print fs
+    feat = fs.instance.extract_many(imgs)
+
+    big_imgs = []
+    for i in range(5):
+        big_imgs += imgs
+    big_feat = fs.instance.extract_many(big_imgs)
+
+    print np.min(big_feat)
+    print np.min(feat)
+    print np.max(big_feat)
+    print np.max(feat)
+    print 'extract_many one and multi batch return same result: {}'.format(np.allclose(big_feat[0:len(feat)], feat, atol=1e-6))
+
+def analyze_blob_test(ds_id, blob_id):
+    ds = models.Dataset.query.get(ds_id)
+    blob = models.Blob.query.get(blob_id)
+    ds.create_blob_features(blob)
+
+
+def add_examples_test(k_id):
+    # expects to read definition file
+    import tasks
+    k = models.Keyword.query.get(k_id)
+    tasks.add_examples(k)
 
 if __name__ == '__main__':
     #unittest.main()
