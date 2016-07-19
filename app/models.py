@@ -276,15 +276,13 @@ class FeatureSpec(db.Model):
   def url(self):
     return "/featurespec/"+str(self.id)
 
-  # TODO: change to do the analysis for the entire blob at once, since
-  # that will be faster for some extracters.  Something like: return
-  # self.instance.extract_many([p.image for p in blob.patches])
   def analyze_blob(self, blob):
-    for patch in blob.patches:
-      feat = self.analyze_patch(patch)
+    imgs = [p.image for p in blob.patches]
+    feats = self.instance.extract_many(imgs)
+    for feat in feats:
       if feat:
-          yield feat
-
+        yield feat
+  #TODO test
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
       return None
@@ -312,14 +310,22 @@ class Dataset(db.Model):
         self.owner = current_user
 
   def create_blob_features(self, blob):
+
     for ps in self.patchspecs:
       print ps
-      for patch in ps.create_blob_patches(blob):
-        for fs in self.featurespecs:
-          print fs
-          feat = fs.analyze(patch)
-          if feat:
-            yield feat
+      
+      for p in ps.create_blob_patches(blob):
+        if p:
+          db.session.add(p)
+    db.session.commit()
+
+    for fs in self.featurespecs:
+      print fs
+      feats = fs.analyze_blob(blob)
+      for feat in feats:
+        if feat:
+          db.session.add(feat)
+    db.session.commit()
 
   def migrate_to_s3(self):
     for blob in self.blobs:

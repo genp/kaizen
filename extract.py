@@ -8,17 +8,12 @@ import skimage.color
 import skimage.transform
 
 
-class BaseFeature:
+class ReducibleFeature:
 
-    @classmethod
-    def _set_params(self, set_params_func):
-        def set_params_internal(self, **kwargs):
-            # set up reduce params
-            self.use_reduce = kwargs.get('use_reduce', False)
-            for key in ('ops', 'output_dim', 'alpha'): 
-                setattr(self, key, kwargs.get(key))            
-            set_params_func(self, **kwargs)
-        return set_params_internal
+    def set_params(self, **kwargs):
+        self.use_reduce = kwargs.get('use_reduce', False)
+        for key in ('ops', 'output_dim', 'alpha'): 
+            setattr(self, key, kwargs.get(key))            
 
     # Decorator for applying dimensionality reduction and normalization to output of feature extract functions
     @classmethod
@@ -36,16 +31,19 @@ class BaseFeature:
             
             "alpha" is the power for the power normalization operation
             '''
+
             codes = extract_func(self, *args)            
+
             if not self.use_reduce:
                 return codes
             output_codes = codes if len(codes.shape) > 1 else codes.reshape(1,len(codes))
+
             for op in self.ops:
                 if op == "subsample":
-                        if self.output_dim <= output_codes.shape[1]:
-                            output_codes = output_codes[:,0:self.output_dim]
-                        else:
-                            raise ValueError('output_dim is larger than the codes! ')
+                    if self.output_dim <= output_codes.shape[1]:
+                        output_codes = output_codes[:,0:self.output_dim]
+                    else:
+                        raise ValueError('output_dim is larger than the codes! ')
                 elif op == "normalize":
                     mean = np.mean(output_codes, 1)
                     std = np.std(output_codes, 1)
@@ -56,7 +54,11 @@ class BaseFeature:
                     pownorm = lambda x: np.power(np.abs(x), self.alpha)
                     pw = pownorm(output_codes)
                     norm = np.linalg.norm(pw, axis=1)
+                    if not np.any(norm):
+                        warnings.warn("Power norm not evaluated due to 0 value norm")
+                        continue
                     output_codes = np.divide(pw,norm[:, np.newaxis])
+
             if output_codes.shape[0] == 1:
                 output_codes = np.reshape(output_codes, -1)
             return output_codes
@@ -68,12 +70,12 @@ class BaseFeature:
         return codes
 
 
-class ColorHist(BaseFeature):
-    @BaseFeature._set_params
+class ColorHist(ReducibleFeature):
     def set_params(self, **kwargs):
+        ReducibleFeature.set_params(self, kwargs)
         self.bins = kwargs.get('bins', 4)
     
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract(self, img):
         pixels = np.reshape(img, (img.shape[0]*img.shape[1],-1))
         hist,e = np.histogramdd(pixels, bins=self.bins, range=3*[[0,255]], normed=True)
@@ -81,15 +83,15 @@ class ColorHist(BaseFeature):
         return hist
 
 
-class HoGDalal(BaseFeature):
-    @BaseFeature._set_params
-    def set_params(self, **kwargs): 
+class HoGDalal(ReducibleFeature):
+    def set_params(self, **kwargs):
+        ReducibleFeature.set_params(self, kwargs)
         self.ori = kwargs.get('ori', 9)
         self.px_per_cell = kwargs.get('px_per_cell', (8,8))
         self.cells_per_block = kwargs.get('cells_per_block', (2,2))
         self.window_size = kwargs.get('window_size',40)
 
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract(self, img):
         flat_img = flatten(img)
         flat_img = skimage.transform.resize(img[:,:,1], (self.window_size, self.window_size))
@@ -98,12 +100,12 @@ class HoGDalal(BaseFeature):
         hog_feat = np.reshape(hog_feat, (-1))
         return hog_feat
 
-class TinyImage(BaseFeature):
-    @BaseFeature._set_params
+class TinyImage(ReducibleFeature):
     def set_params(self, **kwargs):
+        ReducibleFeature.set_params(self, kwargs)
         self.flatten = kwargs.get('flatten', False)
 
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract(self, img):
         if self.flatten:
             img = flatten(img)
@@ -114,7 +116,7 @@ class TinyImage(BaseFeature):
 
 
 # Darius - CNN code may not work on Multi-GPU machines.
-class CNN(BaseFeature):
+class CNN(ReducibleFeature):
 
     max_batch_size = 500
     net = {}
@@ -143,9 +145,8 @@ class CNN(BaseFeature):
 
         temp.close()
 
-    @BaseFeature._set_params
     def set_params(self, **kwargs):
-        
+        ReducibleFeature.set_params(self, kwargs)        
         '''
         Parameters
         ------------
@@ -173,9 +174,11 @@ class CNN(BaseFeature):
 
     #assume that we're getting a single image
     #Img comes in format (x,y,c)
-    @BaseFeature._reduce
+    @ReducibleFeature._reduce
     def extract(self, img):
-        
+        # check that network is initialized
+        if 'one' not in self.net.keys():
+            self.initialize_cnn(1,"one")
         img = self.transformer.preprocess('data',img)
         if len(img.shape) == 3:
             img = np.expand_dims(img,axis=0)
@@ -185,77 +188,76 @@ class CNN(BaseFeature):
         feat = np.reshape(feat, (-1))
         return feat
     
-    #expecting an array of images
-    @BaseFeature._reduce
-    def extract_many(self, img):
-
-        codes = np.array([])
-        if img.shape[0] > self.max_batch_size:
-            print 'exceeded max batch size. splitting into minibatches'
+    @ReducibleFeature._reduce
+    def extract_many(self, imgs):
+        '''
+        imgs is a list of app.models.Patch.image, which are ndarrays of shape (x,y,3)
+        '''
+        # check that network is initialized
+        if 'many' not in self.net.keys():
             self.initialize_cnn(self.max_batch_size,"many")
-            for i in range(int(np.round(img.shape[0]/self.max_batch_size))):
-                print 'minibatch: ' + str(i)
-                tim = img[i*500:(i+1)*500,:,:]
 
-                #Lots of repeated code
+        if len(imgs) > self.max_batch_size:
+            print 'exceeded max batch size. splitting into minibatches'
+            for i in range(int(len(imgs)/self.max_batch_size)+1):
+                print 'minibatch: ' + str(i)
+                tim = imgs[i*self.max_batch_size:min(len(imgs),(i+1)*self.max_batch_size)]
                 tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+                num_imgs = len(tim)
+                if num_imgs < self.max_batch_size:
+                    tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]))))
                 self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
                 p = self.net["many"].forward()
                 codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
-            if np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size < img.shape[0]:
-                mult = np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size
-                print 'final minibatch'
-                self.initialize_cnn(img.shape[0]-mult,"many")
-                tim = img[mult:img.shape[0],:,:]
-                #Lots of repeated code
-                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
-                self.net["many"].set_input_arrays(tim, np.ones(img.shape[0]-mult,dtype=np.float32))
-                p = self.net["many"].forward()
-                codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
+
             codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
         else:
-            self.initialize_cnn(img.shape[0],"many")
-            img = img[:,:,:]
-            img = np.array([self.transformer.preprocess('data',i) for i in img])
-            self.net["many"].set_input_arrays(img, np.ones(img.shape[0],dtype=np.float32))
+            tim = np.array([self.transformer.preprocess('data',i) for i in imgs])
+            num_imgs = len(tim)
+            if num_imgs < self.max_batch_size:
+                tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]),dtype=np.float32)))
+            self.net["many"].set_input_arrays(tim, np.ones(tim.shape[0],dtype=np.float32))
             p = self.net["many"].forward()
             codes = self.net["many"].blobs[self.layer_name].data[...]
+            if num_imgs < self.max_batch_size:
+                codes = codes[:num_imgs,:]
         return codes
 
-    def extract_many_pad(self, img):
+    # TODO: this needs to be re-written
+    # def extract_many_pad(self, img):
         
-        codes = np.array([])
-        if img.shape[0] > self.max_batch_size:
-            print 'exceeded max batch size. splitting into minibatches'
-            self.initialize_cnn(self.max_batch_size,"many")
-            mult = np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size
+    #     codes = np.array([])
+    #     if len(img) > self.max_batch_size:
+    #         print 'exceeded max batch size. splitting into minibatches'
+    #         self.initialize_cnn(self.max_batch_size,"many")
+    #         mult = np.round(len(img)/self.max_batch_size) * self.max_batch_size
 
-            for i in range(int(np.round(img.shape[0]/self.max_batch_size))):
-                print 'minibatch: ' + str(i)
-                tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,:,:]
-                #Lots of repeated code
-                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
-                self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
-                p = self.net["many"].forward()
-                codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
-            if np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size < img.shape[0]:
-                print 'final minibatch'
-                tim = img[mult:img.shape[0],:,:]
-                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
-                tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-(img.shape[0]-mult),self.net["many"].blobs['data'].data.shape[1:]))))
+    #         for i in range(int(np.round(len(img)/self.max_batch_size))):
+    #             print 'minibatch: ' + str(i)
+    #             tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,:,:]
+    #             #Lots of repeated code
+    #             tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+    #             self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
+    #             p = self.net["many"].forward()
+    #             codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
+    #         if np.round(len(img)/self.max_batch_size) * self.max_batch_size < len(img):
+    #             print 'final minibatch'
+    #             tim = img[mult:len(img)]
+    #             tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+    #             tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-(len(img)-mult),self.net["many"].blobs['data'].data.shape[1:]))))
 
-                #Lots of repeated code
-                self.net["many"].set_input_arrays(tim.astype(np.float32), np.ones(self.max_batch_size,dtype=np.float32))
-                p = self.net["many"].forward()
-                codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...][0:img.shape[0]-mult])
-            codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
-        else:
-            self.initialize_cnn(img.shape[0],"many")
-            img = np.array([self.transformer.preprocess('data',i) for i in img])
-            self.net["many"].set_input_arrays(img, np.ones(img.shape[0],dtype=np.float32))
-            p = self.net["many"].forward()
-            codes = self.net["many"].blobs[self.layer_name].data[...]
-        return codes
+    #             #Lots of repeated code
+    #             self.net["many"].set_input_arrays(tim.astype(np.float32), np.ones(self.max_batch_size,dtype=np.float32))
+    #             p = self.net["many"].forward()
+    #             codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...][0:len(img)-mult])
+    #         codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
+    #     else:
+    #         self.initialize_cnn(len(img),"many")
+    #         img = np.array([self.transformer.preprocess('data',i) for i in img])
+    #         self.net["many"].set_input_arrays(img, np.ones(len(img),dtype=np.float32))
+    #         p = self.net["many"].forward()
+    #         codes = self.net["many"].blobs[self.layer_name].data[...]
+    #     return codes
 
 
 def flatten(img):
