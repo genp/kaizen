@@ -277,9 +277,11 @@ class FeatureSpec(db.Model):
     return "/featurespec/"+str(self.id)
   #TODO test
   def analyze_blob(self, blob):
-    feats = self.instance.extract_many(np.array([p.image for p in blob.patches]))
-    if feats:
-      yield feats
+    imgs = [p.image for p in blob.patches]
+    feats = self.instance.extract_many(imgs)
+    for feat in feats:
+      if feat:
+        yield feat
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
@@ -311,13 +313,19 @@ class Dataset(db.Model):
 
     for ps in self.patchspecs:
       print ps
-      ps.create_blob_patches(blob)
+      
+      for p in ps.create_blob_patches(blob):
+        if p:
+          db.session.add(p)
+    db.session.commit()
 
     for fs in self.featurespecs:
       print fs
       feats = fs.analyze_blob(blob)
-      if feats:
-        yield feats
+      for feat in feats:
+        if feat:
+          db.session.add(feat)
+    db.session.commit()
 
   def migrate_to_s3(self):
     for blob in self.blobs:

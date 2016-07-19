@@ -78,9 +78,8 @@ def dataset(ds_id):
 def analyze_blob(ds_id, blob_id):
     ds = app.models.Dataset.query.get(ds_id)
     blob = app.models.Blob.query.get(blob_id)
-    for feat in ds.create_blob_features(blob):
-        db.session.add(feat)
-    db.session.commit()
+    ds.create_blob_features(blob)
+
 
 def add_examples(k):
     # read definition file
@@ -104,8 +103,8 @@ def add_examples(k):
             # TODO: add log entry
 
             blob = blobs[0]
-            patch = Patch.ensure(blob=blob, x=x, y=y, height=h, width=w,
-                                 fliplr=False, rotation=0.0)
+            patch = app.models.Patch.ensure(blob=blob, x=x, y=y, height=h, width=w,
+                                            fliplr=False, rotation=0.0)
             # Calculate features for the example patches (as needed)
             for fs in ds.featurespecs:
                 feat = fs.create_patch_feature(patch)

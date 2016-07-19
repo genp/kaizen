@@ -188,6 +188,11 @@ class CNN(BaseFeature):
     #Img comes in format (x,y,c)
     @BaseFeature._reduce
     def extract(self, img):
+
+        # check that network is initialized
+        if 'one' not in self.net.keys():
+            self.initialize_cnn(1,"one")            
+
         img = self.transformer.preprocess('data',img)
         if len(img.shape) == 3:
             img = np.expand_dims(img,axis=0)
@@ -195,80 +200,78 @@ class CNN(BaseFeature):
         p = self.net["one"].forward()
         feat = self.net["one"].blobs[self.layer_name].data[...].reshape(-1)
         feat = np.reshape(feat, (-1))
-
         return feat
     
-    #expecting an array of images
     @BaseFeature._reduce
-    def extract_many(self, img):
-
-        codes = np.array([])
-        if img.shape[0] > self.max_batch_size:
-            print 'exceeded max batch size. splitting into minibatches'
+    def extract_many(self, imgs):
+        '''
+        imgs is a list of app.models.Patch.image, which are ndarrays of shape (x,y,3)
+        '''
+        # check that network is initialized
+        if 'many' not in self.net.keys():
             self.initialize_cnn(self.max_batch_size,"many")
-            for i in range(int(np.round(img.shape[0]/self.max_batch_size))):
-                print 'minibatch: ' + str(i)
-                tim = img[i*500:(i+1)*500,:,:]
 
-                #Lots of repeated code
+        if len(imgs) > self.max_batch_size:
+            print 'exceeded max batch size. splitting into minibatches'
+            for i in range(int(len(imgs)/self.max_batch_size)+1):
+                print 'minibatch: ' + str(i)
+                tim = imgs[i*self.max_batch_size:min(len(imgs),(i+1)*self.max_batch_size)]
                 tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+                num_imgs = len(tim)
+                if num_imgs < self.max_batch_size:
+                    tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]))))
                 self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
                 p = self.net["many"].forward()
                 codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
-            if np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size < img.shape[0]:
-                mult = np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size
-                print 'final minibatch'
-                self.initialize_cnn(img.shape[0]-mult,"many")
-                tim = img[mult:img.shape[0],:,:]
-                #Lots of repeated code
-                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
-                self.net["many"].set_input_arrays(tim, np.ones(img.shape[0]-mult,dtype=np.float32))
-                p = self.net["many"].forward()
-                codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
+
             codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
         else:
-            self.initialize_cnn(img.shape[0],"many")
-            img = img[:,:,:]
-            img = np.array([self.transformer.preprocess('data',i) for i in img])
-            self.net["many"].set_input_arrays(img, np.ones(img.shape[0],dtype=np.float32))
+            tim = np.array([self.transformer.preprocess('data',i) for i in imgs])
+            num_imgs = len(tim)
+            if num_imgs < self.max_batch_size:
+                tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]),dtype=np.float32)))
+            self.net["many"].set_input_arrays(tim, np.ones(tim.shape[0],dtype=np.float32))
             p = self.net["many"].forward()
             codes = self.net["many"].blobs[self.layer_name].data[...]
+            if num_imgs < self.max_batch_size:
+                codes = codes[:num_imgs,:]
         return codes
 
-    def extract_many_pad(self, img):
+    # TODO: this needs to be re-written
+    # def extract_many_pad(self, img):
         
-        codes = np.array([])
-        if img.shape[0] > self.max_batch_size:
-            print 'exceeded max batch size. splitting into minibatches'
-            self.initialize_cnn(self.max_batch_size,"many")
-            mult = np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size
+    #     codes = np.array([])
+    #     if len(img) > self.max_batch_size:
+    #         print 'exceeded max batch size. splitting into minibatches'
+    #         self.initialize_cnn(self.max_batch_size,"many")
+    #         mult = np.round(len(img)/self.max_batch_size) * self.max_batch_size
 
-            for i in range(int(np.round(img.shape[0]/self.max_batch_size))):
-                print 'minibatch: ' + str(i)
-                tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,:,:]
-                #Lots of repeated code
-                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
-                self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
-                p = self.net["many"].forward()
-                codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
-            if np.round(img.shape[0]/self.max_batch_size) * self.max_batch_size < img.shape[0]:
-                print 'final minibatch'
-                tim = img[mult:img.shape[0],:,:]
-                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
-                tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-(img.shape[0]-mult),self.net["many"].blobs['data'].data.shape[1:]))))
+    #         for i in range(int(np.round(len(img)/self.max_batch_size))):
+    #             print 'minibatch: ' + str(i)
+    #             tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,:,:]
+    #             #Lots of repeated code
+    #             tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+    #             self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
+    #             p = self.net["many"].forward()
+    #             codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
+    #         if np.round(len(img)/self.max_batch_size) * self.max_batch_size < len(img):
+    #             print 'final minibatch'
+    #             tim = img[mult:len(img)]
+    #             tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+    #             tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-(len(img)-mult),self.net["many"].blobs['data'].data.shape[1:]))))
 
-                #Lots of repeated code
-                self.net["many"].set_input_arrays(tim.astype(np.float32), np.ones(self.max_batch_size,dtype=np.float32))
-                p = self.net["many"].forward()
-                codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...][0:img.shape[0]-mult])
-            codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
-        else:
-            self.initialize_cnn(img.shape[0],"many")
-            img = np.array([self.transformer.preprocess('data',i) for i in img])
-            self.net["many"].set_input_arrays(img, np.ones(img.shape[0],dtype=np.float32))
-            p = self.net["many"].forward()
-            codes = self.net["many"].blobs[self.layer_name].data[...]
-        return codes
+    #             #Lots of repeated code
+    #             self.net["many"].set_input_arrays(tim.astype(np.float32), np.ones(self.max_batch_size,dtype=np.float32))
+    #             p = self.net["many"].forward()
+    #             codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...][0:len(img)-mult])
+    #         codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
+    #     else:
+    #         self.initialize_cnn(len(img),"many")
+    #         img = np.array([self.transformer.preprocess('data',i) for i in img])
+    #         self.net["many"].set_input_arrays(img, np.ones(len(img),dtype=np.float32))
+    #         p = self.net["many"].forward()
+    #         codes = self.net["many"].blobs[self.layer_name].data[...]
+    #     return codes
 
 
 def flatten(img):
