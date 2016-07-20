@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import ast
 import sys
 import csv
 import os
@@ -86,7 +87,8 @@ def add_examples(k):
     with open(k.defn_file) as defn:
         for row in csv.reader(defn):
             # create examples for each row        
-            blob_name, x, y, w, h, val = row # TODO format this for the expected types
+            blob_name, x, y, w, h, val = row
+            x, y, w, h = int(x), int(y), int(w), int(h)
 
             # check if blob exists
             blobs = k.dataset.blobs
@@ -108,6 +110,8 @@ def add_examples(k):
                                             fliplr=False, rotation=0.0)
             # Calculate features for the example patches (as needed)
             for fs in k.dataset.featurespecs:
+                print patch
+                print patch.image.shape
                 feat = fs.analyze_patch(patch)
                 if feat:
                     db.session.add(feat)

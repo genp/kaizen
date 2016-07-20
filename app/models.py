@@ -279,9 +279,10 @@ class FeatureSpec(db.Model):
   def analyze_blob(self, blob):
     imgs = [p.image for p in blob.patches]
     feats = self.instance.extract_many(imgs)
-    for feat in feats:
-      if feat:
-        yield feat
+    for idx, feat in enumerate(feats):
+      if Feature.query.filter_by(patch=blob.patches[idx], spec=self).count() == 0:
+        yield Feature(patch=blob.patches[idx], spec=self,
+                      vector=feat)
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
@@ -323,8 +324,7 @@ class Dataset(db.Model):
       print fs
       feats = fs.analyze_blob(blob)
       for feat in feats:
-        if feat:
-          db.session.add(feat)
+        db.session.add(feat)
     db.session.commit()
 
   def migrate_to_s3(self):
@@ -590,7 +590,6 @@ class Patch(db.Model):
         img = np.fliplr(img)
       if self.rotation != 0.0:
         img = rotate(img, self.rotation)
-
       crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
       # Remove alpha channel if present
@@ -751,7 +750,8 @@ def model_debug(m):
   id = m.id
   c = dict.copy(m.__dict__)
   del c['_sa_instance_state']
-  del c['id']
+  if 'id' in c.keys():
+    del c['id']
   return type(m).__name__+"#"+str(id)+":"+str(c)
 
 # This adapts (1-dimensional) numpy arrays to Postgres
