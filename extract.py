@@ -122,11 +122,26 @@ class TinyImage(ReducibleFeature):
 # Darius - CNN code may not work on Multi-GPU machines.
 class CNN(ReducibleFeature):
 
-    max_batch_size = 500
-    net = {}
-    transformer = {}
+    MANY_BATCH_SIZE = 500
+    CACHE = {}
 
-    def initialize_cnn(self, batch_size, network):
+    def get_networks():
+        key = self.cache_key()
+        if not key in CACHE.keys():
+            self.populate_cache(key)
+        self.single = CACHE[key].single;
+        self.many = CACHE[key].many;
+
+    def cache_key(self):
+        key = str(self.params)
+        
+    def populate_cache(self, key):
+        single = self.create_model(1)
+        many = self.create_model(MANY_BATCH_SIZE)
+        CACHE[key] = {"single": single, "many": many}
+
+    def create_model(self, batch_size):
+        
         temp = tempfile.NamedTemporaryFile()
 
         def_path = "caffemodels/" + self.model +"/train.prototxt"
@@ -136,19 +151,15 @@ class CNN(ReducibleFeature):
         for i in range(len(arch)):
             if "batch_size" in arch[i]:
                 arch[i] = re.sub('\d+',str(batch_size),arch[i])
-            if "height" in arch[i]:
-                self.h = re.findall('\d+',arch[i])[0]
-            if "width" in arch[i]:
-                self.w = re.findall('\d+',arch[i])[0]
         temp.writelines(arch)
-        temp.seek(0)
-
-        self.net[network] = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
-        self.transformer[network] = caffe.io.Transformer({'data': self.net[network].blobs['data'].data.shape})
-        self.transformer[network].set_transpose('data', self.transpose)
-        self.transformer[network].set_channel_swap('data',self.channel_swap)
-
         temp.close()
+
+        net = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
+        xform = caffe.io.Transformer({'data': net.blobs['data'].data.shape})
+        xform.set_transpose('data', self.transpose)
+        xform.set_channel_swap('data',self.channel_swap)
+        return {"net": net, "xform": xform}
+
 
     def set_params(self, **kwargs):
 
@@ -161,11 +172,13 @@ class CNN(ReducibleFeature):
         "layer_name" is the layer name used for extraction 
         ie layer_name = "fc7" (for VGG)
         
-        see below for better idea of what "transpose" and "channel_swap" are used for
+        see below for better idea of what "transpose" and
+        "channel_swap" are used for
         http://nbviewer.jupyter.org/github/BVLC/caffe/blob/master/examples/00-classification.ipynb
 
-        set "initialize" to False when using extract_many.  Initialize makes single-patch feature extraction
-        significantly faster
+        set "initialize" to False when using extract_many.  Initialize
+        makes single-patch feature extraction significantly faster
+
         '''
 
         ReducibleFeature.set_params(self, **kwargs)        
@@ -174,24 +187,19 @@ class CNN(ReducibleFeature):
         self.transpose = kwargs.get('transpose', (2,0,1))
         self.channel_swap = kwargs.get('channel_swap', (2,1,0))
         self.initialize = kwargs.get('initialize', False)
-
-        if self.initialize:
-            self.initialize_cnn(1,"one")
-            self.initialize_cnn(self.max_batch_size,"many")
+        self.get_networks()
 
     #assume that we're getting a single image
     #Img comes in format (x,y,c)
     @maybe_reduce
     def extract(self, img):
         # check that network is initialized
-        if 'one' not in self.net.keys():
-            self.initialize_cnn(1,"one")
-        img = self.transformer[network].preprocess('data',img)
+        img = self.single.xform.preprocess('data',img)
         if len(img.shape) == 3:
             img = np.expand_dims(img,axis=0)
-        self.net["one"].set_input_arrays(img, np.array([1],dtype=np.float32))
-        p = self.net["one"].forward()
-        feat = self.net["one"].blobs[self.layer_name].data[...].reshape(-1)
+        self.single.net.set_input_arrays(img, np.array([1], dtype=np.float32))
+        p = self.single.net.forward()
+        feat = self.single.net.blobs[self.layer_name].data[...].reshape(-1)
         feat = np.reshape(feat, (-1))
         return feat
     
@@ -200,36 +208,33 @@ class CNN(ReducibleFeature):
         '''
         imgs is a list of app.models.Patch.image, which are ndarrays of shape (x,y,3)
         '''
-        # check that network is initialized
-        if 'many' not in self.net.keys():
-            self.initialize_cnn(self.max_batch_size,"many")
 
-        if len(imgs) > self.max_batch_size:
-            print 'exceeded max batch size. splitting into {} minibatches'.format(int(len(imgs)/self.max_batch_size)+1)
+        if len(imgs) > MANY_BATCH_SIZE:
+            print 'exceeded max batch size. splitting into {} minibatches'.format(int(len(imgs)/MANY_BATCH_SIZE)+1)
             codes = np.asarray([])
-            for i in range(int(len(imgs)/self.max_batch_size)+1):
+            for i in range(int(len(imgs)/MANY_BATCH_SIZE)+1):
                 print 'minibatch: ' + str(i)
-                tim = imgs[i*self.max_batch_size:min(len(imgs),(i+1)*self.max_batch_size)]
-                tim = np.array([self.transformer[network].preprocess('data',i) for i in tim])
+                tim = imgs[i*MANY_BATCH_SIZE:min(len(imgs),(i+1)*MANY_BATCH_SIZE)]
+                tim = np.array([self.many.xform.preprocess('data',i) for i in tim])
                 num_imgs = len(tim)
-                if num_imgs < self.max_batch_size:
-                    tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]),dtype=np.float32)))                 
+                if num_imgs < MANY_BATCH_SIZE:
+                    tim = np.vstack((tim, np.zeros(np.append(MANY_BATCH_SIZE-num_imgs,self.net["many"].blobs['data'].data.shape[1:]),dtype=np.float32)))                 
                 print tim.shape
                 print tim.dtype
-                self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
-                p = self.net["many"].forward()
-                codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
+                self.many.net.set_input_arrays(tim, np.ones(MANY_BATCH_SIZE,dtype=np.float32))
+                p = self.many.net.forward()
+                codes = np.append(codes,self.many.net.blobs[self.layer_name].data[...])
 
-            codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
+            codes = codes.reshape(np.append(-1,self.many.net.blobs[self.layer_name].data.shape[1:]))
         else:
-            tim = np.array([self.transformer[network].preprocess('data',i) for i in imgs])
+            tim = np.array([self.many.xform.preprocess('data',i) for i in imgs])
             num_imgs = len(tim)
-            if num_imgs < self.max_batch_size:
-                tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]),dtype=np.float32)))
-            self.net["many"].set_input_arrays(tim, np.ones(tim.shape[0],dtype=np.float32))
-            p = self.net["many"].forward()
-            codes = self.net["many"].blobs[self.layer_name].data[...]
-            if num_imgs < self.max_batch_size:
+            if num_imgs < MANY_BATCH_SIZE:
+                tim = np.vstack((tim, np.zeros(np.append(MANY_BATCH_SIZE-num_imgs,self.many.net.blobs['data'].data.shape[1:]),dtype=np.float32)))
+            self.many.net.set_input_arrays(tim, np.ones(tim.shape[0],dtype=np.float32))
+            p = self.many.net.forward()
+            codes = self.many.net.blobs[self.layer_name].data[...]
+            if num_imgs < MANY_BATCH_SIZE:
                 codes = codes[:num_imgs,:]
         return codes
 
@@ -237,36 +242,36 @@ class CNN(ReducibleFeature):
     # def extract_many_pad(self, img):
         
     #     codes = np.array([])
-    #     if len(img) > self.max_batch_size:
+    #     if len(img) > MANY_BATCH_SIZE:
     #         print 'exceeded max batch size. splitting into minibatches'
-    #         self.initialize_cnn(self.max_batch_size,"many")
-    #         mult = np.round(len(img)/self.max_batch_size) * self.max_batch_size
+    #         self.initialize_cnn(MANY_BATCH_SIZE,"many")
+    #         mult = np.round(len(img)/MANY_BATCH_SIZE) * MANY_BATCH_SIZE
 
-    #         for i in range(int(np.round(len(img)/self.max_batch_size))):
+    #         for i in range(int(np.round(len(img)/MANY_BATCH_SIZE))):
     #             print 'minibatch: ' + str(i)
-    #             tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,:,:]
+    #             tim = img[i*MANY_BATCH_SIZE:(i+1)*MANY_BATCH_SIZE,:,:]
     #             #Lots of repeated code
-    #             tim = np.array([self.transformer[network].preprocess('data',i) for i in tim])
-    #             self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
-    #             p = self.net["many"].forward()
-    #             codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
-    #         if np.round(len(img)/self.max_batch_size) * self.max_batch_size < len(img):
+    #             tim = np.array([self.many.xform.preprocess('data',i) for i in tim])
+    #             self.many.net.set_input_arrays(tim, np.ones(MANY_BATCH_SIZE,dtype=np.float32))
+    #             p = self.many.net.forward()
+    #             codes = np.append(codes,self.many.net.blobs[self.layer_name].data[...])
+    #         if np.round(len(img)/MANY_BATCH_SIZE) * MANY_BATCH_SIZE < len(img):
     #             print 'final minibatch'
     #             tim = img[mult:len(img)]
-    #             tim = np.array([self.transformer[network].preprocess('data',i) for i in tim])
-    #             tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-(len(img)-mult),self.net["many"].blobs['data'].data.shape[1:]))))
+    #             tim = np.array([self.many.xform.preprocess('data',i) for i in tim])
+    #             tim = np.vstack((tim, np.zeros(np.append(MANY_BATCH_SIZE-(len(img)-mult),self.many.net.blobs['data'].data.shape[1:]))))
 
     #             #Lots of repeated code
-    #             self.net["many"].set_input_arrays(tim.astype(np.float32), np.ones(self.max_batch_size,dtype=np.float32))
-    #             p = self.net["many"].forward()
-    #             codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...][0:len(img)-mult])
-    #         codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
+    #             self.many.net.set_input_arrays(tim.astype(np.float32), np.ones(MANY_BATCH_SIZE,dtype=np.float32))
+    #             p = self.many.net.forward()
+    #             codes = np.append(codes,self.many.net.blobs[self.layer_name].data[...][0:len(img)-mult])
+    #         codes = codes.reshape(np.append(-1,self.many.net.blobs[self.layer_name].data.shape[1:]))
     #     else:
     #         self.initialize_cnn(len(img),"many")
-    #         img = np.array([self.transformer[network].preprocess('data',i) for i in img])
-    #         self.net["many"].set_input_arrays(img, np.ones(len(img),dtype=np.float32))
-    #         p = self.net["many"].forward()
-    #         codes = self.net["many"].blobs[self.layer_name].data[...]
+    #         img = np.array([self.many.xform.preprocess('data',i) for i in img])
+    #         self.many.net.set_input_arrays(img, np.ones(len(img),dtype=np.float32))
+    #         p = self.many.net.forward()
+    #         codes = self.many.net.blobs[self.layer_name].data[...]
     #     return codes
 
 
