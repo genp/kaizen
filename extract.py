@@ -124,6 +124,7 @@ class CNN(ReducibleFeature):
 
     max_batch_size = 500
     net = {}
+    transformer = {}
 
     def initialize_cnn(self, batch_size, network):
         temp = tempfile.NamedTemporaryFile()
@@ -143,9 +144,9 @@ class CNN(ReducibleFeature):
         temp.seek(0)
 
         self.net[network] = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
-        self.transformer = caffe.io.Transformer({'data': self.net[network].blobs['data'].data.shape})
-        self.transformer.set_transpose('data', self.transpose)
-        self.transformer.set_channel_swap('data',self.channel_swap)
+        self.transformer[network] = caffe.io.Transformer({'data': self.net[network].blobs['data'].data.shape})
+        self.transformer[network].set_transpose('data', self.transpose)
+        self.transformer[network].set_channel_swap('data',self.channel_swap)
 
         temp.close()
 
@@ -185,7 +186,7 @@ class CNN(ReducibleFeature):
         # check that network is initialized
         if 'one' not in self.net.keys():
             self.initialize_cnn(1,"one")
-        img = self.transformer.preprocess('data',img)
+        img = self.transformer[network].preprocess('data',img)
         if len(img.shape) == 3:
             img = np.expand_dims(img,axis=0)
         self.net["one"].set_input_arrays(img, np.array([1],dtype=np.float32))
@@ -209,7 +210,7 @@ class CNN(ReducibleFeature):
             for i in range(int(len(imgs)/self.max_batch_size)+1):
                 print 'minibatch: ' + str(i)
                 tim = imgs[i*self.max_batch_size:min(len(imgs),(i+1)*self.max_batch_size)]
-                tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+                tim = np.array([self.transformer[network].preprocess('data',i) for i in tim])
                 num_imgs = len(tim)
                 if num_imgs < self.max_batch_size:
                     tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]),dtype=np.float32)))                 
@@ -221,7 +222,7 @@ class CNN(ReducibleFeature):
 
             codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
         else:
-            tim = np.array([self.transformer.preprocess('data',i) for i in imgs])
+            tim = np.array([self.transformer[network].preprocess('data',i) for i in imgs])
             num_imgs = len(tim)
             if num_imgs < self.max_batch_size:
                 tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-num_imgs,self.net["many"].blobs['data'].data.shape[1:]),dtype=np.float32)))
@@ -245,14 +246,14 @@ class CNN(ReducibleFeature):
     #             print 'minibatch: ' + str(i)
     #             tim = img[i*self.max_batch_size:(i+1)*self.max_batch_size,:,:]
     #             #Lots of repeated code
-    #             tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+    #             tim = np.array([self.transformer[network].preprocess('data',i) for i in tim])
     #             self.net["many"].set_input_arrays(tim, np.ones(self.max_batch_size,dtype=np.float32))
     #             p = self.net["many"].forward()
     #             codes = np.append(codes,self.net["many"].blobs[self.layer_name].data[...])
     #         if np.round(len(img)/self.max_batch_size) * self.max_batch_size < len(img):
     #             print 'final minibatch'
     #             tim = img[mult:len(img)]
-    #             tim = np.array([self.transformer.preprocess('data',i) for i in tim])
+    #             tim = np.array([self.transformer[network].preprocess('data',i) for i in tim])
     #             tim = np.vstack((tim, np.zeros(np.append(self.max_batch_size-(len(img)-mult),self.net["many"].blobs['data'].data.shape[1:]))))
 
     #             #Lots of repeated code
@@ -262,7 +263,7 @@ class CNN(ReducibleFeature):
     #         codes = codes.reshape(np.append(-1,self.net["many"].blobs[self.layer_name].data.shape[1:]))
     #     else:
     #         self.initialize_cnn(len(img),"many")
-    #         img = np.array([self.transformer.preprocess('data',i) for i in img])
+    #         img = np.array([self.transformer[network].preprocess('data',i) for i in img])
     #         self.net["many"].set_input_arrays(img, np.ones(len(img),dtype=np.float32))
     #         p = self.net["many"].forward()
     #         codes = self.net["many"].blobs[self.layer_name].data[...]
