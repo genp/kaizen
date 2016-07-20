@@ -91,6 +91,7 @@ SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
 BROKER_URL="sqla+"+SQLALCHEMY_DATABASE_URI
 CELERY_RESULT_BACKEND="db+"+SQLALCHEMY_DATABASE_URI
 
+
 # mail server settings
 MAIL_SERVER = 'localhost'
 MAIL_PORT = 25

@@ -202,13 +202,15 @@ class CNN(ReducibleFeature):
         self.layer_name = kwargs.get('layer_name', "fc7")
         self.transpose = kwargs.get('transpose', (2,0,1))
         self.channel_swap = kwargs.get('channel_swap', (2,1,0))
-        self.get_networks()
+
 
     #assume that we're getting a single image
     #Img comes in format (x,y,c)
     @maybe_reduce
     def extract(self, img):
         # check that network is initialized
+        self.get_networks()
+
         img = self.single.xform.preprocess('data',img)
         if len(img.shape) == 3:
             img = np.expand_dims(img,axis=0)
@@ -223,6 +225,7 @@ class CNN(ReducibleFeature):
         '''
         imgs is a list of app.models.Patch.image, which are ndarrays of shape (x,y,3)
         '''
+        self.get_networks()
 
         if len(imgs) > CNN.MANY_BATCH_SIZE:
             print 'exceeded max batch size. splitting into {} minibatches'.format(int(len(imgs)/CNN.MANY_BATCH_SIZE)+1)

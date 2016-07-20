@@ -144,7 +144,7 @@ def classifier(c_id):
 
         # Calculate features for the example patches (as needed)
         for fs in ds.featurespecs:
-            feat = fs.create_patch_feature(ex.patch)
+            feat = fs.analyze_patch(ex.patch)
             if feat:
                 db.session.add(feat)
 
