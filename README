@@ -27,11 +27,10 @@ setvirtualenvproject kaizen
 ln -sf `pwd`/bin/postactivate ~/.virtualenvs/kaizen/bin
 ln -sf `pwd`/bin/postdeactivate ~/.virtualenvs/kaizen/bin
 pip install --upgrade pip
-pip install numpy scipy
+if ! python -c "import numpy" > /dev/null 2>1 ; then pip install numpy==1.9.2; fi
 pip install -r pip-freeze.txt
 add2virtualenv .
 echo "backend      : Agg" > /home/$USER/matplotlibrc
-
 echo "export MATPLOTLIBRC=/home/$USER" >> $VIRTUAL_ENV/bin/postactivate
 source $VIRTUAL_ENV/bin/postactivate
 

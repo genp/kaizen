@@ -1,5 +1,6 @@
 import re
 import tempfile
+import warnings
 
 import caffe
 import numpy as np
