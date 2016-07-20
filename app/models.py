@@ -277,12 +277,18 @@ class FeatureSpec(db.Model):
     return "/featurespec/"+str(self.id)
 
   def analyze_blob(self, blob):
-    imgs = [p.image for p in blob.patches]
+    idxs = []
+    imgs = []
+    for idx, patch in enumerate(blob.patches):
+      if Feature.query.filter_by(patch=patch, spec=self).count() == 0:
+        imgs.append(patch.image)
+        idxs.append(idx)
+    if imgs == []:
+      return
     feats = self.instance.extract_many(imgs)
-    for idx, feat in enumerate(feats):
-      if Feature.query.filter_by(patch=blob.patches[idx], spec=self).count() == 0:
-        yield Feature(patch=blob.patches[idx], spec=self,
-                      vector=feat)
+    for i, feat in enumerate(feats):
+      yield Feature(patch=blob.patches[idxs[i]], spec=self,
+                    vector=feat)
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
