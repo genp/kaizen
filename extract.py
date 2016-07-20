@@ -69,10 +69,8 @@ class ReducibleFeature:
         for key in ('ops', 'output_dim', 'alpha'): 
             setattr(self, key, kwargs.get(key))
     
-    @maybe_reduce
     def extract_many(self, img):
-        ex_func = self._reduce(self.extract)
-        codes = np.array([ex_func(i) for i in img])
+        codes = np.array([self.extract(i) for i in img])
         return codes
 
 
