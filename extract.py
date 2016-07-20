@@ -234,8 +234,6 @@ class CNN(ReducibleFeature):
                 num_imgs = len(tim)
                 if num_imgs < CNN.MANY_BATCH_SIZE:
                     tim = np.vstack((tim, np.zeros(np.append(CNN.MANY_BATCH_SIZE-num_imgs,self.many.net.blobs['data'].data.shape[1:]),dtype=np.float32)))                 
-                print tim.shape
-                print tim.dtype
                 self.many.net.set_input_arrays(tim, np.ones(CNN.MANY_BATCH_SIZE,dtype=np.float32))
                 p = self.many.net.forward()
                 codes = np.append(codes,self.many.net.blobs[self.layer_name].data[...])
