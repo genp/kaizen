@@ -6,9 +6,11 @@ parser = argparse.ArgumentParser(description='Create or start an ec2 instance.')
 parser.add_argument('-t', '--type', default='small',
                    help='The ec2 instance type to create.')
 parser.add_argument('-k', '--key', default='aws-mac',
-                   help='The name of the keyfile to use for ec2_user.')
+                   help='The name of the keyfile to use for ec2-user.')
 parser.add_argument('-d', '--domain', default='jannotti.com',
-                   help='The domain name to put new hostname into')
+                   help='The domain to put new hostname into')
+parser.add_argument('-s', '--security-group', default='',
+                   help='The secuirty group for the new instances')
 args = parser.parse_args()
 
 itype = args.type
@@ -36,7 +38,6 @@ user = os.environ['USER']
 home = os.environ['HOME']
 shell = os.environ['SHELL']
 
-subnet = 'subnet-d8a25dae'
 
 name = user +"-"+ args.type
 
@@ -193,6 +194,7 @@ def setup(instance, keyname, hostname, user):
     setup_host(keyname, ip, hostname)
     setup_user(keyname, ip, user)
     remove_known_host(hostname)
+
 found = False
 for instance in get_by_name(name):
     if instance.state["Name"] == 'terminated':
@@ -211,13 +213,29 @@ for instance in get_by_name(name):
         setup(instance, args.key, name+'.'+args.domain, user)
     found = True
 
+def find_sshable_sgroup():
+    for sg in ec2.security_groups.all():
+        if sg.vpc_id is None:
+            continue
+        found_vpc = True
+        for perm in sg.ip_permissions:
+            # Assume that if there's an SSH rule at all, it's good
+            if perm["ToPort"] == 22:
+                return sg
+    raise LookupError("Unable to find a VPC security group that allows SSH")
+
+sgroup = find_sshable_sgroup()
+vpc = ec2.Vpc(sgroup.vpc_id)
+for s in vpc.subnets.limit(1):
+    subnet = s
+
 if not found:
     print "Starting a new instance"
 
     instance = ec2.create_instances(ImageId=ami, InstanceType=itype,
                                     KeyName=args.key,
                                     MinCount=1, MaxCount=1,
-                                    SubnetId=subnet)[0]
+                                    SubnetId=subnet.id)[0]
     instance.create_tags(Tags=[{'Key':'Name','Value':name}])
     print "Waiting for", instance, "to come up"
     instance = wait_run(instance)
