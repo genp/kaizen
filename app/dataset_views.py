@@ -67,6 +67,7 @@ def dataset_upload():
                     if ext in acceptable:
                         unarchive_blob(item, dset, tmpd, myzip)
                     elif ext in label_acceptable and kw.startswith('_'):
+                        print "creating keyword: " + kw
                         keyword_dataset(kw, item, dset, tmpd, myzip)
                     elif ext == ".txt":
                         myzip.extract(item, tmpd)

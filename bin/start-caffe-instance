@@ -19,6 +19,7 @@ itype_alias = {
     'small' : 't2.small',
     'medium' : 't2.medium',
     'large' : 't2.large',
+    'clarge' : 'c3.8xlarge',
     'gpu' : 'g2.2xlarge'
 }
 if itype in itype_alias:

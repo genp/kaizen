@@ -78,7 +78,7 @@ Install Caffe:
     pip install -r python/requirements.txt
     make pycaffe
     add2virtualenv ~/caffe
-    
+        
 
 Install dependencies first:
     brew install protobuf
