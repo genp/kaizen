@@ -287,6 +287,7 @@ class FeatureSpec(db.Model):
       return
     feats = self.instance.extract_many(imgs)
     for i, feat in enumerate(feats):
+      # TODO there is a bug with the idxs, set small batch size to recreate
       yield Feature(patch=blob.patches[idxs[i]], spec=self,
                     vector=feat)
 

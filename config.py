@@ -107,9 +107,3 @@ USER_ENABLE_EMAIL = False
 
 # set logging level to 2 to suppress caffe output
 os.environ['GLOG_minloglevel'] = '2'
-# import caffe
-# caffe.set_mode_cpu()
-# caffe.set_device(0)
-# caffe.set_mode_gpu()
-
-
