@@ -2,7 +2,6 @@ import re
 import tempfile
 import warnings
 
-import caffe
 import numpy as np
 import skimage.feature
 import skimage.color
@@ -120,13 +119,16 @@ class TinyImage(ReducibleFeature):
         tiny = np.reshape(tiny, (-1))
         return tiny
 
-
-
+try:
+    import caffe
+except ImportError:
+    pass
 
 class MultiNet:
    def __init__(self, single, many):
        self.single = single
        self.many = many
+
 
 class CNN_Model:
    def __init__(self, net, xform):
@@ -168,7 +170,7 @@ class CNN(ReducibleFeature):
         temp.writelines(arch)
         temp.close()
 
-        net = caffe.Net(str(temp.name),str(weight_path),caffe.TEST)
+        net = caffe.Net(str(temp.name), str(weight_path), caffe.TEST)
         xform = caffe.io.Transformer({'data': net.blobs['data'].data.shape})
         xform.set_transpose('data', self.transpose)
         xform.set_channel_swap('data',self.channel_swap)
