@@ -8,3 +8,5 @@ _PGDATABASE=$PGDATABASE
 export PGUSER=$USER
 export PGHOST=localhost
 export PGDATABASE=kaizen
+export MATPLOTLIBRC=/home/gen
+export PYTHONPATH=:/home/ubuntu/caffe/python:/home/ubuntu/caffe/python

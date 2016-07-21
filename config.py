@@ -16,6 +16,7 @@ sys.path.append(cafferoot)
 DEVELOPMENT = False
 
 
+
 user = os.environ['USER']
 
 mime_dictionary = {

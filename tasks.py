@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 import ast
 import sys
 import csv
@@ -8,6 +9,8 @@ from celery import Celery, current_task, group, chord, chain
 from functools import wraps
 import celery.registry as registry
 
+# TODO: Sean's advice - One thing that I do is import caffe and set the mode to GPU mode from within the task
+# TODO: test in celery shell
 from app import db
 import app.models
 import config
@@ -71,12 +74,16 @@ def if_dataset(ds):
 def dataset(ds_id):
     ds = app.models.Dataset.query.get(ds_id)
     for blob in ds.blobs:
+        # analyze_blob(ds.id, blob.id)
         analyze_blob.delay(ds.id, blob.id)
     for kw in ds.keywords:
         add_examples(kw)
 
 @celery.task
 def analyze_blob(ds_id, blob_id):
+    import caffe
+    caffe.set_device(0)
+    caffe.set_mode_gpu()
     ds = app.models.Dataset.query.get(ds_id)
     blob = app.models.Blob.query.get(blob_id)
     ds.create_blob_features(blob)
@@ -86,7 +93,7 @@ def add_examples(k):
     # read definition file
     with open(k.defn_file) as defn:
         for row in csv.reader(defn):
-            # create examples for each row        
+            # create examples for each row
             blob_name, x, y, w, h, val = row
             x, y, w, h = int(x), int(y), int(w), int(h)
 

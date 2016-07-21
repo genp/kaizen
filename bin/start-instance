@@ -219,9 +219,11 @@ def find_sshable_sgroup():
             continue
         found_vpc = True
         for perm in sg.ip_permissions:
-            # Assume that if there's an SSH rule at all, it's good
-            if perm["ToPort"] == 22:
-                return sg
+            try:
+                if perm["ToPort"] == 22 and perm["IpProtocol"] == 'tcp':
+                    return sg
+            except KeyError:
+                pass
     raise LookupError("Unable to find a VPC security group that allows SSH")
 
 sgroup = find_sshable_sgroup()
