@@ -2,7 +2,7 @@ import re
 import tempfile
 import warnings
 
-import caffe
+#import caffe
 import numpy as np
 import skimage.feature
 import skimage.color
@@ -155,7 +155,8 @@ class CNN(ReducibleFeature):
         CNN.CACHE[key] = MultiNet(single, many)
 
     def create_model(self, batch_size):
-        
+        print 'creating model'
+        import caffe
         temp = tempfile.NamedTemporaryFile(delete = False)
 
         def_path = "caffemodels/" + self.model +"/train.prototxt"
@@ -244,12 +245,15 @@ class CNN(ReducibleFeature):
 
             codes = codes.reshape(np.append(-1,self.many.net.blobs[self.layer_name].data.shape[1:]))
         else:
+            print '0'
             tim = np.array([self.many.xform.preprocess('data',i) for i in imgs])
             num_imgs = len(tim)
             if num_imgs < CNN.MANY_BATCH_SIZE:
                 tim = np.vstack((tim, np.zeros(np.append(CNN.MANY_BATCH_SIZE-num_imgs,self.many.net.blobs['data'].data.shape[1:]),dtype=np.float32)))
             self.many.net.set_input_arrays(tim, np.ones(tim.shape[0],dtype=np.float32))
+            print '1'
             p = self.many.net.forward()
+            print '2'
             codes = self.many.net.blobs[self.layer_name].data[...]
             if num_imgs < CNN.MANY_BATCH_SIZE:
                 codes = codes[:num_imgs,:]

@@ -71,12 +71,16 @@ def if_dataset(ds):
 def dataset(ds_id):
     ds = app.models.Dataset.query.get(ds_id)
     for blob in ds.blobs:
+        # analyze_blob(ds.id, blob.id)
         analyze_blob.delay(ds.id, blob.id)
     for kw in ds.keywords:
         add_examples(kw)
 
 @celery.task
 def analyze_blob(ds_id, blob_id):
+    import caffe
+    caffe.set_device(0)
+    caffe.set_mode_gpu()
     ds = app.models.Dataset.query.get(ds_id)
     blob = app.models.Blob.query.get(blob_id)
     ds.create_blob_features(blob)
