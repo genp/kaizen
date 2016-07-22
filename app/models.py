@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import gc
-
 from app import app, db
 
 import boto3
@@ -322,7 +320,6 @@ class FeatureSpec(db.Model):
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
       return None
-      print '{}'.format(patch)
     return Feature(patch=patch, spec=self,
                    vector=self.instance.extract(patch.image))
 
@@ -618,11 +615,9 @@ class Patch(db.Model):
 
   @property
   def image(self):
-    gc.collect()
     blob = self.blob
     with blob.open() as f:
       img = misc.imread(f)
-      print 'image shape {}'.format(img.shape)
       # TODO: this is broken sometime. Sometime imgs is empty... memory problem?
 
       if self.fliplr:
