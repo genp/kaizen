@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import gc
+
 from app import app, db
 
 import boto3
@@ -121,6 +123,36 @@ class Blob(db.Model):
     for patch in self.patches:
       for feature in patch:
         yield feature
+
+  @property
+  def patch_images(self):
+
+    with self.open() as f:
+      orig_img = misc.imread(f)
+      crops = []
+      patches = self.patches
+      for patch in patches:
+        img = orig_img
+        if patch.fliplr:
+          img = np.fliplr(img)
+        if patch.rotation != 0.0:
+          img = rotate(img, patch.rotation)
+        crop = img[patch.y:patch.y+patch.height, patch.x:patch.x+patch.width]
+
+        # Remove alpha channel if present
+        try :
+          if crop.shape[2] == 4:
+            crop = crop[:,:,0:3]
+        # Replicate channels if image is Black and White
+        except IndexError, e:
+          tmp = np.zeros((crop.shape[0], crop.shape[1], 3))
+          tmp[:,:,0] = crop
+          tmp[:,:,1] = crop
+          tmp[:,:,2] = crop
+          crop = tmp
+        crops.append(crop)
+      return self.patches, np.asarray(crops)
+
 
   @property
   def local(self):
@@ -277,34 +309,15 @@ class FeatureSpec(db.Model):
     return "/featurespec/"+str(self.id)
 
   def analyze_blob(self, blob):
-
-    # this is to prevent out-of-memory error when loading too many patch images
-    batch_size = 500
-    imgs = []
-    patches = []
-    for idx, patch in enumerate(blob.patches):
-      if Feature.query.filter_by(patch=patch, spec=self).count() == 0:
-        print '{} {}'.format(idx, patch)
-        imgs.append(patch.image)
-        patches.append(patch)
-      if (idx > 0 and idx % batch_size == 0):
-        if imgs == []:
-          return
-        feats = self.instance.extract_many(imgs)
-        for i, feat in enumerate(feats):
-          # TODO there is a bug with the idxs, set small batch size to recreate
-          yield Feature(patch=patches[i], spec=self,
-                        vector=feat)
-        imgs = []
-        patches = []
-
-    if imgs == []:
+    patches, patch_crops = blob.patch_images
+    if patch_crops == []:
       return
-    feats = self.instance.extract_many(imgs)
-    for i, feat in enumerate(feats):
-      # TODO there is a bug with the idxs, set small batch size to recreate
-      yield Feature(patch=patches[i], spec=self,
-                    vector=feat)
+    feats = self.instance.extract_many(patch_crops)
+
+    for idx, patch in enumerate(patches):
+      if Feature.query.filter_by(patch=patch, spec=self).count() == 0:
+          yield Feature(patch=patch, spec=self,
+                        vector=feats[idx])
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
@@ -605,14 +618,18 @@ class Patch(db.Model):
 
   @property
   def image(self):
+    gc.collect()
     blob = self.blob
     with blob.open() as f:
       img = misc.imread(f)
+      print 'image shape {}'.format(img.shape)
+      # TODO: this is broken sometime. Sometime imgs is empty... memory problem?
 
       if self.fliplr:
         img = np.fliplr(img)
       if self.rotation != 0.0:
         img = rotate(img, self.rotation)
+
       crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
       # Remove alpha channel if present
