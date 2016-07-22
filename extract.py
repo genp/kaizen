@@ -119,11 +119,6 @@ class TinyImage(ReducibleFeature):
         tiny = np.reshape(tiny, (-1))
         return tiny
 
-try:
-    import caffe
-except ImportError:
-    pass
-
 class MultiNet:
    def __init__(self, single, many):
        self.single = single
@@ -159,6 +154,9 @@ class CNN(ReducibleFeature):
     def create_model(self, batch_size):
         print 'creating model'
         import caffe
+        if config.USE_GPU:                
+                caffe.set_device(config.GPU_DEVICE_ID)
+                caffe.set_mode_gpu()
         temp = tempfile.NamedTemporaryFile(delete = False)
 
         def_path = "caffemodels/" + self.model +"/train.prototxt"

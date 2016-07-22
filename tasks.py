@@ -81,9 +81,6 @@ def dataset(ds_id):
 
 @celery.task
 def analyze_blob(ds_id, blob_id):
-    import caffe
-    caffe.set_device(0)
-    caffe.set_mode_gpu()
     ds = app.models.Dataset.query.get(ds_id)
     blob = app.models.Blob.query.get(blob_id)
     ds.create_blob_features(blob)
