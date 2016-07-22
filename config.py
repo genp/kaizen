@@ -107,3 +107,6 @@ USER_ENABLE_EMAIL = False
 
 # set logging level to 2 to suppress caffe output
 os.environ['GLOG_minloglevel'] = '2'
+
+# Flask Host
+HOST = 'localhost'

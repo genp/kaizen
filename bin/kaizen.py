@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from app import app, db, user_manager
+import config
 
 # Preload the DB so we can drop it any time.
 from app.models import User, PatchSpec, FeatureSpec, Estimator
@@ -105,4 +106,4 @@ if e:
 
 db.session.commit()
 
-app.run(host='0.0.0.0', port=8080)
+app.run(host=config.HOST, port=8080)
