@@ -1,0 +1,25 @@
+##SHELL SCRIPT TO ADD GOOGLE DRIVE FUNCTIONALITY
+##DOCUMENTATION HERE: https://github.com/odeke-em/drive
+
+#STEPS:
+sudo apt-get update
+sudo apt-get -y upgrade
+sudo apt-get install build-essential git gcc
+
+sudo curl -O https://storage.googleapis.com/golang/go1.6.3.linux-amd64.tar.gz
+sudo tar -C /usr/local/ -xvf go1.6.linux-amd64.tar.gz 
+
+mkdir ~/go
+
+#PUT THIS IN YOUR /etc/profile
+export GOPATH=~/go
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+source /etc/profile
+
+go get -u github.com/odeke-em/drive/cmd/drive
+
+#Install python stuff
+sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose
+sudo apt-get install python-pip
+sudo pip install openslide-python
+sudo apt-get install libjpeg-dev libpng12-dev openslide-tools
