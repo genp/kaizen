@@ -84,7 +84,7 @@ class Blob(db.Model):
   longitude = db.Column(db.Float)
 
   URL_MAP = {
-    config.kairoot + '/app/static/' : 'http://localhost:8080/',
+    config.kairoot + '/app/static/' : config.url_prefix,
     's3://' : s3_url,
   }
 

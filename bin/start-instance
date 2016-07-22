@@ -69,8 +69,8 @@ def wait_run(instance):
         'Name': 'instance-id',
         'Values': [instance.instance_id],
     }])
-    print "Sleeping longer, to allow boot"
-    time.sleep(10)
+    print "Sleeping 20secs longer, to allow boot"
+    time.sleep(20)
     return ec2.Instance(instance.id)
 
 def wait_stop(instance):

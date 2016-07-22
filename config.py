@@ -3,7 +3,7 @@
 Sets up global variables for Kaizen.
 
 '''
-import os,sys
+import os,sys,socket
 kairoot = os.getenv('KAIROOT')
 if not kairoot:
     kairoot = os.path.dirname(os.path.abspath(__file__))
@@ -15,6 +15,14 @@ if not cafferoot:
 sys.path.append(cafferoot)
 DEVELOPMENT = False
 
+host = socket.getfqdn()
+if 'local' in host:
+    host = 'localhost'
+port = 8080
+url_prefix = 'http://'+host
+if port != 80:
+    url_prefix = url_prefix+':'+str(port)
+url_prefix = url_prefix+'/'
 
 user = os.environ['USER']
 
