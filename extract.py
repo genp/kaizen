@@ -7,7 +7,6 @@ import skimage.feature
 import skimage.color
 import skimage.transform
 
-
 def reduce(reducible_feature, codes):
     '''
     "codes" should be a numpy array of codes for either a single or multiple images of shape:
@@ -154,6 +153,7 @@ class CNN(ReducibleFeature):
     def create_model(self, batch_size):
         print 'creating model'
         import caffe
+        import config
         if config.USE_GPU:                
                 caffe.set_device(config.GPU_DEVICE_ID)
                 caffe.set_mode_gpu()

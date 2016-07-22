@@ -101,7 +101,7 @@ def add_examples(k):
                 return
             print blobs    
             blobs = [b for b in blobs
-                     if os.path.basename(b.location) == blob_name]
+                     if blob_name in b.location]
             
             if not blobs:
                 # TODO: add log entry

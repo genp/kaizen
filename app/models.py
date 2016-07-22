@@ -277,23 +277,39 @@ class FeatureSpec(db.Model):
     return "/featurespec/"+str(self.id)
 
   def analyze_blob(self, blob):
-    idxs = []
+
+    # this is to prevent out-of-memory error when loading too many patch images
+    batch_size = 500
     imgs = []
+    patches = []
     for idx, patch in enumerate(blob.patches):
       if Feature.query.filter_by(patch=patch, spec=self).count() == 0:
+        print '{} {}'.format(idx, patch)
         imgs.append(patch.image)
-        idxs.append(idx)
+        patches.append(patch)
+      if (idx > 0 and idx % batch_size == 0):
+        if imgs == []:
+          return
+        feats = self.instance.extract_many(imgs)
+        for i, feat in enumerate(feats):
+          # TODO there is a bug with the idxs, set small batch size to recreate
+          yield Feature(patch=patches[i], spec=self,
+                        vector=feat)
+        imgs = []
+        patches = []
+
     if imgs == []:
       return
     feats = self.instance.extract_many(imgs)
     for i, feat in enumerate(feats):
       # TODO there is a bug with the idxs, set small batch size to recreate
-      yield Feature(patch=blob.patches[idxs[i]], spec=self,
+      yield Feature(patch=patches[i], spec=self,
                     vector=feat)
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
       return None
+      print '{}'.format(patch)
     return Feature(patch=patch, spec=self,
                    vector=self.instance.extract(patch.image))
 
