@@ -307,6 +307,7 @@ class FeatureSpec(db.Model):
     return "/featurespec/"+str(self.id)
 
   def analyze_blob(self, blob):
+    # TODO: there is a memory problem where there are too many patches in a blob
     patches, patch_crops = blob.patch_images
     if patch_crops == []:
       return
