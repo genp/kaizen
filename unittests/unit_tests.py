@@ -203,6 +203,11 @@ def analyze_blob_test(ds_id, blob_id):
     blob = models.Blob.query.get(blob_id)
     ds.create_blob_features(blob)
 
+def analyze_patch_test(ds_id, patch_id):
+    ds = models.Dataset.query.get(ds_id)
+    patch = models.Patch.query.get(patch_id)
+    ds.featurespecs[0].analyze_patch(patch)
+
 
 def add_examples_test(k_id):
     # expects to read definition file

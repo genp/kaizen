@@ -10,3 +10,5 @@ db_repository
 lib/
 *.lprof
 
+.DS_Store
+config.py

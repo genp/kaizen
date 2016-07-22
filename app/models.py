@@ -84,7 +84,7 @@ class Blob(db.Model):
   longitude = db.Column(db.Float)
 
   URL_MAP = {
-    config.kairoot + '/app/static/' : config.url_prefix,
+    config.kairoot + '/app/static/' : config.URL_PREFIX,
     's3://' : s3_url,
   }
 
@@ -121,6 +121,36 @@ class Blob(db.Model):
     for patch in self.patches:
       for feature in patch:
         yield feature
+
+  @property
+  def patch_images(self):
+
+    with self.open() as f:
+      orig_img = misc.imread(f)
+      crops = []
+      patches = self.patches
+      for patch in patches:
+        img = orig_img
+        if patch.fliplr:
+          img = np.fliplr(img)
+        if patch.rotation != 0.0:
+          img = rotate(img, patch.rotation)
+        crop = img[patch.y:patch.y+patch.height, patch.x:patch.x+patch.width]
+
+        # Remove alpha channel if present
+        try :
+          if crop.shape[2] == 4:
+            crop = crop[:,:,0:3]
+        # Replicate channels if image is Black and White
+        except IndexError, e:
+          tmp = np.zeros((crop.shape[0], crop.shape[1], 3))
+          tmp[:,:,0] = crop
+          tmp[:,:,1] = crop
+          tmp[:,:,2] = crop
+          crop = tmp
+        crops.append(crop)
+      return self.patches, np.asarray(crops)
+
 
   @property
   def local(self):
@@ -277,18 +307,16 @@ class FeatureSpec(db.Model):
     return "/featurespec/"+str(self.id)
 
   def analyze_blob(self, blob):
-    idxs = []
-    imgs = []
-    for idx, patch in enumerate(blob.patches):
-      if Feature.query.filter_by(patch=patch, spec=self).count() == 0:
-        imgs.append(patch.image)
-        idxs.append(idx)
-    if imgs == []:
+    # TODO: there is a memory problem where there are too many patches in a blob
+    patches, patch_crops = blob.patch_images
+    if patch_crops == []:
       return
-    feats = self.instance.extract_many(imgs)
-    for i, feat in enumerate(feats):
-      yield Feature(patch=blob.patches[idxs[i]], spec=self,
-                    vector=feat)
+    feats = self.instance.extract_many(patch_crops)
+
+    for idx, patch in enumerate(patches):
+      if Feature.query.filter_by(patch=patch, spec=self).count() == 0:
+          yield Feature(patch=patch, spec=self,
+                        vector=feats[idx])
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
@@ -591,11 +619,13 @@ class Patch(db.Model):
     blob = self.blob
     with blob.open() as f:
       img = misc.imread(f)
+      # TODO: this is broken sometime. Sometime imgs is empty... memory problem?
 
       if self.fliplr:
         img = np.fliplr(img)
       if self.rotation != 0.0:
         img = rotate(img, self.rotation)
+
       crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
       # Remove alpha channel if present

@@ -19,6 +19,7 @@ itype_alias = {
     'small' : 't2.small',
     'medium' : 't2.medium',
     'large' : 't2.large',
+    'clarge' : 'c3.8xlarge',
     'gpu' : 'g2.2xlarge'
 }
 if itype in itype_alias:
@@ -143,7 +144,7 @@ def setup_host(keyname, host, hostname):
 
     if 'postgresql-9.4' in packages:
         ssh(keyname, host,
-            "sudo sed -i s/ident/trust/ /etc/postgresql/9.4/main/pg_hba.conf")
+            "sudo sed -i s/peer/trust/ /etc/postgresql/9.4/main/pg_hba.conf")
         ssh(keyname, host, "sudo service postgresql start")
     if 'mlocate' in packages:
         ssh(keyname, host, "sudo updatedb")
@@ -168,7 +169,7 @@ def setup_user(keyname, host, user):
     if e:
         print "Skipping user setup", "/home/"+user, "exists"
         return
-
+    # TODO specify shell zsh
     ssh(keyname, host, "sudo adduser --disabled-password --gecos \"\" "+user)
 
 
