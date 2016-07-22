@@ -205,7 +205,7 @@ def analyze_blob_test(ds_id, blob_id):
 
 def analyze_patch_test(ds_id, patch_id):
     ds = models.Dataset.query.get(ds_id)
-    patch = models.Patch.Query.get(patch_id)
+    patch = models.Patch.query.get(patch_id)
     ds.featurespecs[0].analyze_patch(patch)
 
 
