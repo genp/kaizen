@@ -242,8 +242,8 @@ class CNN(ReducibleFeature):
                 self.many.net.set_input_arrays(tim, np.ones(CNN.MANY_BATCH_SIZE,dtype=np.float32))
                 p = self.many.net.forward()
                 codes = np.append(codes,self.many.net.blobs[self.layer_name].data[...])
-
             codes = codes.reshape(np.append(-1,self.many.net.blobs[self.layer_name].data.shape[1:]))
+            codes = codes[:len(imgs), :]
         else:
             print '0'
             tim = np.array([self.many.xform.preprocess('data',i) for i in imgs])

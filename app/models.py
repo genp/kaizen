@@ -291,7 +291,7 @@ class FeatureSpec(db.Model):
 
   def analyze_blob(self, blob):
     # TODO: this could be a globally set var that shares with CNN obj
-    batch_size = 50
+    batch_size = 500
     patch_crops = []
     patches_to_add = []
     last = len(blob.patches.all())-1
@@ -301,11 +301,15 @@ class FeatureSpec(db.Model):
         patches_to_add.append(patch)
       if (idx > 0 and idx % batch_size == 0) or idx == last:
         feats = self.instance.extract_many(patch_crops)
+        print 'patches to add {}'.format(len(patches_to_add))
+        print 'num patch crops {}'.format(len(patch_crops))
+        print 'num features {}'.format(feats.shape)
         for idx2, f in enumerate(feats):
           yield Feature(patch=patches_to_add[idx2], spec=self,
                         vector=f)
         patch_crops = []
         patches_to_add = []
+        
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
