@@ -31,7 +31,7 @@ if ps:
     ps.scale = 3.0
     db.session.add(ps)
 
-ps = PatchSpec.ifNew(name='Dense')
+ps = PatchSpec.ifNew(name='MedDense')
 if ps:
     ps.width = 200
     ps.height = 200
@@ -41,6 +41,15 @@ if ps:
     ps.fliplr = True
     db.session.add(ps)
 
+ps = PatchSpec.ifNew(name='Dense')
+if ps:
+    ps.width = 200
+    ps.height = 200
+    ps.xoverlap = 0.75
+    ps.yoverlap = 0.75
+    ps.scale = 3
+    ps.fliplr = True
+    db.session.add(ps)
 
 
 fs = FeatureSpec.ifNew(name = 'RGB', cls = 'extract.ColorHist')
