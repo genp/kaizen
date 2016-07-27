@@ -3,7 +3,6 @@ import importlib
 import os, time
 import urllib
 
-from PIL import Image
 from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
 from more_itertools import chunked
 from scipy import misc
@@ -211,12 +210,12 @@ class PatchSpec(db.Model):
       + upto + " with " + overlap
 
   def create_blob_patches(self, blob):
-    img = Image.open(blob.materialize())
+    img = blob.image
 
     w = self.width
     h = self.height
-    while w < img.size[0] and h < img.size[1]:
-      for patch in self.create_sized_blob_patches(blob, img.size, w, h):
+    while w < img.shape[1] and h < img.shape[0]:
+      for patch in self.create_sized_blob_patches(blob, img.shape, w, h):
         yield patch
       w = int(w * self.scale)
       h = int(h * self.scale)
@@ -227,8 +226,8 @@ class PatchSpec(db.Model):
     ystep = int(height * (1-self.yoverlap))
 
     # The available room for sliding
-    xdelta = size[0]-width
-    ydelta = size[1]-height
+    xdelta = size[1]-width
+    ydelta = size[0]-height
 
     # How many slides, and how much unused "slide space"
     xsteps, extra_width = divmod(xdelta, xstep)
@@ -294,7 +293,10 @@ class FeatureSpec(db.Model):
   def analyze_blob(self, blob):
     # TODO: this could be a globally set var that shares with CNN obj
     batch_size = 500
+    iter = 0
     for patches in chunked(self.undone_patches(blob), batch_size):
+      print 'calculating {}x500 patch features for {}'.format(iter, blob)
+      iter += 1
       imgs = [p.image for p in patches]
       feats = self.instance.extract_many(imgs)
       assert len(patches) == len(feats), 'The number of patches and features are different for {}'.format(blob)
@@ -335,11 +337,12 @@ class Dataset(db.Model):
         self.owner = current_user
 
   def create_blob_features(self, blob):
-
+    print 'calculating features for {}'.format(blob)
     for ps in self.patchspecs:
       print ps
       
       for p in ps.create_blob_patches(blob):
+        print p
         if p:
           db.session.add(p)
     db.session.commit()

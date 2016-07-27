@@ -35,9 +35,9 @@ ps = PatchSpec.ifNew(name='Dense')
 if ps:
     ps.width = 200
     ps.height = 200
-    ps.xoverlap = 0.75
-    ps.yoverlap = 0.75
-    ps.scale = 1.5
+    ps.xoverlap = 0.5
+    ps.yoverlap = 0.5
+    ps.scale = 2
     ps.fliplr = True
     db.session.add(ps)
 
