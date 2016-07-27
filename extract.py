@@ -233,7 +233,6 @@ class CNN(ReducibleFeature):
             print 'exceeded max batch size. splitting into {} minibatches'.format(int(len(imgs)/CNN.MANY_BATCH_SIZE)+1)
             codes = np.asarray([])
             for i in range(int(len(imgs)/CNN.MANY_BATCH_SIZE)+1):
-                print 'minibatch: ' + str(i)
                 tim = imgs[i*CNN.MANY_BATCH_SIZE:min(len(imgs),(i+1)*CNN.MANY_BATCH_SIZE)]
                 tim = np.array([self.many.xform.preprocess('data',i) for i in tim])
                 num_imgs = len(tim)
@@ -245,15 +244,12 @@ class CNN(ReducibleFeature):
             codes = codes.reshape(np.append(-1,self.many.net.blobs[self.layer_name].data.shape[1:]))
             codes = codes[:len(imgs), :]
         else:
-            print '0'
             tim = np.array([self.many.xform.preprocess('data',i) for i in imgs])
             num_imgs = len(tim)
             if num_imgs < CNN.MANY_BATCH_SIZE:
                 tim = np.vstack((tim, np.zeros(np.append(CNN.MANY_BATCH_SIZE-num_imgs,self.many.net.blobs['data'].data.shape[1:]),dtype=np.float32)))
             self.many.net.set_input_arrays(tim, np.ones(tim.shape[0],dtype=np.float32))
-            print '1'
             p = self.many.net.forward()
-            print '2'
             codes = self.many.net.blobs[self.layer_name].data[...]
             if num_imgs < CNN.MANY_BATCH_SIZE:
                 codes = codes[:num_imgs,:]

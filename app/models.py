@@ -1,20 +1,21 @@
 #!/usr/bin/env python
-from app import app, db
-
-import boto3
-import config
-import os, time
-import numpy as np
 import importlib
+import os, time
 import urllib
+
 from PIL import Image
+from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
+from more_itertools import chunked
 from scipy import misc
 from scipy.ndimage.interpolation import rotate
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
-from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
-
+import boto3
 import exif
+import numpy as np
+
+from app import app, db
+import config
 import tasks
 
 s3 = boto3.resource('s3')
@@ -289,26 +290,22 @@ class FeatureSpec(db.Model):
   def url(self):
     return "/featurespec/"+str(self.id)
 
+
   def analyze_blob(self, blob):
     # TODO: this could be a globally set var that shares with CNN obj
     batch_size = 500
-    patch_crops = []
-    patches_to_add = []
-    last = len(blob.patches.all())-1
-    for idx, patch in enumerate(blob.patches):      
-      if Feature.query.filter_by(patch=patch, spec=self).count() == 0:
-        patch_crops.append(patch.image)
-        patches_to_add.append(patch)
-      if (idx > 0 and idx % batch_size == 0) or idx == last:
-        feats = self.instance.extract_many(patch_crops)
-        print 'patches to add {}'.format(len(patches_to_add))
-        print 'num patch crops {}'.format(len(patch_crops))
-        print 'num features {}'.format(feats.shape)
-        for idx2, f in enumerate(feats):
-          yield Feature(patch=patches_to_add[idx2], spec=self,
-                        vector=f)
-        patch_crops = []
-        patches_to_add = []
+    for patches in chunked(self.undone_patches(blob), batch_size):
+      imgs = [p.image for p in patches]
+      feats = self.instance.extract_many(imgs)
+      assert len(patches) == len(feats), 'The number of patches and features are different for {}'.format(blob)
+      for idx, f in enumerate(feats):
+        yield Feature(patch=patches[idx], spec=self,
+                      vector=f)
+
+  def undone_patches(self, blob):
+    for p in blob.patches:
+      if Feature.query.filter_by(patch=p, spec=self).count() == 0:
+        yield p
         
 
   def analyze_patch(self, patch):
