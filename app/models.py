@@ -98,6 +98,11 @@ class Blob(db.Model):
       self.mime = 'image/'+self.ext.replace('.', '')
     if self.local:
       self.latitude, self.longitude = self.read_lat_lon()
+    self.img = None
+
+  @orm.reconstructor
+  def init_on_load(self):
+    self.img = None
 
   def open(self):
     return open(self.materialize(), "rb")
@@ -123,34 +128,12 @@ class Blob(db.Model):
         yield feature
 
   @property
-  def patch_images(self):
-
+  def image(self):
+    if self.img is not None:
+      return self.img
     with self.open() as f:
-      orig_img = misc.imread(f)
-      crops = []
-      patches = self.patches
-      for patch in patches:
-        img = orig_img
-        if patch.fliplr:
-          img = np.fliplr(img)
-        if patch.rotation != 0.0:
-          img = rotate(img, patch.rotation)
-        crop = img[patch.y:patch.y+patch.height, patch.x:patch.x+patch.width]
-
-        # Remove alpha channel if present
-        try :
-          if crop.shape[2] == 4:
-            crop = crop[:,:,0:3]
-        # Replicate channels if image is Black and White
-        except IndexError, e:
-          tmp = np.zeros((crop.shape[0], crop.shape[1], 3))
-          tmp[:,:,0] = crop
-          tmp[:,:,1] = crop
-          tmp[:,:,2] = crop
-          crop = tmp
-        crops.append(crop)
-      return self.patches, np.asarray(crops)
-
+      self.img = misc.imread(f)
+    return self.img
 
   @property
   def local(self):
@@ -307,16 +290,22 @@ class FeatureSpec(db.Model):
     return "/featurespec/"+str(self.id)
 
   def analyze_blob(self, blob):
-    # TODO: there is a memory problem where there are too many patches in a blob
-    patches, patch_crops = blob.patch_images
-    if patch_crops == []:
-      return
-    feats = self.instance.extract_many(patch_crops)
-
-    for idx, patch in enumerate(patches):
+    # TODO: this could be a globally set var that shares with CNN obj
+    batch_size = 50
+    patch_crops = []
+    patches_to_add = []
+    last = len(blob.patches.all())-1
+    for idx, patch in enumerate(blob.patches):      
       if Feature.query.filter_by(patch=patch, spec=self).count() == 0:
-          yield Feature(patch=patch, spec=self,
-                        vector=feats[idx])
+        patch_crops.append(patch.image)
+        patches_to_add.append(patch)
+      if (idx > 0 and idx % batch_size == 0) or idx == last:
+        feats = self.instance.extract_many(patch_crops)
+        for idx2, f in enumerate(feats):
+          yield Feature(patch=patches_to_add[idx2], spec=self,
+                        vector=f)
+        patch_crops = []
+        patches_to_add = []
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
@@ -616,31 +605,27 @@ class Patch(db.Model):
 
   @property
   def image(self):
-    blob = self.blob
-    with blob.open() as f:
-      img = misc.imread(f)
-      # TODO: this is broken sometime. Sometime imgs is empty... memory problem?
+    img = self.blob.image
+    if self.fliplr:
+      img = np.fliplr(img)
+    if self.rotation != 0.0:
+      img = rotate(img, self.rotation)
 
-      if self.fliplr:
-        img = np.fliplr(img)
-      if self.rotation != 0.0:
-        img = rotate(img, self.rotation)
+    crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
-      crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
+    # Remove alpha channel if present
+    try :
+      if crop.shape[2] == 4:
+        crop = crop[:,:,0:3]
+    # Replicate channels if image is Black and White
+    except IndexError, e:
+      tmp = np.zeros((crop.shape[0], crop.shape[1], 3))
+      tmp[:,:,0] = crop
+      tmp[:,:,1] = crop
+      tmp[:,:,2] = crop
+      crop = tmp
 
-      # Remove alpha channel if present
-      try :
-        if crop.shape[2] == 4:
-          crop = crop[:,:,0:3]
-      # Replicate channels if image is Black and White
-      except IndexError, e:
-        tmp = np.zeros((crop.shape[0], crop.shape[1], 3))
-        tmp[:,:,0] = crop
-        tmp[:,:,1] = crop
-        tmp[:,:,2] = crop
-        crop = tmp
-
-      return crop
+    return crop
 
   @property
   def url(self):
