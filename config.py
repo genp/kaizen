@@ -94,17 +94,6 @@ LOG_FILE = os.path.join(LOG_DIR, APPNAME+'.log')
 #     if not os.path.exists(dir):
 #         os.mkdir(dir)
 
-if not os.path.exists(BLOB_DIR):
-    os.system('sudo mkdir /mnt/$USER')
-    os.system('sudo chown $USER /mnt/$USER')
-    os.system('mkdir /mnt/$USER/kaizen-space')
-    os.system('mkdir /mnt/$USER/kaizen-space/datasets')
-    os.system('mkdir /mnt/$USER/kaizen-space/cache')
-    os.system('mkdir /mnt/$USER/kaizen-space/blobs')
-    os.system('ln -sf /mnt/$USER/kaizen-space/datasets')
-    os.system('ln -sf /mnt/$USER/kaizen-space/cache')
-    os.system('ln -sf /mnt/$USER/kaizen-space/blobs')
-
 
 SQLALCHEMY_DATABASE_URI = 'postgresql://'+user+'@localhost/'+APPNAME
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
@@ -134,7 +123,20 @@ def ec2_metadata(tag):
 os.environ['GLOG_minloglevel'] = '2'
 USE_GPU = False
 instance_type = ec2_metadata('instance-type')
+EC2 = instance_type != ''
 if instance_type.startswith("g"):
     print "Using GPU"
     USE_GPU = True
     GPU_DEVICE_ID = 0
+
+if EC2:
+    if not os.path.exists(BLOB_DIR):
+        os.system('sudo mkdir /mnt/$USER')
+        os.system('sudo chown $USER /mnt/$USER')
+        os.system('mkdir /mnt/$USER/kaizen-space')
+        os.system('mkdir /mnt/$USER/kaizen-space/datasets')
+        os.system('mkdir /mnt/$USER/kaizen-space/cache')
+        os.system('mkdir /mnt/$USER/kaizen-space/blobs')
+        os.system('ln -sf /mnt/$USER/kaizen-space/datasets')
+        os.system('ln -sf /mnt/$USER/kaizen-space/cache')
+        os.system('ln -sf /mnt/$USER/kaizen-space/blobs')
