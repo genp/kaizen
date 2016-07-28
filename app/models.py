@@ -341,7 +341,7 @@ class Dataset(db.Model):
 
   def create_blob_features(self, blob):
     print 'calculating features for {}'.format(blob)
-    batch_size = 10000
+    batch_size = 5000
     for ps in self.patchspecs:
       print ps
       

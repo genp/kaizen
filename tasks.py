@@ -87,7 +87,7 @@ def analyze_blob(ds_id, blob_id):
 def add_examples(k):
     # read definition file
     with open(k.defn_file) as defn:
-        for row in csv.reader(defn):
+        for ex_ind, row in enumerate(csv.reader(defn)):
             # create examples for each row
             blob_name, x, y, w, h, val = row
             x, y, w, h = int(x), int(y), int(w), int(h)
@@ -117,7 +117,8 @@ def add_examples(k):
                 feat = fs.analyze_patch(patch)
                 if feat:
                     db.session.add(feat)
-
+                if fs.instance.__class__ is extract.CNN and (ex_ind > 0 and ex_ind % 1000 == 0):
+                    fs.instance.del_networks()
             ex = app.models.Example(value=val,patch=patch,keyword=k)
             db.session.add(ex)
         db.session.commit()

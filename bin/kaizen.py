@@ -31,6 +31,16 @@ if ps:
     ps.scale = 3.0
     db.session.add(ps)
 
+ps = PatchSpec.ifNew(name='CamelyonLvl2')
+if ps:
+    ps.width = 256
+    ps.height = 256
+    ps.xoverlap = 0.75
+    ps.yoverlap = 0.75
+    ps.scale = 200000
+    ps.fliplr = True
+    db.session.add(ps)
+
 ps = PatchSpec.ifNew(name='MedDense')
 if ps:
     ps.width = 200
