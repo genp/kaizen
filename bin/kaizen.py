@@ -41,6 +41,16 @@ if ps:
     ps.fliplr = True
     db.session.add(ps)
 
+ps = PatchSpec.ifNew(name='LessDense_NoFlip')
+if ps:
+    ps.width = 200
+    ps.height = 200
+    ps.xoverlap = 0.25
+    ps.yoverlap = 0.25
+    ps.scale = 2
+    ps.fliplr = True
+    db.session.add(ps)
+
 ps = PatchSpec.ifNew(name='Dense')
 if ps:
     ps.width = 200

@@ -9,8 +9,6 @@ from celery import Celery, current_task, group, chord, chain
 from functools import wraps
 import celery.registry as registry
 
-# TODO: Sean's advice - One thing that I do is import caffe and set the mode to GPU mode from within the task
-# TODO: test in celery shell
 from app import db
 import app.models
 import config
@@ -79,7 +77,7 @@ def dataset(ds_id):
     for kw in ds.keywords:
         add_examples(kw)
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def analyze_blob(ds_id, blob_id):
     ds = app.models.Dataset.query.get(ds_id)
     blob = app.models.Blob.query.get(blob_id)

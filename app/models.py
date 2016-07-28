@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import resource
+
 import importlib
 import os, time
 import urllib
@@ -16,6 +18,7 @@ import numpy as np
 from app import app, db
 import config
 import tasks
+import extract 
 
 s3 = boto3.resource('s3')
 
@@ -338,21 +341,28 @@ class Dataset(db.Model):
 
   def create_blob_features(self, blob):
     print 'calculating features for {}'.format(blob)
+    batch_size = 10000
     for ps in self.patchspecs:
       print ps
       
-      for p in ps.create_blob_patches(blob):
+      for patches in chunked(ps.create_blob_patches(blob), batch_size):
+        for p in patches:
+          if p:
+            db.session.add(p)            
+        db.session.commit()        
         print p
-        if p:
-          db.session.add(p)
-    db.session.commit()
 
     for fs in self.featurespecs:
       print fs
       feats = fs.analyze_blob(blob)
-      for feat in feats:
-        db.session.add(feat)
-    db.session.commit()
+      for feat in chunked(feats, batch_size):
+        print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        for f in feat:
+          db.session.add(f)
+        db.session.commit()
+        if fs.instance.__class__ is extract.CNN:
+          fs.instance.del_networks()
+        print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
   def migrate_to_s3(self):
     for blob in self.blobs:

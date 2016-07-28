@@ -142,8 +142,14 @@ class CNN(ReducibleFeature):
         self.single = CNN.CACHE[key].single
         self.many = CNN.CACHE[key].many
 
+    def del_networks(self):
+        CNN.CACHE = {}
+        self.single = None
+        self.many = None
+
     def cache_key(self):
         key = str(self.params)
+        return key
         
     def populate_cache(self, key):
         single = self.create_model(1)
