@@ -582,8 +582,10 @@ class Patch(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   x = db.Column(db.Integer, nullable = False)
   y = db.Column(db.Integer, nullable = False)
-  width = db.Column(db.Integer, nullable = False)
-  height = db.Column(db.Integer, nullable = False)
+  width = db.Column(db.Integer, db.CheckConstraint('width>0'),
+                    nullable = False)
+  height = db.Column(db.Integer, db.CheckConstraint('height>0'),
+                     nullable = False)
   fliplr = db.Column(db.Boolean, nullable=False, default=False)
   rotation = db.Column(db.Float, nullable=False, default=0.0)
 

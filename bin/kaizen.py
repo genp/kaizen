@@ -139,4 +139,4 @@ flask_host = config.HOST
 # Listen to outside connections if we have a "real" hostname
 if flask_host != "localhost":
     flask_host = "0.0.0.0"
-app.run(host=flask_host, port=config.PORT)
+app.run(host=flask_host, port=config.PORT, threaded=True)
