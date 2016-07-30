@@ -12,7 +12,7 @@ import celery.registry as registry
 from app import db
 import app.models
 import config
-
+import extract
 
 celery = Celery('tasks',
                 broker="sqla+"+config.SQLALCHEMY_DATABASE_URI,

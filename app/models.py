@@ -9,6 +9,7 @@ from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
 from more_itertools import chunked
 from scipy import misc
 from scipy.ndimage.interpolation import rotate
+from sklearn.metrics import average_precision_score
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
 import boto3
@@ -138,6 +139,9 @@ class Blob(db.Model):
       self.img = misc.imread(f)
     return self.img
 
+  def reset(self):
+    self.img = None
+
   @property
   def local(self):
     return self.location[0] == '/' and os.path.exists(self.location)
@@ -213,6 +217,7 @@ class PatchSpec(db.Model):
       + upto + " with " + overlap
 
   def create_blob_patches(self, blob):
+    print 'Creating patches for {}'.format(blob)
     print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     img = blob.image
 
@@ -230,6 +235,9 @@ class PatchSpec(db.Model):
       print 'Index Error for {}'.format(blob)
       print 'Error on Patch #{}'.format(pind)
       print 'Blob\'s Image Shape: {}'.format(img.shape)
+      print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+      blob.reset()
+      print '*** Reseting blob image ***'
       print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
       return
 
@@ -552,6 +560,17 @@ class Round(db.Model):
           value = estimators[feature.spec.id].predict(feature.vector)
           yield Prediction(value=value, feature=feature, round=self)
 
+  def predict_patch(self, patch, fs):
+    '''Yield Prediction on a patch, as of this Round.
+    Uses estimators trained on examples of the arg FeatureSpec fs.
+    '''
+    classifier = self.classifier
+    estimators = self.trained_estimators()
+
+    for feature in patch.features:
+      if feature.spec == fs:
+        return estimators[fs.id].predict(feature.vector)
+
   def detect(self, blob):
     estimators = self.trained_estimators()
     for patch in blob.patches:
@@ -589,6 +608,39 @@ class Round(db.Model):
 
     def __repr__(self):
       return model_debug(self)
+
+  def averge_precision(self, keyword, add_neg_ratio=None):
+    '''Returns the AP of the Round's estimator on the elements of the 
+    keyword.
+    Adds negatives randomly selected from the keyword's dataset
+    up to a pos/neg ratio of <add_neg_ratio>. 
+    '''
+    # get all patches from keyword
+    y = {}
+    for ex in keyword.seeds:
+      for feature in ex.patch.features:
+        if str(feature) not in y.keys():
+          y[str(feature)] = {}
+          y[str(feature)]['true'] = []
+          y[str(feature)]['pred'] = []
+        y[str(feature)]['true'].append( 1.0 if ex.value else 0.0 )
+        y[str(feature)]['pred'].append(self.predict_patch(patch, feature))
+    # get additional negatives if need be
+    if add_neg_ratio is not None:
+      num_pos = len(keyword.seeds.filter(Example.value == True).all())
+      num_neg = len(keyword.seeds.filter(Example.value == False).all())      
+      for patch in keyword.dataset.patches:
+        if np.true_divide(num_neg, (num_neg+num_pos)) >= add_neg_ratio:
+          break
+        for feature in patch.features:
+          y[str(feature)]['true'].append( 0.0 )
+          y[str(feature)]['pred'].append(self.predict_patch(patch, feature))
+        num_neg += 1
+    # calculate AP
+    ap = {}
+    for feature in y.keys():
+      ap[feature] = average_precision_score(y[feature]['true'], y[feature]['pred'])
+    return ap
 
 class Patch(db.Model):
   id = db.Column(db.Integer, primary_key = True)
