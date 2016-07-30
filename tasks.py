@@ -191,7 +191,6 @@ def advance_classifier(c_id):
     db.session.commit();
 
 
-@celery.task
 def predict_round(r_id):
     round = app.models.Round.query.get(r_id)
 
@@ -200,8 +199,16 @@ def predict_round(r_id):
 
     for pq in round.choose_queries():
         db.session.add(pq)
-        
+
     db.session.commit()
+    precrop_round_results.delay(r_id)
+
+
+@celery.task
+def precrop_round_results(r_id):
+    round = app.models.Round.query.get(r_id)
+    for pq in round.queries:
+        pq.patch.materialize()
 
 @celery.task
 def detect(d_id):
