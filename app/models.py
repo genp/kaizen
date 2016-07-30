@@ -213,15 +213,25 @@ class PatchSpec(db.Model):
       + upto + " with " + overlap
 
   def create_blob_patches(self, blob):
+    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     img = blob.image
 
     w = self.width
     h = self.height
-    while w < img.shape[1] and h < img.shape[0]:
-      for patch in self.create_sized_blob_patches(blob, img.shape, w, h):
-        yield patch
-      w = int(w * self.scale)
-      h = int(h * self.scale)
+    pind = 0
+    try:
+      while w < img.shape[1] and h < img.shape[0]:
+        for patch in self.create_sized_blob_patches(blob, img.shape, w, h):
+          pind += 1
+          yield patch
+        w = int(w * self.scale)
+        h = int(h * self.scale)
+    except IndexError, e:
+      print 'Index Error for {}'.format(blob)
+      print 'Error on Patch #{}'.format(pind)
+      print 'Blob\'s Image Shape: {}'.format(img.shape)
+      print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+      return
 
   def create_sized_blob_patches(self, blob, size, width, height):
     # How far each slide will go
@@ -341,7 +351,7 @@ class Dataset(db.Model):
 
   def create_blob_features(self, blob):
     print 'calculating features for {}'.format(blob)
-    batch_size = 5000
+    batch_size = 500
     for ps in self.patchspecs:
       print ps
       
@@ -526,7 +536,7 @@ class Round(db.Model):
                                backref = db.backref('rounds',
                                                     order_by='Round.number',
                                                     lazy = 'dynamic'))
-  def predict(self):
+  def predict(self, ds=None):
     '''Yield Predictions for all Patches in the Dataset, as of this Round.
     Uses estimators trained on examples for each FeatureSpec to make
     predictions against its Features.
@@ -534,7 +544,9 @@ class Round(db.Model):
     classifier = self.classifier
     estimators = self.trained_estimators()
 
-    for blob in classifier.dataset.blobs:
+    if ds is None:
+      ds = classifier.dataset
+    for blob in ds.blobs:
       for patch in blob.patches:
         for feature in patch.features:
           value = estimators[feature.spec.id].predict(feature.vector)
