@@ -103,8 +103,12 @@ def add_examples(k):
                 print 'Cannot add example from empty dataset {}'.format(k.dataset)
                 return
             print blobs    
+            print "path_2: " + os.path.basename(blob_name)
+            for b in blobs:
+                print os.path.basename(b.location)
+
             blobs = [b for b in blobs
-                     if os.path.basename(b.location) == blob_name]
+                     if os.path.basename(b.location) == os.path.basename(blob_name)]
             
             if not blobs:
                 # TODO: add log entry
