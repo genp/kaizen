@@ -2,6 +2,12 @@
 import argparse, distutils.spawn, os, sys, subprocess, tempfile, time
 import boto3
 
+user = os.environ['USER']
+home = os.environ['HOME']
+shell = os.environ['SHELL']
+
+default_name = user +"-<type>"
+
 parser = argparse.ArgumentParser(description='Create or start an ec2 instance.')
 parser.add_argument('-t', '--type', default='small',
                    help='The ec2 instance type to create.')
@@ -10,7 +16,10 @@ parser.add_argument('-k', '--key', default='aws-mac',
 parser.add_argument('-d', '--domain', default='jannotti.com',
                    help='The domain to put new hostname into')
 parser.add_argument('-s', '--security-group', default='',
-                   help='The secuirty group for the new instances')
+                   help='The security group for the new instances')
+parser.add_argument('-n', '--name', default=default_name,
+                   help='The name of the host (installed in -d domain).')
+parser.add_argument('-#', default=1, help='The number of instances to start.')
 args = parser.parse_args()
 
 itype = args.type
@@ -24,22 +33,18 @@ itype_alias = {
 if itype in itype_alias:
     itype = itype_alias[itype]
 
-
 if args.domain.startswith("."):
     args.domain = args.domain[1:]
+if args.name == default_name:
+    name = user +"-"+ args.type
+else:
+    name = args.name
 
 ami = 'ami-60b6c60a'            # amazon_linux_hvm
 if itype.startswith('g'):
     ami = 'ami-e998ea83'        # NVIDIA "Graphics AMI" Amazon Linux, US East
 
 ec2 = boto3.resource('ec2')
-
-user = os.environ['USER']
-home = os.environ['HOME']
-shell = os.environ['SHELL']
-
-
-name = user +"-"+ args.type
 
 home_files = [
     'bin', 'etc',
@@ -52,7 +57,8 @@ home_files = [
 ]
 
 # TODO: figure these out from dot files, history, environment...
-packages = "emacs gcc-c++ git zsh tmux postgresql94-server mlocate".split(" ")
+packages = \
+    "nginx emacs gcc-c++ git zsh tmux postgresql94-server mlocate".split(" ")
 
 def tags(l):
     d = {}
@@ -69,8 +75,8 @@ def wait_run(instance):
         'Name': 'instance-id',
         'Values': [instance.instance_id],
     }])
-    print "Sleeping longer, to allow boot"
-    time.sleep(10)
+    print "Sleeping 20secs longer, to allow boot"
+    time.sleep(20)
     return ec2.Instance(instance.id)
 
 def wait_stop(instance):
@@ -132,7 +138,7 @@ def root_file(keyname, host, file, contents):
         ssh(keyname, host, "sudo mv "+name+" "+file)
 
 def setup_host(keyname, host, hostname):
-    print "Setup host",hostname
+    print "Setup host", hostname
     ssh(keyname, host, "sudo yum update -y")
     ssh(keyname, host, "sudo yum install -y "+" ".join(packages))
     if 'postgresql94' in packages:
@@ -145,6 +151,12 @@ def setup_host(keyname, host, hostname):
 #    root_file(keyname, host, "/etc/sudoers.d/lecture", "lecture = never")
     ssh(keyname, host, "sudo pip install virtualenvwrapper")
     ssh(keyname, host, "sudo gem install sass")
+
+    # Runs too early. oh-my-zsh will give me completion properly
+    ssh(keyname, host, "sudo rm /etc/profile.d/aws-cli.sh")
+
+    ssh(keyname, host, "sudo pip install virtualenvwrapper")
+
     setup_hostname(keyname, host, hostname)
 
 def setup_hostname(keyname, host, hostname):

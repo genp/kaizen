@@ -48,7 +48,6 @@ def keyword_add():
                 # feat = fs.create_patch_feature(patch)
                 # db.session.add(feat)
         db.session.commit()
-
         return redirect(url_for('keyword', id=keyword.id))
     else:
         print 'did not validate'

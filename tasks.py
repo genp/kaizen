@@ -9,12 +9,10 @@ from celery import Celery, current_task, group, chord, chain
 from functools import wraps
 import celery.registry as registry
 
-# TODO: Sean's advice - One thing that I do is import caffe and set the mode to GPU mode from within the task
-# TODO: test in celery shell
 from app import db
 import app.models
 import config
-
+import extract
 
 celery = Celery('tasks',
                 broker="sqla+"+config.SQLALCHEMY_DATABASE_URI,
@@ -79,11 +77,8 @@ def dataset(ds_id):
     for kw in ds.keywords:
         add_examples(kw)
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def analyze_blob(ds_id, blob_id):
-    import caffe
-    caffe.set_device(0)
-    caffe.set_mode_gpu()
     ds = app.models.Dataset.query.get(ds_id)
     blob = app.models.Blob.query.get(blob_id)
     ds.create_blob_features(blob)
@@ -92,7 +87,7 @@ def analyze_blob(ds_id, blob_id):
 def add_examples(k):
     # read definition file
     with open(k.defn_file) as defn:
-        for row in csv.reader(defn):
+        for ex_ind, row in enumerate(csv.reader(defn)):
             # create examples for each row
             blob_name, x, y, w, h, val = row
             x, y, w, h = int(x), int(y), int(w), int(h)
@@ -108,7 +103,7 @@ def add_examples(k):
                 print os.path.basename(b.location)
 
             blobs = [b for b in blobs
-                     if os.path.basename(b.location) == os.path.basename(blob_name)]
+                     if blob_name in b.location]
             
             if not blobs:
                 # TODO: add log entry
@@ -126,11 +121,19 @@ def add_examples(k):
                 feat = fs.analyze_patch(patch)
                 if feat:
                     db.session.add(feat)
-
-            ex = app.models.Example(value=val,patch=patch,keyword=k)
+                # TODO put this counting and del_networks() inside CNN
+                if fs.instance.__class__ is extract.CNN and (ex_ind > 0 and ex_ind % 1000 == 0):
+                    fs.instance.del_networks()
+            ex = app.models.Example(value=val, patch=patch, keyword=k)
             db.session.add(ex)
         db.session.commit()
 
+
+@celery.task
+def keyword(kw_id):
+    kw = app.models.Keyword.query.get(kw_id)
+    for seed in kw.seeds:
+        seed.patch.materialize()
 
 def if_classifier(c):
     if c:
@@ -192,7 +195,6 @@ def advance_classifier(c_id):
     db.session.commit();
 
 
-@celery.task
 def predict_round(r_id):
     round = app.models.Round.query.get(r_id)
 
@@ -201,8 +203,16 @@ def predict_round(r_id):
 
     for pq in round.choose_queries():
         db.session.add(pq)
-        
+
     db.session.commit()
+    precrop_round_results.delay(r_id)
+
+
+@celery.task
+def precrop_round_results(r_id):
+    round = app.models.Round.query.get(r_id)
+    for pq in round.queries:
+        pq.patch.materialize()
 
 @celery.task
 def detect(d_id):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from app import app, db, user_manager
+import config
 
 # Preload the DB so we can drop it any time.
 from app.models import User, PatchSpec, FeatureSpec, Estimator
@@ -30,16 +31,45 @@ if ps:
     ps.scale = 3.0
     db.session.add(ps)
 
+ps = PatchSpec.ifNew(name='CamelyonLvl2')
+if ps:
+    ps.width = 256
+    ps.height = 256
+    ps.xoverlap = -0.25
+    ps.yoverlap = -0.25
+    ps.scale = 200000
+    ps.fliplr = False
+    db.session.add(ps)
+
+ps = PatchSpec.ifNew(name='MedDense')
+if ps:
+    ps.width = 200
+    ps.height = 200
+    ps.xoverlap = 0.5
+    ps.yoverlap = 0.5
+    ps.scale = 2
+    ps.fliplr = True
+    db.session.add(ps)
+
+ps = PatchSpec.ifNew(name='LessDense_NoFlip')
+if ps:
+    ps.width = 200
+    ps.height = 200
+    ps.xoverlap = 0.25
+    ps.yoverlap = 0.25
+    ps.scale = 2
+    ps.fliplr = True
+    db.session.add(ps)
+
 ps = PatchSpec.ifNew(name='Dense')
 if ps:
     ps.width = 200
     ps.height = 200
     ps.xoverlap = 0.75
     ps.yoverlap = 0.75
-    ps.scale = 1.5
+    ps.scale = 3
     ps.fliplr = True
     db.session.add(ps)
-
 
 
 fs = FeatureSpec.ifNew(name = 'RGB', cls = 'extract.ColorHist')
@@ -105,4 +135,8 @@ if e:
 
 db.session.commit()
 
-app.run(host='0.0.0.0', port=8080)
+flask_host = config.HOST
+# Listen to outside connections if we have a "real" hostname
+if flask_host != "localhost":
+    flask_host = "0.0.0.0"
+app.run(host=flask_host, port=config.PORT, threaded=True)
