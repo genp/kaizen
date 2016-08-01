@@ -135,9 +135,13 @@ class Blob(db.Model):
   def image(self):
     if self.img is not None:
       return self.img
-    with self.open() as f:
-      self.img = misc.imread(f)
-    return self.img
+    try:
+      with self.open() as f:
+        self.img = misc.imread(f)
+      return self.img
+    except IOError, e:
+      print 'Could not open image file for {}'.format(self)
+      return []
 
   def reset(self):
     self.img = None
@@ -615,16 +619,19 @@ class Round(db.Model):
     Adds negatives randomly selected from the keyword's dataset
     up to a pos/neg ratio of <add_neg_ratio>. 
     '''
+
     # get all patches from keyword
     y = {}
+    num_seeds = len(keyword.seeds.all())
     for ex in keyword.seeds:
       for feature in ex.patch.features:
-        if str(feature) not in y.keys():
-          y[str(feature)] = {}
-          y[str(feature)]['true'] = []
-          y[str(feature)]['pred'] = []
-        y[str(feature)]['true'].append( 1.0 if ex.value else 0.0 )
-        y[str(feature)]['pred'].append(self.predict_patch(patch, feature))
+        if str(feature.spec_id) not in y.keys():
+          y[str(feature.spec_id)] = {}
+          y[str(feature.spec_id)]['true'] = []
+          y[str(feature.spec_id)]['pred'] = []
+        y[str(feature.spec_id)]['true'].append( 1.0 if ex.value else 0.0 )
+        y[str(feature.spec_id)]['pred'].append(self.predict_patch(ex.patch, feature))
+        print '{} of {}'.format(len(y[str(feature.spec_id)]['true']), num_seeds)
     # get additional negatives if need be
     if add_neg_ratio is not None:
       num_pos = len(keyword.seeds.filter(Example.value == True).all())
@@ -633,13 +640,14 @@ class Round(db.Model):
         if np.true_divide(num_neg, (num_neg+num_pos)) >= add_neg_ratio:
           break
         for feature in patch.features:
-          y[str(feature)]['true'].append( 0.0 )
-          y[str(feature)]['pred'].append(self.predict_patch(patch, feature))
+          y[str(feature.spec_id)]['true'].append( 0.0 )
+          y[str(feature.spec_id)]['pred'].append(self.predict_patch(patch, feature))
         num_neg += 1
+        print 'Number of added negatives {}'.format(num_neg)
     # calculate AP
     ap = {}
-    for feature in y.keys():
-      ap[feature] = average_precision_score(y[feature]['true'], y[feature]['pred'])
+    for ftype in y.keys():
+      ap[ftype] = average_precision_score(y[ftype]['true'], y[ftype]['pred'])
     return ap
 
 class Patch(db.Model):
@@ -686,6 +694,8 @@ class Patch(db.Model):
   @property
   def image(self):
     img = self.blob.image
+    if img == []:
+      return []
     if self.fliplr:
       img = np.fliplr(img)
     if self.rotation != 0.0:

@@ -35,8 +35,8 @@ ps = PatchSpec.ifNew(name='CamelyonLvl2')
 if ps:
     ps.width = 256
     ps.height = 256
-    ps.xoverlap = -0.25
-    ps.yoverlap = -0.25
+    ps.xoverlap = 0
+    ps.yoverlap = 0
     ps.scale = 200000
     ps.fliplr = False
     db.session.add(ps)
