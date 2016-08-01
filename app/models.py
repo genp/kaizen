@@ -572,8 +572,8 @@ class Round(db.Model):
     estimators = self.trained_estimators()
 
     for feature in patch.features:
-      if feature.spec == fs:
-        return estimators[fs.id].predict(feature.vector)
+      if feature.spec.id == fs:
+        return estimators[fs].predict(feature.vector)[0]
 
   def detect(self, blob):
     estimators = self.trained_estimators()
@@ -613,7 +613,7 @@ class Round(db.Model):
     def __repr__(self):
       return model_debug(self)
 
-  def averge_precision(self, keyword, add_neg_ratio=None):
+  def average_precision(self, keyword, add_neg_ratio=None):
     '''Returns the AP of the Round's estimator on the elements of the 
     keyword.
     Adds negatives randomly selected from the keyword's dataset
@@ -625,23 +625,28 @@ class Round(db.Model):
     num_seeds = len(keyword.seeds.all())
     for ex in keyword.seeds:
       for feature in ex.patch.features:
-        if str(feature.spec_id) not in y.keys():
-          y[str(feature.spec_id)] = {}
-          y[str(feature.spec_id)]['true'] = []
-          y[str(feature.spec_id)]['pred'] = []
-        y[str(feature.spec_id)]['true'].append( 1.0 if ex.value else 0.0 )
-        y[str(feature.spec_id)]['pred'].append(self.predict_patch(ex.patch, feature))
-        print '{} of {}'.format(len(y[str(feature.spec_id)]['true']), num_seeds)
-    # get additional negatives if need be
+        if str(feature.spec.id) not in y.keys():
+          y[str(feature.spec.id)] = {}
+          y[str(feature.spec.id)]['true'] = []
+          y[str(feature.spec.id)]['pred'] = []
+        y[str(feature.spec.id)]['true'].append( 1.0 if ex.value else 0.0 )
+        y[str(feature.spec.id)]['pred'].append(self.predict_patch(ex.patch, feature.spec.id))
+        print '{} of {}, true {}, pred {}'.format(len(y[str(feature.spec.id)]['true']), num_seeds, y[str(feature.spec.id)]['true'][0], y[str(feature.spec.id)]['pred'][0])
+    # get additional negatives if need be    
     if add_neg_ratio is not None:
       num_pos = len(keyword.seeds.filter(Example.value == True).all())
       num_neg = len(keyword.seeds.filter(Example.value == False).all())      
-      for patch in keyword.dataset.patches:
+      kw_patches = [ex.patch for ex in keyword.seeds]
+      for blob in keyword.dataset.blobs:
+        patches = blob.patches.order_by(func.random()).all()
+        for patch in patches:
+          if patch not in kw_patches:
+            break
         if np.true_divide(num_neg, (num_neg+num_pos)) >= add_neg_ratio:
           break
         for feature in patch.features:
-          y[str(feature.spec_id)]['true'].append( 0.0 )
-          y[str(feature.spec_id)]['pred'].append(self.predict_patch(patch, feature))
+          y[str(feature.spec.id)]['true'].append( 0.0 )
+          y[str(feature.spec.id)]['pred'].append(self.predict_patch(patch, feature.spec.id))
         num_neg += 1
         print 'Number of added negatives {}'.format(num_neg)
     # calculate AP

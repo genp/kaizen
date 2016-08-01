@@ -15,7 +15,7 @@ if not cafferoot:
 sys.path.append(cafferoot)
 DEVELOPMENT = False
 
-HOST = socket.getfqdn()
+HOST = 'ec2-54-175-135-17.compute-1.amazonaws.com' #socket.getfqdn()
 if 'local' in HOST:
     HOST = 'localhost'
 PORT = 8080

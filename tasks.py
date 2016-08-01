@@ -201,7 +201,7 @@ def advance_classifier(c_id):
         db.session.add(ex)
 
     predict_round(round.id)
-    db.session.commit();
+    db.session.commit()
 
 
 def predict_round(r_id):
