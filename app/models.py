@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import resource
-
+import random
 import importlib
 import os, time
 import urllib
@@ -10,6 +10,7 @@ from more_itertools import chunked
 from scipy import misc
 from scipy.ndimage.interpolation import rotate
 from sklearn.metrics import average_precision_score
+from  sqlalchemy.sql.expression import func
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
 import boto3
@@ -561,7 +562,9 @@ class Round(db.Model):
     for blob in ds.blobs:
       for patch in blob.patches:
         for feature in patch.features:
-          value = estimators[feature.spec.id].predict(feature.vector)
+          #TODO: I don't think we want predict here, want decision function or probability 
+          # value = estimators[feature.spec.id].predict(feature.vector)
+          value = estimators[feature.spec.id].decision_function(feature.vector)
           yield Prediction(value=value, feature=feature, round=self)
 
   def predict_patch(self, patch, fs):
@@ -620,38 +623,43 @@ class Round(db.Model):
     up to a pos/neg ratio of <add_neg_ratio>. 
     '''
 
+    estimators = self.trained_estimators()
     # get all patches from keyword
     y = {}
+    feats = {}
     num_seeds = len(keyword.seeds.all())
     for ex in keyword.seeds:
       for feature in ex.patch.features:
-        if str(feature.spec.id) not in y.keys():
-          y[str(feature.spec.id)] = {}
-          y[str(feature.spec.id)]['true'] = []
-          y[str(feature.spec.id)]['pred'] = []
-        y[str(feature.spec.id)]['true'].append( 1.0 if ex.value else 0.0 )
-        y[str(feature.spec.id)]['pred'].append(self.predict_patch(ex.patch, feature.spec.id))
-        print '{} of {}, true {}, pred {}'.format(len(y[str(feature.spec.id)]['true']), num_seeds, y[str(feature.spec.id)]['true'][0], y[str(feature.spec.id)]['pred'][0])
+        if feature.spec.id not in y.keys():
+          y[feature.spec.id] = {}
+          y[feature.spec.id]['true'] = []
+          feats[feature.spec.id] = []
+        y[feature.spec.id]['true'].append( 1.0 if ex.value else 0.0 )
+        feats[feature.spec.id].append(feature.vector)
+
+        print '{} of {}'.format(len(y[feature.spec.id]['true']), 
+                                                  num_seeds)
     # get additional negatives if need be    
     if add_neg_ratio is not None:
       num_pos = len(keyword.seeds.filter(Example.value == True).all())
       num_neg = len(keyword.seeds.filter(Example.value == False).all())      
       kw_patches = [ex.patch for ex in keyword.seeds]
-      for blob in keyword.dataset.blobs:
+      ds_blobs = keyword.dataset.blobs
+      while np.true_divide(num_neg, (num_neg+num_pos)) < add_neg_ratio:
+        blob = ds_blobs[random.randint(0,len(ds_blobs)-1)]
         patches = blob.patches.order_by(func.random()).all()
         for patch in patches:
           if patch not in kw_patches:
             break
-        if np.true_divide(num_neg, (num_neg+num_pos)) >= add_neg_ratio:
-          break
         for feature in patch.features:
-          y[str(feature.spec.id)]['true'].append( 0.0 )
-          y[str(feature.spec.id)]['pred'].append(self.predict_patch(patch, feature.spec.id))
+          y[feature.spec.id]['true'].append( 0.0 )
+          feats[feature.spec.id].append(feature.vector)
         num_neg += 1
         print 'Number of added negatives {}'.format(num_neg)
     # calculate AP
     ap = {}
     for ftype in y.keys():
+      y[ftype]['pred'] = estimators[ftype].decision_function(np.asarray(feats[ftype]))
       ap[ftype] = average_precision_score(y[ftype]['true'], y[ftype]['pred'])
     return ap
 
