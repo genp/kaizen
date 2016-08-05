@@ -5,6 +5,7 @@ import importlib
 import os, time
 import urllib
 
+import psutil
 from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
 from more_itertools import chunked
 from scipy import misc
@@ -134,12 +135,12 @@ class Blob(db.Model):
 
   @property
   def image(self):
-    if self.img is not None:
-      return self.img
+    #if self.img is not None:
+    #  return self.img
     try:
       with self.open() as f:
-        self.img = misc.imread(f)
-      return self.img
+        img = misc.imread(f)
+      return img
     except IOError, e:
       print 'Could not open image file for {}'.format(self)
       return []
@@ -661,7 +662,7 @@ class Round(db.Model):
     for ftype in y.keys():
       y[ftype]['pred'] = estimators[ftype].decision_function(np.asarray(feats[ftype]))
       ap[ftype] = average_precision_score(y[ftype]['true'], y[ftype]['pred'])
-    return ap
+    return y
 
 class Patch(db.Model):
   id = db.Column(db.Integer, primary_key = True)
@@ -701,7 +702,11 @@ class Patch(db.Model):
     complete = os.path.join(config.CACHE_DIR, filename)
 
     if not os.path.exists(complete):
+        print filename
+        print psutil.virtual_memory()
         misc.imsave(complete, self.image)
+        print psutil.virtual_memory()
+        print "saved."
     return complete
 
   @property
@@ -713,6 +718,10 @@ class Patch(db.Model):
       img = np.fliplr(img)
     if self.rotation != 0.0:
       img = rotate(img, self.rotation)
+    
+    print "image shape: "
+    print img.shape
+    print (self.y, self.y+self.height, self.x, self.x+self.width)
 
     crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
