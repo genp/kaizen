@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 import resource
-
+import random
 import importlib
 import os, time
 import urllib
 
+import psutil
 from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
 from more_itertools import chunked
 from scipy import misc
 from scipy.ndimage.interpolation import rotate
+from sklearn.metrics import average_precision_score
+from  sqlalchemy.sql.expression import func
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
 import boto3
@@ -132,11 +135,18 @@ class Blob(db.Model):
 
   @property
   def image(self):
-    if self.img is not None:
-      return self.img
-    with self.open() as f:
-      self.img = misc.imread(f)
-    return self.img
+    #if self.img is not None:
+    #  return self.img
+    try:
+      with self.open() as f:
+        img = misc.imread(f)
+      return img
+    except IOError, e:
+      print 'Could not open image file for {}'.format(self)
+      return []
+
+  def reset(self):
+    self.img = None
 
   @property
   def local(self):
@@ -213,15 +223,29 @@ class PatchSpec(db.Model):
       + upto + " with " + overlap
 
   def create_blob_patches(self, blob):
+    print 'Creating patches for {}'.format(blob)
+    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     img = blob.image
 
     w = self.width
     h = self.height
-    while w < img.shape[1] and h < img.shape[0]:
-      for patch in self.create_sized_blob_patches(blob, img.shape, w, h):
-        yield patch
-      w = int(w * self.scale)
-      h = int(h * self.scale)
+    pind = 0
+    try:
+      while w < img.shape[1] and h < img.shape[0]:
+        for patch in self.create_sized_blob_patches(blob, img.shape, w, h):
+          pind += 1
+          yield patch
+        w = int(w * self.scale)
+        h = int(h * self.scale)
+    except IndexError, e:
+      print 'Index Error for {}'.format(blob)
+      print 'Error on Patch #{}'.format(pind)
+      print 'Blob\'s Image Shape: {}'.format(img.shape)
+      print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+      blob.reset()
+      print '*** Reseting blob image ***'
+      print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+      return
 
   def create_sized_blob_patches(self, blob, size, width, height):
     # How far each slide will go
@@ -341,7 +365,7 @@ class Dataset(db.Model):
 
   def create_blob_features(self, blob):
     print 'calculating features for {}'.format(blob)
-    batch_size = 5000
+    batch_size = 500
     for ps in self.patchspecs:
       print ps
       
@@ -526,7 +550,7 @@ class Round(db.Model):
                                backref = db.backref('rounds',
                                                     order_by='Round.number',
                                                     lazy = 'dynamic'))
-  def predict(self):
+  def predict(self, ds=None):
     '''Yield Predictions for all Patches in the Dataset, as of this Round.
     Uses estimators trained on examples for each FeatureSpec to make
     predictions against its Features.
@@ -534,11 +558,26 @@ class Round(db.Model):
     classifier = self.classifier
     estimators = self.trained_estimators()
 
-    for blob in classifier.dataset.blobs:
+    if ds is None:
+      ds = classifier.dataset
+    for blob in ds.blobs:
       for patch in blob.patches:
         for feature in patch.features:
-          value = estimators[feature.spec.id].predict(feature.vector)
+          #TODO: I don't think we want predict here, want decision function or probability 
+          # value = estimators[feature.spec.id].predict(feature.vector)
+          value = estimators[feature.spec.id].decision_function(feature.vector)
           yield Prediction(value=value, feature=feature, round=self)
+
+  def predict_patch(self, patch, fs):
+    '''Yield Prediction on a patch, as of this Round.
+    Uses estimators trained on examples of the arg FeatureSpec fs.
+    '''
+    classifier = self.classifier
+    estimators = self.trained_estimators()
+
+    for feature in patch.features:
+      if feature.spec.id == fs:
+        return estimators[fs].predict(feature.vector)[0]
 
   def detect(self, blob):
     estimators = self.trained_estimators()
@@ -578,6 +617,53 @@ class Round(db.Model):
     def __repr__(self):
       return model_debug(self)
 
+  def average_precision(self, keyword, add_neg_ratio=None):
+    '''Returns the AP of the Round's estimator on the elements of the 
+    keyword.
+    Adds negatives randomly selected from the keyword's dataset
+    up to a pos/neg ratio of <add_neg_ratio>. 
+    '''
+
+    estimators = self.trained_estimators()
+    # get all patches from keyword
+    y = {}
+    feats = {}
+    num_seeds = len(keyword.seeds.all())
+    for ex in keyword.seeds:
+      for feature in ex.patch.features:
+        if feature.spec.id not in y.keys():
+          y[feature.spec.id] = {}
+          y[feature.spec.id]['true'] = []
+          feats[feature.spec.id] = []
+        y[feature.spec.id]['true'].append( 1.0 if ex.value else 0.0 )
+        feats[feature.spec.id].append(feature.vector)
+
+        print '{} of {}'.format(len(y[feature.spec.id]['true']), 
+                                                  num_seeds)
+    # get additional negatives if need be    
+    if add_neg_ratio is not None:
+      num_pos = len(keyword.seeds.filter(Example.value == True).all())
+      num_neg = len(keyword.seeds.filter(Example.value == False).all())      
+      kw_patches = [ex.patch for ex in keyword.seeds]
+      ds_blobs = keyword.dataset.blobs
+      while np.true_divide(num_neg, (num_neg+num_pos)) < add_neg_ratio:
+        blob = ds_blobs[random.randint(0,len(ds_blobs)-1)]
+        patches = blob.patches.order_by(func.random()).all()
+        for patch in patches:
+          if patch not in kw_patches:
+            break
+        for feature in patch.features:
+          y[feature.spec.id]['true'].append( 0.0 )
+          feats[feature.spec.id].append(feature.vector)
+        num_neg += 1
+        print 'Number of added negatives {}'.format(num_neg)
+    # calculate AP
+    ap = {}
+    for ftype in y.keys():
+      y[ftype]['pred'] = estimators[ftype].decision_function(np.asarray(feats[ftype]))
+      ap[ftype] = average_precision_score(y[ftype]['true'], y[ftype]['pred'])
+    return y
+
 class Patch(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   x = db.Column(db.Integer, nullable = False)
@@ -616,16 +702,26 @@ class Patch(db.Model):
     complete = os.path.join(config.CACHE_DIR, filename)
 
     if not os.path.exists(complete):
+        print filename
+        print psutil.virtual_memory()
         misc.imsave(complete, self.image)
+        print psutil.virtual_memory()
+        print "saved."
     return complete
 
   @property
   def image(self):
     img = self.blob.image
+    if img == []:
+      return []
     if self.fliplr:
       img = np.fliplr(img)
     if self.rotation != 0.0:
       img = rotate(img, self.rotation)
+    
+    print "image shape: "
+    print img.shape
+    print (self.y, self.y+self.height, self.x, self.x+self.width)
 
     crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 

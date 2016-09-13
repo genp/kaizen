@@ -12,7 +12,7 @@ import celery.registry as registry
 from app import db
 import app.models
 import config
-
+import extract
 
 celery = Celery('tasks',
                 broker="sqla+"+config.SQLALCHEMY_DATABASE_URI,
@@ -98,6 +98,10 @@ def add_examples(k):
                 print 'Cannot add example from empty dataset {}'.format(k.dataset)
                 return
             print blobs    
+            print "path_2: " + os.path.basename(blob_name)
+            for b in blobs:
+                print os.path.basename(b.location)
+
             blobs = [b for b in blobs
                      if blob_name in b.location]
             
@@ -112,17 +116,25 @@ def add_examples(k):
                                             fliplr=False, rotation=0.0)
             # Calculate features for the example patches (as needed)
             for fs in k.dataset.featurespecs:
-                print patch
+                print 'Patch is {}'.format(patch)
+                # TODO: clean up this error handling
+                try:
+                  if patch.image == []:
+                      continue
+                  if 0 in patch.image.shape:
+                      continue
+                except IndexError, e:
+                    continue
                 print patch.image.shape
                 feat = fs.analyze_patch(patch)
                 if feat:
                     db.session.add(feat)
                 # TODO put this counting and del_networks() inside CNN
-                if fs.instance.__class__ is extract.CNN and (ex_ind > 0 and ex_ind % 1000 == 0):
+                if fs.instance.__class__ is extract.CNN:# and (ex_ind > 0 and ex_ind % 1000 == 0):
                     fs.instance.del_networks()
             ex = app.models.Example(value=val, patch=patch, keyword=k)
             db.session.add(ex)
-        db.session.commit()
+            db.session.commit()
 
 
 @celery.task
@@ -148,9 +160,9 @@ def classifier(c_id):
         e = app.models.Example(value = ex.value, patch = ex.patch, round = zero)
         db.session.add(e)
 
-        # We added at least one negative value from the seeds
-        if not ex.value:
-            negative = True
+        # # We added at least one negative value from the seeds
+        # if not ex.value:
+        #     negative = True
 
         # Calculate features for the example patches (as needed)
         for fs in ds.featurespecs:
@@ -167,7 +179,8 @@ def classifier(c_id):
     # accept negatives, and require them in such cases).
     
     if not negative:
-        patch = ds.blobs[0].patches[0]
+        # TODO randomize blobs order
+        patch = ds.blobs[100].patches[0]
         e = app.models.Example(value = False, patch = patch, round = zero)
         db.session.add(e)
 
@@ -188,10 +201,9 @@ def advance_classifier(c_id):
         db.session.add(ex)
 
     predict_round(round.id)
-    db.session.commit();
+    db.session.commit()
 
 
-@celery.task
 def predict_round(r_id):
     round = app.models.Round.query.get(r_id)
 
@@ -200,8 +212,16 @@ def predict_round(r_id):
 
     for pq in round.choose_queries():
         db.session.add(pq)
-        
+
     db.session.commit()
+    precrop_round_results.delay(r_id)
+
+
+@celery.task
+def precrop_round_results(r_id):
+    round = app.models.Round.query.get(r_id)
+    for pq in round.queries:
+        pq.patch.materialize()
 
 @celery.task
 def detect(d_id):

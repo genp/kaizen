@@ -33,6 +33,7 @@ def dataset_upload():
 
         def unarchive_blob(item, dset, tmpd, archive):
             archive.extract(item, tmpd)
+            # TODO: change to check if path contains valid image
             blob = Blob(os.path.join(str(tmpd),item.filename))
             dset.blobs.append(blob)
             return
@@ -40,6 +41,7 @@ def dataset_upload():
         def list_blob(url):
             _, ext = os.path.splitext(url)
             if ext in acceptable:
+                # TODO: change to check if url contains valid image
                 blob = Blob(url)
                 dset.blobs.append(blob)
             return
