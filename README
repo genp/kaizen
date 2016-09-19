@@ -31,8 +31,6 @@ if ! python -c "import numpy" > /dev/null 2>1 ; then pip install numpy==1.9.2; f
 pip install -r pip-freeze.txt
 add2virtualenv .
 echo "backend      : Agg" > /home/$USER/matplotlibrc
-echo "export MATPLOTLIBRC=/home/$USER" >> $VIRTUAL_ENV/bin/postactivate
-source $VIRTUAL_ENV/bin/postactivate
 
 # If not already installed
 gem install sass
