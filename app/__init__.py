@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from flask import Flask
-from flask.ext.assets import Environment
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_assets import Environment
+from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, SQLAlchemyAdapter
 import logging
 from logging.handlers import RotatingFileHandler, SMTPHandler

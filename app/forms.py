@@ -1,4 +1,4 @@
-from flask.ext.wtf import Form
+from flask_wtf import Form
 from wtforms import Field, BooleanField, IntegerField, FloatField, SelectField, TextField, HiddenField
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.widgets import TextInput, HiddenInput
