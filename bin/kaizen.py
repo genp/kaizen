@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from app import app, db, user_manager
 import config
+from werkzeug.wsgi import DispatcherMiddleware
 
 # Preload the DB so we can drop it any time.
 from app.models import User, PatchSpec, FeatureSpec, Estimator
@@ -135,8 +136,14 @@ if e:
 
 db.session.commit()
 
+def simple(env, resp):
+    resp(b'200 OK', [(b'Content-Type', b'text/plain')])
+    return [b'If you see this, unwrap the app in kaizen.py']
+app.wsgi_app = DispatcherMiddleware(simple, {'/kaizen': app.wsgi_app})
+
 flask_host = config.HOST
 # Listen to outside connections if we have a "real" hostname
 if flask_host != "localhost":
     flask_host = "0.0.0.0"
-app.run(host=flask_host, port=config.PORT, threaded=True)
+if __name__ == '__main__':
+    app.run(port=config.PORT, threaded=True)
