@@ -1,87 +1,166 @@
 import openslide as o
 import numpy as np
-import caffe
 import os
 import boto3
+import csv
+import gc
+import psutil
+import multiprocessing as mp
+import resource
+
+urls = np.array([])
+seg_path = "/xvdf/CAMELYON16/TrainingData/Train_01/"
+label_path = "/xvdf/CAMELYON16/TrainingData/Ground_Truth/Mask/"
+level = 2
+subdiv = 3
 
 def upload_to_s3():
 	'''
 	Goes through a directory of TIF files (containing whole-slide images) and
 	uses the 3rd level to upload to s3
 	'''
+	
+	urls = np.array([])
 	s3 = boto3.resource('s3')
 	for root, dirs, files in os.walk(seg_path):
 		for fname in files:
-			if ".nrrd" in fname and "label" not in fname:
-				print fname
+			if ".tif" in fname and "label" not in fname:
+				print fname		
+				data = o.OpenSlide(os.path.join(root, fname.replace('\\','')))
+				print data.level_dimensions[level][0]
 
-				data = nrrd.read(os.path.join(root, fname.replace('\\','')))[0]
-				w= 100
-				l = 50
-				h = np.clip(data, l - (w/2), l + (w/2))
-				for ind in range(data.shape[2]):
-					print ind
-					img = np.tile(h[:,:,ind].reshape((1,512,512)),(3,1,1)).astype(np.uint8)
-					scipy.misc.imsave('temp.jpg', img)
-					urls = np.append(urls, "https://protect3dsegjpeg.s3.amazonaws.com/" + fname.replace(".nrrd","")+"-"+ str(ind) + ".jpg")
-					s3.meta.client.upload_file("temp.jpg", "protect3dsegjpeg",fname.replace(".nrrd","")+"-"+ str(ind) + ".jpg")
+				print "proceeding to subpatch"
+				w, l = data.level_dimensions[level]
+				wn = w/subdiv
+				ln = l/subdiv
+				i = 0
+				for x in range(subdiv):
+					for y in range(subdiv):
+						patch = data.read_region((x*wn,y*ln),level,(wn,ln))
+						patch.save("temp.jpg")
+						savename = fname.upper().replace(".TIF","") + "-" + str(i) + ".jpg"
+						s3.meta.client.upload_file("temp.jpg", "camelyonjpeg-seg" + str(level),savename)
+						print "uploaded: " + savename
+						i = i+1
 
+				'''
+				if data.level_dimensions[level][0] > 65500 or data.level_dimensions[level][1] > 65500:
+					print "exceeded dimensions, proceeding to subpatch"
+					w, l = data.level_dimensions[level]
+					wn = w/subdiv
+					ln = l/subdiv
+					i = 0
+					for x in range(subdiv):
+						for y in range(subdiv):
+							patch = data.read_region((x*wn,y*ln),level,(wn,ln))
+							patch.save("temp.jpg")
+							savename = fname.upper().replace(".TIF","") + "-" + str(i) + ".jpg"
+							s3.meta.client.upload_file("temp.jpg", "camelyonjpeg" + str(level),savename)
+							print "uploaded: " + savename
+							i = i+1
+				else:
+					img = data.read_region((0,0),level,data.level_dimensions[level])
+					img.save("temp.jpg")
+					urls = np.append(urls, "https://camelyonjpeg.s3.amazonaws.com/" + fname.replace(".tif",".jpg"))
+					s3.meta.client.upload_file("temp.jpg", "camelyonjpeg" + str(level),fname.upper().replace(".TIF",".jpg"))
+					print "uploaded: "+  fname
+					data = []
+					img = []
+					gc.collect()
+				'''
 
 	os.remove("temp.jpg")
 
 
 def bound(img):
-    label = np.where(img != 0)
-    return np.min(label[0]), np.max(label[0]), np.min(label[1]), np.max(label[1])
+	label = np.array(np.where(img != 0))
 
-def overlap_squares(patch_a, patch_b, overlap):
-    '''
-    checks for overlap of bboxes specified as tuples (x, y, size)
-    check if squares overlap by IoU >= overlap
+	if label.size != 0:
+		return np.min(label[0]), np.max(label[0]), np.min(label[1]), np.max(label[1])
+	else:
+		return 0,0,0,0
 
-    modified to return a float value for intersection over union as opposed to a boolean value
-    '''    
-    # intersection
-    y_in = np.intersect1d(range(patch_a[1], patch_a[1]+patch_a[2]), range(patch_b[1], patch_b[1]+patch_b[2]))
-    x_in = np.intersect1d(range(patch_a[0], patch_a[0]+patch_a[2]), range(patch_b[0], patch_b[0]+patch_b[2]))
-    intersection = float(len(y_in))*float(len(x_in))
+def compute_label(labels,writer,threshold,url,loc):
+	print loc
+	annot = np.array(labels.read_region((loc[0],loc[1]),level,(loc[2],loc[3])))[:,:,:3]
+	print annot.shape
 
-    # union
-    union = float(patch_a[2])**2+float(patch_b[2])**2 - intersection
+	print "mem 2"
+	print psutil.virtual_memory()
+	verts = bound(annot)
+	x1, x2, y1, y2 = verts
+	patch_size = [128,256]
 
-    # print intersection/union
-    return intersection/union
+	for p in patch_size:
+		for x in range(int(np.ceil((x2-x1)/float(p)))):
+			for y in range(int(np.ceil((y2-y1)/float(p)))):
+				print p, x, y
+				patch = annot[x1+x*p:x1+(x+1)*p, y1+y*p:y1+(y+1)*p]
+				overlap = np.divide(np.count_nonzero(patch == 255),p*p)
+				if overlap >= threshold:
+					writer.writerow([str(url), str(x1+x*p),str(y1+y*p), str(p),str(p), str(1)])
 
-
-def write_keyword_file(keyword, rng = (0,10000), iou = (.5,.6)):
+def write_keyword_file(keyword, threshold = .8):
 	'''
 	writes label data to a file with the name "_KEYWORD.csv"
 
-	format: image_url, x, y, h, w, label (t/f ; 0/1)
+	format: image_url, y,x, h, w, label (t/f ; 0/1)
 	'''
 	f = open("_" + keyword + ".csv", 'w+')
 	writer = csv.writer(f, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-	i = 0
-	for root, dirs, files in os.walk(seg_path):
+	for root, dirs, files in os.walk(label_path):
 		for fname in files:
-			if ".nrrd" in fname and "label" in fname:
 				print fname
 
-				labels = nrrd.read(os.path.join(root, fname.replace('\\','')))[0]
-				indices = np.where(np.max(np.max(labels,axis=0),axis=0) == 1)
-				for ind in indices[0]:
-					print ind
-					corners = bound(labels[:,:,ind])
-					url = urls[i+ind]
-					side = max(corners[1] - corners[0], corners[3] - corners[2])
-					pad = 10
-					if side > rng[0] and side <= rng[1]:
-						for x in range((corners[0]+side+pad) - (corners[0]-pad)):
-							for y in range((corners[2] + side + pad) - (corners[2] - pad) ):
-								intersect = overlap_squares((corners[0]-pad,corners[2]-pad,side), (x+corners[0]-pad,y+corners[2]-pad,side), iou)
-								if intersect <= iou[1] and intersect > iou[0]:
-									writer.writerow([str(url), str(corners[0]-pad+x), str(y+corners[2]-pad), str(side + pad),str(side + pad), str(1)])
-						writer.writerow([str(url), str(corners[0]-pad), str(corners[2]-pad), str(side + pad),str(side + pad), str(1)])
-				i = i + labels.shape[2]
-			
+				i = 0
+				labels = o.OpenSlide(os.path.join(root, fname.replace('\\','')))
+
+				w,l = labels.level_dimensions[level]
+				wn = w/subdiv
+				ln = l/subdiv
+
+				print "proceeding to subpatch"
+				for x in range(subdiv):
+					for y in range(subdiv):
+						url = "https://camelyonjpeg-seg" +str(level) + ".s3.amazonaws.com/" + fname.replace("_Mask","").upper().replace(".TIF","") + "-" + str(i) + ".jpg"
+						print "mem 1"
+						print psutil.virtual_memory()
+						proc = mp.Process(target = compute_label(labels, writer,threshold,url,(x*wn,y*ln,wn,ln)))
+						proc.start()
+						proc.join()
+						print "mem 3"
+						print psutil.virtual_memory()
+						print i
+						i = i+1
+
+				'''
+				if w > 65500 or l > 65500:
+					print "exceeded 65500 pixels, proceeding to subpatch"
+					for x in range(subdiv):
+						for y in range(subdiv):
+							url = "https://camelyonjpeg" +str(level) + ".s3.amazonaws.com/" + fname.replace("_Mask","").upper().replace(".TIF","") + "-" + str(i) + ".jpg"
+							print "mem 1"
+							print psutil.virtual_memory()
+							proc = mp.Process(target = compute_label(labels, writer,threshold,url,(x*wn,y*ln,wn,ln)))
+							proc.start()
+							proc.join()
+							print "mem 3"
+							print psutil.virtual_memory()
+							print i
+							i = i+1
+				else:
+					url = "https://camelyonjpeg" +str(level) + ".s3.amazonaws.com/" + fname.replace("_Mask","").upper().replace(".TIF",".jpg")
+					print "mem 1"
+					print psutil.virtual_memory()
+					proc = mp.Process(target = compute_label(labels, writer,threshold,url,(0,0,labels.level_dimensions[level][0],labels.level_dimensions[level][1])))
+					proc.start()
+					proc.join()
+					print "mem 3"
+					print psutil.virtual_memory()
+				'''
+		
 	f.close()
+
+
+upload_to_s3()
+#write_keyword_file("level_1")
