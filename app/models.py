@@ -6,6 +6,7 @@ import os, time
 import urllib
 
 import psutil
+from flask import url_for
 from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
 from more_itertools import chunked
 from scipy import misc
@@ -71,6 +72,13 @@ def s3_url(location):
   (bucket, key) = location[5:].split("/")
   return "http://%s.s3.amazonaws.com/%s" % (bucket, key)
 
+def static_url(location):
+  prefix = config.kairoot + '/app/static/'
+  assert location.startswith(prefix)
+  return url_for('static', filename=location[len(prefix):])
+
+
+
 def clean_cache(s):
   dir = config.CACHE_DIR
   now = time.time()
@@ -90,7 +98,7 @@ class Blob(db.Model):
   longitude = db.Column(db.Float)
 
   URL_MAP = {
-    config.kairoot + '/app/static/' : config.URL_PREFIX,
+    config.kairoot + '/app/static/' : static_url,
     's3://' : s3_url,
   }
 
@@ -160,9 +168,7 @@ class Blob(db.Model):
     url = self.location
     for prefix, change in Blob.URL_MAP.iteritems():
       if url.startswith(prefix):
-        if hasattr(change, '__call__'):
-          return change(url)
-        return url.replace(prefix, change, 1)
+        return change(url)
     return url
 
   @property
@@ -394,7 +400,7 @@ class Dataset(db.Model):
 
   @property
   def url(self):
-    return "/dataset/"+str(self.id)
+    return url_for("dataset", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -432,7 +438,7 @@ class Keyword(db.Model):
 
   @property
   def url(self):
-    return "/keyword/"+self.name
+    return url_for("keyword", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -535,7 +541,7 @@ class Classifier(db.Model):
 
   @property
   def url(self):
-    return "/classifier/"+str(self.id)
+    return url_for("classifier", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -741,7 +747,7 @@ class Patch(db.Model):
 
   @property
   def url(self):
-    return "/patch/"+str(self.id);
+    return url_for("patch", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -873,7 +879,7 @@ class Detection(db.Model):
 
   @property
   def url(self):
-    return "/detect/"+str(self.id);
+    return url_for("detect", id=self.id)
 
   def __repr__(self):
     return model_debug(self)

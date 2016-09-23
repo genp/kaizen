@@ -14,7 +14,7 @@
     {% endfor %}
   </ul>
 
-  <form action="/featurespec/new" method="post">
+  <form action="{{url_for('featurespec_new')}}" method="post">
     {{ fsform.hidden_tag() }}
     {{ m.field(fsform.name, required=True) }}
     {{ m.field(fsform.cls, required=True) }}
