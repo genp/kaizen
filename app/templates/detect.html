@@ -2,14 +2,14 @@
 {% block content %}
 
 <div id="container"> 
-  <form action="/file-upload/" class="dropzone" id="detect-drop" enctype="multipart/form-data">
+  <form action="{{url_for('file_upload')}}" class="dropzone" id="detect-drop" enctype="multipart/form-data">
     {{form.hidden_tag()}}
     <div class="fallback">
       {{form.file}}
     </div>
   </form>
  
-  <form id="detect-form" action="/detect" method="post" enctype="multipart/form-data">
+  <form id="detect-form" action="{{url_for('detect')}}" method="post" enctype="multipart/form-data">
     {{detect_form.hidden_tag()}}
     <input type="submit" value="Detect">
   </form>

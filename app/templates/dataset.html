@@ -4,7 +4,7 @@
 <div id = "container">
   <div style = "overflow: hidden; height: 70px">
     <h1 style = "display: inline-block;">Dataset: {{dataset.name}}</h1>
-    <h1 style = "float:right; margin-right: 50px; font-weight: normal;"><a href = "/keyword/new">New Keyword </a></h1>
+    <h1 style = "float:right; margin-right: 50px; font-weight: normal;"><a href="{{url_for('keyword_new')}}">New Keyword </a></h1>
   </div>
 
   <hr>
@@ -28,14 +28,14 @@
   </ul>
   {% endif %}
 
-  <form action="/dataset/attach" method="post">
+  <form action="{{url_for('dataset_attach')}}" method="post">
     {{ addfsform.hidden_tag() }}
     {{ m.field(addpsform.patchspec) }}
     <input type="submit" value="Attach">
   </form>
 
   You can specify a new way to make patches:
-  <form action="/patchspec/new" method="post">
+  <form action="{{url_for('patchspec_new')}}" method="post">
     {{ psform.hidden_tag() }}
     {{ m.field(psform.name, required = True) }}
 
@@ -64,14 +64,14 @@
   </ul>
   {% endif %}
 
-  <form action="/dataset/attach" method="post">
+  <form action="{{url_for('dataset_attach')}}" method="post">
     {{ addfsform.hidden_tag() }}
     {{ m.field(addfsform.featurespec) }}
     <input type="submit" value="Attach">
   </form>
 
   You can specify a new feature to analyze:
-  <form action="/featurespec/new" method="post">
+  <form action="{{url_for('featurespec_new')}}" method="post">
     {{ fsform.hidden_tag() }}
     {{ m.field(fsform.name, required=True) }}
     {{ m.field(fsform.cls, required=True) }}

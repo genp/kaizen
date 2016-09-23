@@ -139,6 +139,7 @@ db.session.commit()
 def simple(env, resp):
     resp(b'200 OK', [(b'Content-Type', b'text/plain')])
     return [b'If you see this, unwrap the app in kaizen.py']
+
 app.wsgi_app = DispatcherMiddleware(simple, {'/kaizen': app.wsgi_app})
 
 flask_host = config.HOST
