@@ -18,6 +18,11 @@ Classifiers
  - Advance to next round after more than one ActiveQuery
     - Both for more data, and for corroborating data
 
+Features
+  - add caffe features from
+    - pretrained models
+    - custom models
+      
 Mechanical Turk
 
 Monitor progress of celery work
