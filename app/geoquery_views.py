@@ -1,6 +1,5 @@
 from app import app, db, lm, manage
 from flask import make_response, render_template, flash, redirect, request, url_for, g, jsonify
-from flask.ext.login import login_user, logout_user, current_user, login_required
 from forms import *
 from models import User, Blob, Dataset, Keyword, Classifier, Patch, Example, Prediction, GeoQuery, PatchQuery, PatchResponse, HitResponse, GeoQueryResult
 from  sqlalchemy.sql.expression import func

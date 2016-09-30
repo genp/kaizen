@@ -1,20 +1,31 @@
-Express desired rotations in PatchSpec
+Add to README:
+ - have to download caffenet, googlenet, vgg caffemodels! (all renamed to "weights.caffemodel")
 
-Create extra rotations of seeds (and maybe PatchResponses?)
+
+Celery
+ - Have a celery worker built in, so dev-box works immediately
+ - Show work queue progress in UI
+ - Prevent performing operations before prereqs available
+   - Or make that work
+
+Rotations
+ - Create extra rotations of seeds (and maybe PatchResponses?)
+  - must "postrotate" so the center stays the same
+    - need to make sure doesn't "catch the edge"
+ - Express desired rotations in PatchSpec
 
 Flesh out Dataset support:
  - UI for migrate to S3
  - Add an S3 bucket as a dataset
- - UI for adding PatchSpec, FeatureSpec associations
  - UI for removing PatchSpec, FeatureSpec associations
- - Failed blob downloads shouldn't put 404 page into blob-n.jpg
+ - Failed s3 blob downloads shouldn't put 404 page into blob-n.jpg
 
 Keyword UI
  - Add negative examples
 
 Classifiers
  - Pick PatchQueries based on different FS predictions
- - Avoid picking the "same" patch modulo flips/rotations
+ - Avoid picking the "same" patch modulo flips/rotations, location+scale
  - Advance to next round after more than one ActiveQuery
     - Both for more data, and for corroborating data
 
@@ -24,11 +35,7 @@ Features
     - custom models
       
 Mechanical Turk
-
-Monitor progress of celery work
- - Show progress in UI
- - Prevent performing operations before prereqs available
-   - Or make that work
+ - publish HITs to answer a set of PatchQuerys
 
 Organize Sass
 

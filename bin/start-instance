@@ -1,0 +1,258 @@
+#!/usr/bin/env python
+import argparse, distutils.spawn, os, sys, subprocess, tempfile, time
+import boto3
+
+user = os.environ['USER']
+home = os.environ['HOME']
+shell = os.environ['SHELL']
+
+default_name = user +"-<type>"
+
+parser = argparse.ArgumentParser(description='Create or start an ec2 instance.')
+parser.add_argument('-t', '--type', default='small',
+                   help='The ec2 instance type to create.')
+parser.add_argument('-k', '--key', default='aws-mac',
+                   help='The name of the keyfile to use for ec2-user.')
+parser.add_argument('-d', '--domain', default='jannotti.com',
+                   help='The domain to put new hostname into')
+parser.add_argument('-s', '--security-group', default='',
+                   help='The security group for the new instances')
+parser.add_argument('-n', '--name', default=default_name,
+                   help='The name of the host (installed in -d domain).')
+parser.add_argument('-#', default=1, help='The number of instances to start.')
+args = parser.parse_args()
+
+itype = args.type
+itype_alias = {
+    'micro' : 't2.micro',
+    'small' : 't2.small',
+    'medium' : 't2.medium',
+    'large' : 't2.large',
+    'gpu' : 'g2.2xlarge'
+}
+if itype in itype_alias:
+    itype = itype_alias[itype]
+
+if args.domain.startswith("."):
+    args.domain = args.domain[1:]
+if args.name == default_name:
+    name = user +"-"+ args.type
+else:
+    name = args.name
+
+ami = 'ami-60b6c60a'            # amazon_linux_hvm
+if itype.startswith('g'):
+    ami = 'ami-e998ea83'        # NVIDIA "Graphics AMI" Amazon Linux, US East
+
+ec2 = boto3.resource('ec2')
+
+home_files = [
+    'bin', 'etc',
+    '.ssh/authorized_keys', '.ssh/config',
+    '.bashrc',
+    '.zshrc', '.zshenv', '.oh-my-zsh',
+    '.emacs', '.emacs.d',
+    '.tmux.conf', '.screenrc',
+    '.gitconfig', '.gitignore'
+]
+
+# TODO: figure these out from dot files, history, environment...
+packages = \
+    "nginx emacs gcc-c++ git zsh tmux postgresql94-server mlocate".split(" ")
+
+def tags(l):
+    d = {}
+    for tag in l:
+        d[tag['Key']] = tag['Value']
+    return d
+
+def print_instance(instance):
+    print instance.id, instance.state["Name"], instance.public_ip_address,\
+        instance.instance_type, tags(instance.tags)
+
+def wait_run(instance):
+    instance.wait_until_running(Filters=[{
+        'Name': 'instance-id',
+        'Values': [instance.instance_id],
+    }])
+    print "Sleeping 20secs longer, to allow boot"
+    time.sleep(20)
+    return ec2.Instance(instance.id)
+
+def wait_stop(instance):
+    instance.wait_until_stopped(Filters=[{
+        'Name': 'instance-id',
+        'Values': [instance.instance_id],
+    }])
+    return ec2.Instance(instance.id)
+
+def get_by_name(name):
+    return ec2.instances.filter(Filters=[{'Name': 'tag:Name',
+                                          'Values': [name]}])
+
+# Assumes the command is quoted properly for the remote shell
+def ssh(keyname, host, command, user="ec2-user"):
+    keyfile = "%s/.aws/%s.pem" % (home, keyname)    
+    args = ["ssh", "-qt",
+            "-i", keyfile,
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "%s@%s" % (user, host), command]
+    try:
+        return subprocess.check_output(args)
+    except subprocess.CalledProcessError:
+        print " ".join(args)
+        raise
+
+def push(keyname, host, file, subdir="", user="ec2-user"):
+    local_name = os.path.join(home,file)
+    if not os.path.exists(local_name):
+        print " skip", file, subdir
+        return
+    print " ", file, subdir
+    dir = os.path.dirname(file)
+    dir = os.path.join(subdir, dir)
+    if dir:
+        ssh(keyname, host, "mkdir -p "+dir , user=user)
+    remote_name = os.path.join(dir,os.path.basename(file))
+    ssh(keyname, host, "sudo rm -rf "+remote_name)
+    args = ["scp", "-q",
+            "-i", "%s/.aws/%s.pem" % (home, keyname),
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-r", local_name,
+            user+"@"+host+":"+remote_name]
+    try:
+        subprocess.check_call(args)
+    except subprocess.CalledProcessError:
+        print " ".join(args)
+        raise
+
+def root_file(keyname, host, file, contents):
+    with tempfile.NamedTemporaryFile(dir=home) as f:
+        f.write(contents)
+        f.flush()
+        name = os.path.basename(f.name)
+        push(keyname, host, name)
+        ssh(keyname, host, "sudo chown root.root "+name)
+        ssh(keyname, host, "sudo mv "+name+" "+file)
+
+def setup_host(keyname, host, hostname):
+    print "Setup host", hostname
+    ssh(keyname, host, "sudo yum update -y")
+    ssh(keyname, host, "sudo yum install -y "+" ".join(packages))
+    if 'postgresql94' in packages:
+        ssh(keyname, host, "sudo service postgresql initdb")
+        ssh(keyname, host,
+            "sudo sed -i s/ident/trust/ /var/lib/pgsql94/data/pg_hba.conf")
+        ssh(keyname, host, "sudo service postgresql start")
+    if 'mlocate' in packages:
+        ssh(keyname, host, "sudo updatedb")
+#    root_file(keyname, host, "/etc/sudoers.d/lecture", "lecture = never")
+    ssh(keyname, host, "sudo pip install virtualenvwrapper")
+    ssh(keyname, host, "sudo gem install sass")
+
+    # Runs too early. oh-my-zsh will give me completion properly
+    ssh(keyname, host, "sudo rm /etc/profile.d/aws-cli.sh")
+
+    ssh(keyname, host, "sudo pip install virtualenvwrapper")
+
+    setup_hostname(keyname, host, hostname)
+
+def setup_hostname(keyname, host, hostname):
+    ssh(keyname, host, "sudo hostname "+hostname)
+    ssh(keyname, host,
+        "sudo sed -i s/HOSTNAME=.*/HOSTNAME="+hostname+"/ /etc/sysconfig/network")
+
+    if distutils.spawn.find_executable("dyndns"):
+        os.system("dyndns "+hostname+" "+host);
+
+def setup_user(keyname, host, user):
+    print "Setup user",user
+    e = ssh(args.key, host, "if [ -d /home/"+user+ " ]; then echo exists; fi")
+    if e:
+        print "Skipping user setup", "/home/"+user, "exists"
+        return
+    # Setup user for easy sudo
+    # Not sure if wheel is required, but the sudoers thing still need passwd
+    ssh(keyname, host, "sudo useradd -G wheel "+user+" -s "+shell)
+    root_file(keyname, host,
+              "/etc/sudoers.d/"+user,
+              user+" ALL = NOPASSWD: ALL\n")
+    # ssh(keyname, host, "sudo usermod -aG wheel "+user)
+
+    # copy user files
+    ssh(keyname, host, "sudo rm -rf "+user) # In case of rerun
+    ssh(keyname, host, "mkdir -p "+user)
+    ssh(keyname, host, "chmod g-w "+user)
+    for file in home_files:
+        push(keyname, host, file, user)
+    ssh(keyname, host, "sudo chmod go-rwx "+user+"/.ssh")
+    ssh(keyname, host, "sudo chown -R "+user+"."+user+" "+user)
+    ssh(keyname, host, "sudo cp -a "+user+"/. /home/"+user)
+    ssh(keyname, host, "sudo rm -rf "+user) # Cleanup
+
+
+
+def remove_known_host(name):
+    with tempfile.NamedTemporaryFile(dir=os.path.join(home,".ssh"), delete=False) as f:
+        known_hosts = os.path.join(home, ".ssh", "known_hosts")        
+        subprocess.call("grep -v '^"+name+" ' "+known_hosts+" > "+f.name,
+                        shell=True)
+        os.rename(f.name, known_hosts)
+
+def setup(instance, keyname, hostname, user):
+    ip = instance.public_ip_address
+    setup_host(keyname, ip, hostname)
+    setup_user(keyname, ip, user)
+    remove_known_host(hostname)
+
+found = False
+for instance in get_by_name(name):
+    if instance.state["Name"] == 'terminated':
+        continue
+    if instance.state["Name"] == 'stopping':
+        print instance.id, instance.instance_type, "is stopping"
+        instance = wait_stop(instance)
+    if instance.state["Name"] == 'stopped':
+        print "Starting", instance.id, instance.instance_type
+        instance.start()
+        instance = wait_run(instance)
+        print_instance(instance)
+    if instance.state["Name"] == 'pending':
+        instance = wait_run(instance)
+    if instance.state["Name"] == 'running':
+        setup(instance, args.key, name+'.'+args.domain, user)
+    found = True
+
+def find_sshable_sgroup():
+    for sg in ec2.security_groups.all():
+        if sg.vpc_id is None:
+            continue
+        found_vpc = True
+        for perm in sg.ip_permissions:
+            try:
+                if perm["ToPort"] == 22 and perm["IpProtocol"] == 'tcp':
+                    return sg
+            except KeyError:
+                pass
+    raise LookupError("Unable to find a VPC security group that allows SSH")
+
+sgroup = find_sshable_sgroup()
+vpc = ec2.Vpc(sgroup.vpc_id)
+for s in vpc.subnets.limit(1):
+    subnet = s
+
+if not found:
+    print "Starting a new instance"
+
+    instance = ec2.create_instances(ImageId=ami, InstanceType=itype,
+                                    KeyName=args.key,
+                                    MinCount=1, MaxCount=1,
+                                    SubnetId=subnet.id)[0]
+    instance.create_tags(Tags=[{'Key':'Name','Value':name}])
+    print "Waiting for", instance, "to come up"
+    instance = wait_run(instance)
+    print_instance(instance)
+    setup(instance, args.key, name+'.'+args.domain, user)
+

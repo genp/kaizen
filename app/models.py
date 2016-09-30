@@ -1,21 +1,28 @@
 #!/usr/bin/env python
-from app import app, db
-
-import boto3
-import config
-import os, time
-import numpy as np
+import resource
+import random
 import importlib
+import os, time
 import urllib
-from PIL import Image
+
+import psutil
+from flask import url_for
+from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
+from more_itertools import chunked
 from scipy import misc
 from scipy.ndimage.interpolation import rotate
+from sklearn.metrics import average_precision_score
+from  sqlalchemy.sql.expression import func
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
-from flask_user import UserManager, UserMixin, SQLAlchemyAdapter
-
+import boto3
 import exif
+import numpy as np
+
+from app import app, db
+import config
 import tasks
+import extract
 
 s3 = boto3.resource('s3')
 
@@ -65,6 +72,13 @@ def s3_url(location):
   (bucket, key) = location[5:].split("/")
   return "http://%s.s3.amazonaws.com/%s" % (bucket, key)
 
+def static_url(location):
+  prefix = config.kairoot + '/app/static/'
+  assert location.startswith(prefix)
+  return url_for('static', filename=location[len(prefix):])
+
+
+
 def clean_cache(s):
   dir = config.CACHE_DIR
   now = time.time()
@@ -84,7 +98,7 @@ class Blob(db.Model):
   longitude = db.Column(db.Float)
 
   URL_MAP = {
-    config.clroot + '/app/static/' : 'http://localhost:8080/',
+    config.kairoot + '/app/static/' : static_url,
     's3://' : s3_url,
   }
 
@@ -98,6 +112,11 @@ class Blob(db.Model):
       self.mime = 'image/'+self.ext.replace('.', '')
     if self.local:
       self.latitude, self.longitude = self.read_lat_lon()
+    self.img = None
+
+  @orm.reconstructor
+  def init_on_load(self):
+    self.img = None
 
   def open(self):
     return open(self.materialize(), "rb")
@@ -123,6 +142,21 @@ class Blob(db.Model):
         yield feature
 
   @property
+  def image(self):
+    #if self.img is not None:
+    #  return self.img
+    try:
+      with self.open() as f:
+        img = misc.imread(f)
+      return img
+    except IOError, e:
+      print 'Could not open image file for {}'.format(self)
+      return []
+
+  def reset(self):
+    self.img = None
+
+  @property
   def local(self):
     return self.location[0] == '/' and os.path.exists(self.location)
   @property
@@ -134,9 +168,7 @@ class Blob(db.Model):
     url = self.location
     for prefix, change in Blob.URL_MAP.iteritems():
       if url.startswith(prefix):
-        if hasattr(change, '__call__'):
-          return change(url)
-        return url.replace(prefix, change, 1)
+        return change(url)
     return url
 
   @property
@@ -177,7 +209,7 @@ class PatchSpec(db.Model):
 
   # Make mirrored patches too
   fliplr = db.Column(db.Boolean, nullable=False, default=False)
-  
+
   @classmethod
   def ifNew(model, **kwargs):
       if not model.query.filter_by(**kwargs).first():
@@ -196,48 +228,30 @@ class PatchSpec(db.Model):
     return self.name + ": " + str(self.height) + "x" + str(self.width) \
       + upto + " with " + overlap
 
-  def count_blob_patches(self, blob):
-    img = Image.open(blob.materialize())
-
-    w = self.width
-    h = self.height
-    sum = 0
-    while w < img.size[0] and h < img.size[1]:
-      sum += self.count_sized_blob_patches(blob, img.size, w, h)
-      w = int(w * self.scale)
-      h = int(h * self.scale)
-    return sum
-
-  def count_sized_blob_patches(self, blob, size, width, height):
-    # How far each slide will go
-    xstep = int(width * (1-self.xoverlap))
-    ystep = int(height * (1-self.yoverlap))
-
-    # The available room for sliding
-    xdelta = size[0]-width
-    ydelta = size[1]-height
-
-    # How many slides, and how much unused "slide space"
-    xsteps, extra_width = divmod(xdelta, xstep)
-    ysteps, extra_height = divmod(ydelta, ystep)
-    return (1+xsteps) * (1+ysteps)
-
-
-  def create_dataset_patches(self, ds):
-    for blob in ds.blobs:
-      for patch in self.create_blob_patches(blob):
-        yield patch
-
   def create_blob_patches(self, blob):
-    img = Image.open(blob.materialize())
+    print 'Creating patches for {}'.format(blob)
+    print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    img = blob.image
 
     w = self.width
     h = self.height
-    while w < img.size[0] and h < img.size[1]:
-      for patch in self.create_sized_blob_patches(blob, img.size, w, h):
-        yield patch
-      w = int(w * self.scale)
-      h = int(h * self.scale)
+    pind = 0
+    try:
+      while w < img.shape[1] and h < img.shape[0]:
+        for patch in self.create_sized_blob_patches(blob, img.shape, w, h):
+          pind += 1
+          yield patch
+        w = int(w * self.scale)
+        h = int(h * self.scale)
+    except IndexError, e:
+      print 'Index Error for {}'.format(blob)
+      print 'Error on Patch #{}'.format(pind)
+      print 'Blob\'s Image Shape: {}'.format(img.shape)
+      print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+      blob.reset()
+      print '*** Reseting blob image ***'
+      print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+      return
 
   def create_sized_blob_patches(self, blob, size, width, height):
     # How far each slide will go
@@ -245,8 +259,8 @@ class PatchSpec(db.Model):
     ystep = int(height * (1-self.yoverlap))
 
     # The available room for sliding
-    xdelta = size[0]-width
-    ydelta = size[1]-height
+    xdelta = size[1]-width
+    ydelta = size[0]-height
 
     # How many slides, and how much unused "slide space"
     xsteps, extra_width = divmod(xdelta, xstep)
@@ -258,16 +272,12 @@ class PatchSpec(db.Model):
 
     for x in xrange(left_indent, xdelta, xstep):
       for y in xrange(top_indent, ydelta, ystep):
-        patch = Patch.ifNew(blob=blob, x=x, y=y,
-                            width=width, height=height, fliplr=False)
-        if patch:
-          yield patch
+        yield Patch.ensure(blob=blob, x=x, y=y,
+                           width=width, height=height, fliplr=False)
         if not self.fliplr:
           continue
-        patch = Patch.ifNew(blob=blob, x=x, y=y,
-                            width=width, height=height, fliplr=True)
-        if patch:
-          yield patch
+        yield Patch.ensure(blob=blob, x=x, y=y,
+                           width=width, height=height, fliplr=True)
 
 dataset_x_featurespec = db.Table('dataset_x_featurespec', db.Model.metadata,
     db.Column('dataset_id', db.Integer, db.ForeignKey('dataset.id')),
@@ -304,7 +314,7 @@ class FeatureSpec(db.Model):
   @property
   def simple_class(self):
       return self.cls.split(".")[-1]
-          
+
   def __repr__(self):
     return self.simple_class + "(" + str(self.params) + ")"
 
@@ -312,26 +322,39 @@ class FeatureSpec(db.Model):
   def url(self):
     return "/featurespec/"+str(self.id)
 
-  def create_dataset_features(self, ds):
-    for blob in ds.blobs:
-      for feature in self.create_blob_features(blob):
-        yield feature
 
-  def create_blob_features(self, blob):
-    for patch in blob.patches:
-      feat = self.create_patch_feature(patch)
-      if feat:
-          yield feat
+  def analyze_blob(self, blob):
+    # TODO: this could be a globally set var that shares with CNN obj
+    batch_size = 500
+    iter = 0
+    for patches in chunked(self.undone_patches(blob), batch_size):
+      print 'calculating {}x500 patch features for {}'.format(iter, blob)
+      iter += 1
+      imgs = [p.image for p in patches]
+      feats = self.instance.extract_many(imgs)
+      assert len(patches) == len(feats), 'The number of patches and features are different for {}'.format(blob)
+      for idx, f in enumerate(feats):
+        yield Feature(patch=patches[idx], spec=self,
+                      vector=f)
 
-  def create_patch_feature(self, patch):
+  def undone_patches(self, blob):
+    for p in blob.patches:
+      if Feature.query.filter_by(patch=p, spec=self).count() == 0:
+        yield p
+
+
+  def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
-      return
+      return None
     return Feature(patch=patch, spec=self,
                    vector=self.instance.extract(patch.image))
 
 class Dataset(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   name = db.Column(db.String)
+
+  owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+  owner = db.relationship('User', backref = db.backref('datasets', lazy = 'dynamic'))
 
   blobs = db.relationship("Blob", secondary=dataset_x_blob)
   patchspecs = db.relationship("PatchSpec",
@@ -341,13 +364,43 @@ class Dataset(db.Model):
                                  secondary=dataset_x_featurespec,
                                  backref="datasets")
 
+  def __init__(self, **kwargs):
+      super(Dataset, self).__init__(**kwargs)
+      if self.owner is None and current_user.is_authenticated:
+        self.owner = current_user
+
+  def create_blob_features(self, blob):
+    print 'calculating features for {}'.format(blob)
+    batch_size = 500
+    for ps in self.patchspecs:
+      print ps
+
+      for patches in chunked(ps.create_blob_patches(blob), batch_size):
+        for p in patches:
+          if p:
+            db.session.add(p)
+        db.session.commit()
+        print p
+
+    for fs in self.featurespecs:
+      print fs
+      feats = fs.analyze_blob(blob)
+      for feat in chunked(feats, batch_size):
+        print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        for f in feat:
+          db.session.add(f)
+        db.session.commit()
+        if fs.instance.__class__ is extract.CNN:
+          fs.instance.del_networks()
+        print 'Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
   def migrate_to_s3(self):
     for blob in self.blobs:
       blob.migrate_to_s3()
 
   @property
   def url(self):
-    return "/dataset/"+str(self.id)
+    return url_for("dataset", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -358,15 +411,34 @@ class Dataset(db.Model):
 
 
 class Keyword(db.Model):
+  '''
+  Keywords can be created individually or be asscociated with a dataset
+  When associated with a dataset, the keyword will have a defn_file that contains
+  the location of a csv listing the images, patch locations, and label values of the
+  examples associated with this keyword.
+  '''
   id = db.Column(db.Integer, primary_key = True)
   name = db.Column(db.String)
+
+  owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+  owner = db.relationship('User', backref = db.backref('keywords', lazy = 'dynamic'))
 
   geoquery_id = db.Column(db.Integer, db.ForeignKey('geo_query.id'))
   geoquery = db.relationship('GeoQuery', backref = db.backref('keywords', lazy = 'dynamic'))
 
+  defn_file = db.Column(db.String)
+  dataset_id = db.Column(db.Integer, db.ForeignKey('dataset.id'))
+  dataset = db.relationship('Dataset', backref = db.backref('keywords', lazy = 'dynamic'))
+
+  def __init__(self, **kwargs):
+      super(Keyword, self).__init__(**kwargs)
+      if self.owner is None and current_user.is_authenticated:
+        self.owner = current_user
+
+
   @property
   def url(self):
-    return "/keyword/"+self.name
+    return url_for("keyword", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -411,7 +483,7 @@ class Estimator(db.Model):
   @property
   def simple_class(self):
       return self.cls.split(".")[-1]
-          
+
   def __repr__(self):
     return self.simple_class + "(" + str(self.params) + ")"
 
@@ -432,9 +504,12 @@ class Classifier(db.Model):
 
   id = db.Column(db.Integer, primary_key = True)
 
+  owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+  owner = db.relationship('User', backref = db.backref('classifiers', lazy = 'dynamic'))
+
   dataset_id = db.Column(db.Integer, db.ForeignKey('dataset.id'), nullable=False)
   dataset = db.relationship('Dataset', backref = db.backref('classifiers', lazy = 'dynamic'))
-  
+
   keyword_id = db.Column(db.Integer, db.ForeignKey('keyword.id'), nullable=False)
   keyword = db.relationship('Keyword', backref = db.backref('classifiers', lazy = 'dynamic'))
 
@@ -443,6 +518,8 @@ class Classifier(db.Model):
 
   def __init__(self, **kwargs):
       super(Classifier, self).__init__(**kwargs)
+      if self.owner is None and current_user.is_authenticated:
+        self.owner = current_user
       zero = Round(classifier = self)
 
   @property
@@ -464,7 +541,7 @@ class Classifier(db.Model):
 
   @property
   def url(self):
-    return "/classifier/"+str(self.id)
+    return url_for("classifier", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -479,7 +556,7 @@ class Round(db.Model):
                                backref = db.backref('rounds',
                                                     order_by='Round.number',
                                                     lazy = 'dynamic'))
-  def predict(self):
+  def predict(self, ds=None):
     '''Yield Predictions for all Patches in the Dataset, as of this Round.
     Uses estimators trained on examples for each FeatureSpec to make
     predictions against its Features.
@@ -487,11 +564,26 @@ class Round(db.Model):
     classifier = self.classifier
     estimators = self.trained_estimators()
 
-    for blob in classifier.dataset.blobs:
+    if ds is None:
+      ds = classifier.dataset
+    for blob in ds.blobs:
       for patch in blob.patches:
         for feature in patch.features:
-          value = estimators[feature.spec.id].predict(feature.vector)
+          #TODO: I don't think we want predict here, want decision function or probability
+          # value = estimators[feature.spec.id].predict(feature.vector)
+          value = estimators[feature.spec.id].decision_function(feature.vector)
           yield Prediction(value=value, feature=feature, round=self)
+
+  def predict_patch(self, patch, fs):
+    '''Yield Prediction on a patch, as of this Round.
+    Uses estimators trained on examples of the arg FeatureSpec fs.
+    '''
+    classifier = self.classifier
+    estimators = self.trained_estimators()
+
+    for feature in patch.features:
+      if feature.spec.id == fs:
+        return estimators[fs].predict(feature.vector)[0]
 
   def detect(self, blob):
     estimators = self.trained_estimators()
@@ -531,12 +623,61 @@ class Round(db.Model):
     def __repr__(self):
       return model_debug(self)
 
+  def average_precision(self, keyword, add_neg_ratio=None):
+    '''Returns the AP of the Round's estimator on the elements of the
+    keyword.
+    Adds negatives randomly selected from the keyword's dataset
+    up to a pos/neg ratio of <add_neg_ratio>.
+    '''
+
+    estimators = self.trained_estimators()
+    # get all patches from keyword
+    y = {}
+    feats = {}
+    num_seeds = len(keyword.seeds.all())
+    for ex in keyword.seeds:
+      for feature in ex.patch.features:
+        if feature.spec.id not in y.keys():
+          y[feature.spec.id] = {}
+          y[feature.spec.id]['true'] = []
+          feats[feature.spec.id] = []
+        y[feature.spec.id]['true'].append( 1.0 if ex.value else 0.0 )
+        feats[feature.spec.id].append(feature.vector)
+
+        print '{} of {}'.format(len(y[feature.spec.id]['true']),
+                                                  num_seeds)
+    # get additional negatives if need be
+    if add_neg_ratio is not None:
+      num_pos = len(keyword.seeds.filter(Example.value == True).all())
+      num_neg = len(keyword.seeds.filter(Example.value == False).all())
+      kw_patches = [ex.patch for ex in keyword.seeds]
+      ds_blobs = keyword.dataset.blobs
+      while np.true_divide(num_neg, (num_neg+num_pos)) < add_neg_ratio:
+        blob = ds_blobs[random.randint(0,len(ds_blobs)-1)]
+        patches = blob.patches.order_by(func.random()).all()
+        for patch in patches:
+          if patch not in kw_patches:
+            break
+        for feature in patch.features:
+          y[feature.spec.id]['true'].append( 0.0 )
+          feats[feature.spec.id].append(feature.vector)
+        num_neg += 1
+        print 'Number of added negatives {}'.format(num_neg)
+    # calculate AP
+    ap = {}
+    for ftype in y.keys():
+      y[ftype]['pred'] = estimators[ftype].decision_function(np.asarray(feats[ftype]))
+      ap[ftype] = average_precision_score(y[ftype]['true'], y[ftype]['pred'])
+    return y
+
 class Patch(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   x = db.Column(db.Integer, nullable = False)
   y = db.Column(db.Integer, nullable = False)
-  width = db.Column(db.Integer, nullable = False)
-  height = db.Column(db.Integer, nullable = False)
+  width = db.Column(db.Integer, db.CheckConstraint('width>0'),
+                    nullable = False)
+  height = db.Column(db.Integer, db.CheckConstraint('height>0'),
+                     nullable = False)
   fliplr = db.Column(db.Boolean, nullable=False, default=False)
   rotation = db.Column(db.Float, nullable=False, default=0.0)
 
@@ -547,6 +688,13 @@ class Patch(db.Model):
   def size(self):
     assert self.width == self.height
     return self.width
+
+  @classmethod
+  def ensure(model, **kwargs):
+    existing = model.query.filter_by(**kwargs).first()
+    if existing:
+      return existing
+    return model(**kwargs)
 
   @classmethod
   def ifNew(cls, **kwargs):
@@ -560,35 +708,50 @@ class Patch(db.Model):
     complete = os.path.join(config.CACHE_DIR, filename)
 
     if not os.path.exists(complete):
+        print filename
+        print psutil.virtual_memory()
         misc.imsave(complete, self.image)
+        print psutil.virtual_memory()
+        print "saved."
     return complete
 
   @property
   def image(self):
-    blob = self.blob
-    with blob.open() as f:
-      img = misc.imread(f)
+    img = self.blob.image
+    if img == []:
+      return []
+    if self.fliplr:
+      img = np.fliplr(img)
+    if self.rotation != 0.0:
+      img = rotate(img, self.rotation)
 
-      if self.fliplr:
-        img = np.fliplr(img)
-      if self.rotation != 0.0:
-        img = rotate(img, self.rotation)
+    print "image shape: "
+    print img.shape
+    print (self.y, self.y+self.height, self.x, self.x+self.width)
 
-      crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
+    crop = img[self.y:self.y+self.height, self.x:self.x+self.width]
 
-      # Remove alpha channel if present
+    # Remove alpha channel if present
+    try :
       if crop.shape[2] == 4:
         crop = crop[:,:,0:3]
+    # Replicate channels if image is Black and White
+    except IndexError, e:
+      tmp = np.zeros((crop.shape[0], crop.shape[1], 3))
+      tmp[:,:,0] = crop
+      tmp[:,:,1] = crop
+      tmp[:,:,2] = crop
+      crop = tmp
 
-      return crop
+    return crop
 
   @property
   def url(self):
-    return "/patch/"+str(self.id);
+    return url_for("patch", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
-      
+
 
 class Feature(db.Model):
   id = db.Column(db.Integer, primary_key = True)
@@ -631,7 +794,7 @@ class Feature(db.Model):
 class Example(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   value = db.Column(db.Boolean, nullable=False)
-  
+
   patch_id = db.Column(db.Integer, db.ForeignKey('patch.id'), index = True, nullable=False)
   patch = db.relationship('Patch', backref = db.backref('examples', lazy = 'dynamic'))
 
@@ -665,7 +828,7 @@ class PatchQuery(db.Model):
   """A Classifier thinks it would be a good idea to ask about a patch."""
   id = db.Column(db.Integer, primary_key = True)
   predicted = db.Column(db.Float, nullable=False)
-  
+
   patch_id = db.Column(db.Integer, db.ForeignKey('patch.id'), nullable=False)
   patch = db.relationship('Patch', backref = db.backref('queries', lazy = 'dynamic'))
 
@@ -682,7 +845,7 @@ class PatchResponse(db.Model):
   """A human has answered a PatchQuery (as part of a HitResponse)"""
   id = db.Column(db.Integer, primary_key = True)
   value = db.Column(db.Boolean, nullable=False)
-  
+
   query_id = db.Column(db.Integer, db.ForeignKey('patch_query.id'), nullable=False)
   patchquery = db.relationship('PatchQuery', backref = db.backref('responses', lazy = 'dynamic'))
 
@@ -692,15 +855,15 @@ class PatchResponse(db.Model):
   def __repr__(self):
     return model_debug(self)
 
-  
-class HitResponse(db.Model):  
+
+class HitResponse(db.Model):
   """A set of PatchResponses, all done by a user in one HIT"""
   id = db.Column(db.Integer, primary_key = True)
   # the completion time for all of the patch responses associated with this HIT
   time = db.Column(db.Float(), nullable=False)
   # the (self-reported) confidence of the labeling user
   confidence = db.Column(db.Integer)
-  
+
   # the user that labeled the associated PatchResponses
   user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
   user = db.relationship('User', backref = db.backref('hits', lazy = 'dynamic'))
@@ -716,7 +879,7 @@ class Detection(db.Model):
 
   @property
   def url(self):
-    return "/detect/"+str(self.id);
+    return url_for("detect", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -726,7 +889,8 @@ def model_debug(m):
   id = m.id
   c = dict.copy(m.__dict__)
   del c['_sa_instance_state']
-  del c['id']
+  if 'id' in c.keys():
+    del c['id']
   return type(m).__name__+"#"+str(id)+":"+str(c)
 
 # This adapts (1-dimensional) numpy arrays to Postgres

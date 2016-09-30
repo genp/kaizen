@@ -1,6 +1,6 @@
 from app import app, db, manage
 from flask import render_template, redirect, request, url_for, g, jsonify, send_file
-from flask.ext.login import login_user, logout_user, login_required
+from flask_login import login_user, logout_user, login_required
 from forms import *
 from models import User, Blob, Patch
 import config

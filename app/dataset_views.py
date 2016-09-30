@@ -29,6 +29,28 @@ def dataset_upload():
         name, ext = os.path.splitext(upload.filename)
 
         acceptable = ['.jpg', '.jpeg', '.png']
+        label_acceptable = ['.csv']
+
+        def unarchive_blob(item, dset, tmpd, archive):
+            archive.extract(item, tmpd)
+            # TODO: change to check if path contains valid image
+            blob = Blob(os.path.join(str(tmpd),item.filename))
+            dset.blobs.append(blob)
+            return
+
+        def list_blob(url):
+            _, ext = os.path.splitext(url)
+            if ext in acceptable:
+                # TODO: change to check if url contains valid image
+                blob = Blob(url)
+                dset.blobs.append(blob)
+            return
+
+        def keyword_dataset(kw, item, dset, tmpd, archive):
+            archive.extract(item, tmpd)
+            kw_fname = str(tmpd) + "/" + item.filename
+            k = Keyword(name=kw[1:],defn_file=kw_fname,dataset=dset)
+            return
 
         dset = None
         if ext == ".zip":
@@ -39,11 +61,30 @@ def dataset_upload():
                 db.session.add(dset)
 
                 for item in myzip.infolist():
-                    _, ext = os.path.splitext(item.filename)
-                    if ext in acceptable and not item.filename.startswith("__MACOSX"):
+                    fname, ext = os.path.splitext(item.filename)
+                    if "__MACOSX" in item.filename:
+                        continue
+                    kw = os.path.basename(fname)
+                    if ext in acceptable:
+                        unarchive_blob(item, dset, tmpd, myzip)
+                    elif ext in label_acceptable and kw.startswith('_'):
+                        print "creating keyword: " + kw
+                        keyword_dataset(kw, item, dset, tmpd, myzip)
+                    elif ext == ".txt":
                         myzip.extract(item, tmpd)
-                        blob = Blob(str(tmpd) + "/" + item.filename)
-                        dset.blobs.append(blob)
+                        with open(os.path.join(str(tmpd),item.filename)) as img_list:
+                            for url in img_list:
+                                url = url.rstrip()
+                                list_blob(url)
+                    elif ext == ".csv" and not kw.startswith('_') :
+                        myzip.extract(item, tmpd)
+                        with open(os.path.join(str(tmpd),item.filename)) as img_list:
+                            for row in csv.reader(img_list):
+                                for entry in row:
+                                    url = as_url(entry)
+                                    if url:
+                                        list_blob(url)
+
         elif ext == ".gz" or ext == ".bz2" or ext == ".tar":
             if ext != ".tar":
                 name, ext = os.path.splitext(name)
@@ -57,20 +98,34 @@ def dataset_upload():
 
                     for item in mytar:
                         if item.isreg():
-                            _, ext = os.path.splitext(item.name)
-                            if ext in acceptable and not item.name.startswith("__MACOSX"):
+                            fname, ext = os.path.splitext(item.filename)
+                            if "__MACOSX" in item.filename:
+                                continue
+                            kw = os.path.basename(fname)
+                            if ext in acceptable:
+                                unarchive_blob(item, dset, tmpd, mytar)
+                            if ext in label_acceptable and kw.startswith('_'):
+                                keyword_dataset(kw, item, dset, tmpd, mytar)
+                            elif ext == ".txt":
                                 mytar.extract(item, tmpd)
-                                blob = Blob(str(tmpd) + "/" + item.name)
-                                dset.blobs.append(blob)
+                                with open(os.path.join(str(tmpd),item.filename)) as img_list:
+                                    for url in img_list:
+                                        url = url.rstrip()
+                                        list_blob(url)
+                            elif ext == ".csv" and not kw.startswith('_'):
+                                mytar.extract(item, tmpd)
+                                with open(os.path.join(str(tmpd),item.filename)) as img_list:
+                                    for row in csv.reader(img_list):
+                                        for entry in row:
+                                            url = as_url(entry)
+                                            if url:
+                                                list_blob(url)
         elif ext == ".txt":
             dset = Dataset(name = name)
             db.session.add(dset)
             for url in upload:
-                url = url[:-1]
-                _, ext = os.path.splitext(url)
-                if ext in acceptable:
-                    blob = Blob(url)
-                    dset.blobs.append(blob)
+                url = url.rstrip()
+                list_blob(url)
         elif ext == ".csv":
             dset = Dataset(name = name)
             db.session.add(dset)
@@ -78,10 +133,8 @@ def dataset_upload():
                 for entry in row:
                     url = as_url(entry)
                     if url:
-                        _, ext = os.path.splitext(url)
-                        if ext in acceptable:
-                            blob = Blob(url)
-                            dset.blobs.append(blob)
+                        list_blob(url)
+
         if dset != None:
             if form.patchspec.data:
                 dset.patchspecs.append(form.patchspec.data)
@@ -93,6 +146,8 @@ def dataset_upload():
     else:
         print form.errors
         return jsonify(errors=form.file.errors)
+
+
 
 @app.route('/dataset/attach', methods = ['POST'])
 def dataset_attach():
@@ -169,7 +224,7 @@ def patchspec_new():
             psform.dataset.data.patchspecs.append(pspec)
             next = psform.dataset.data.url
         db.session.commit()
-        tasks.if_dataset(fsform.dataset.data)
+        tasks.if_dataset(psform.dataset.data)
         return redirect(next)
     if psform.dataset.data:
         return dataset(psform.dataset.data.id, psform=psform)

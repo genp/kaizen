@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from flask import Flask
-from flask.ext.assets import Environment
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_assets import Environment
+from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, SQLAlchemyAdapter
 import logging
 from logging.handlers import RotatingFileHandler, SMTPHandler
@@ -31,3 +31,15 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(messag
 app.logger.setLevel(logging.INFO)
 file_handler.setLevel(logging.INFO)
 app.logger.addHandler(file_handler)
+
+
+# adding support for converting numpy types to sql
+import numpy
+from psycopg2.extensions import register_adapter, AsIs
+def addapt_numpy_float64(numpy_float64):
+  return AsIs(numpy_float64)
+register_adapter(numpy.float64, addapt_numpy_float64)
+
+def addapt_numpy_float32(numpy_float32):
+  return AsIs(numpy_float32)
+register_adapter(numpy.float32, addapt_numpy_float32)

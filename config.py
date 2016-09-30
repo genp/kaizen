@@ -3,11 +3,26 @@
 Sets up global variables for Kaizen.
 
 '''
-import os
-clroot = os.getenv('CLROOT')
-if not clroot:
-    clroot = os.path.dirname(os.path.abspath(__file__))
+import os,sys,socket
+kairoot = os.getenv('KAIROOT')
+if not kairoot:
+    kairoot = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(kairoot)
+
+cafferoot = os.getenv('CAFFEROOT')
+if not cafferoot:
+    cafferoot = '~/caffe'
+sys.path.append(cafferoot)
 DEVELOPMENT = False
+
+HOST = 'ec2-54-175-135-17.compute-1.amazonaws.com' #socket.getfqdn()
+if 'local' in HOST:
+    HOST = 'localhost'
+PORT = 8080
+URL_PREFIX = 'http://'+HOST
+if PORT != 80:
+    URL_PREFIX = URL_PREFIX+':'+str(PORT)
+URL_PREFIX = URL_PREFIX+'/'
 
 
 user = os.environ['USER']
@@ -33,10 +48,10 @@ if False:                       # Bring this back if needed, from crowd_learner
 if False:                       # Bring this back if needed, from crowd_learner
     import sys
 
-    sys.path.append(os.path.join(clroot, 'bin/empty_patch/'))
+    sys.path.append(os.path.join(kairoot, 'bin/empty_patch/'))
     # import ep_classifier
 
-    # epc = ep_classifier.EmptyPatchClassifier(os.path.join(clroot, 'bin/empty_patch'))
+    # epc = ep_classifier.EmptyPatchClassifier(os.path.join(kairoot, 'bin/empty_patch'))
     # epc.load()
 
 """
@@ -72,18 +87,16 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 BLOB_DIR = os.path.join(basedir, 'app', 'static', 'blobs')
 DATASET_DIR = os.path.join(basedir, 'app', 'static', 'datasets')
 CACHE_DIR = os.path.join(basedir, 'app', 'static', 'cache')
-LOG_DIR = os.path.join(clroot, 'app', 'static', 'logs')
+LOG_DIR = os.path.join(kairoot, 'app', 'static', 'logs')
 LOG_FILE = os.path.join(LOG_DIR, APPNAME+'.log')
-
-for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR, LOG_DIR):
-    if not os.path.exists(dir):
-        os.mkdir(dir)
 
 SQLALCHEMY_DATABASE_URI = 'postgresql://'+user+'@localhost/'+APPNAME
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
+SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 BROKER_URL="sqla+"+SQLALCHEMY_DATABASE_URI
 CELERY_RESULT_BACKEND="db+"+SQLALCHEMY_DATABASE_URI
+
 
 # mail server settings
 MAIL_SERVER = 'localhost'
@@ -96,3 +109,29 @@ ADMINS = ['gen@cs.brown.edu']
 
 USER_ENABLE_CONFIRM_EMAIL = False
 USER_ENABLE_EMAIL = False
+
+# Used to retrieve meta-data from ec2 machines
+def ec2_metadata(tag):
+    md_cmd = 'curl -s --connect-timeout 1 http://169.254.169.254/latest/meta-data/'
+    return os.popen(md_cmd+tag).read();
+
+# set logging level to 2 to suppress caffe output
+os.environ['GLOG_minloglevel'] = '2'
+USE_GPU = False
+instance_type = ec2_metadata('instance-type')
+EC2 = instance_type != ''
+if instance_type.startswith("g"):
+    print "Using GPU"
+    USE_GPU = True
+    GPU_DEVICE_ID = 0
+
+for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR, LOG_DIR):
+    sub = os.path.basename(dir)
+    if not os.path.exists(dir):
+        if EC2:
+            os.system('sudo mkdir -p /mnt/$USER')
+            os.system('sudo chown $USER /mnt/$USER')
+            os.system('mkdir -p /mnt/$USER/kaizen-space/'+sub)
+            os.system('ln -sf /mnt/$USER/kaizen-space/'+sub+' '+dir)
+        else:
+            os.mkdir(dir)

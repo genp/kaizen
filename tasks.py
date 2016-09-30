@@ -1,12 +1,15 @@
 #!/usr/bin/env python
-import sys
+from __future__ import absolute_import
+import ast, sys, csv, os, random
+
+from celery import Celery, current_task, group, chord, chain
+from functools import wraps
+import celery.registry as registry
 
 from app import db
 import app.models
-from celery import Celery, current_task, group, chord, chain
-import celery.registry as registry
 import config
-from functools import wraps
+import extract
 
 celery = Celery('tasks',
                 broker="sqla+"+config.SQLALCHEMY_DATABASE_URI,
@@ -63,45 +66,85 @@ def if_dataset(ds):
         dataset.delay(ds.id)
 
 @celery.task
-@that_retries
 def dataset(ds_id):
     ds = app.models.Dataset.query.get(ds_id)
-   
-    patch = chord(group(patch_dataset.si(ds.id, ps.id)
-                        for ps in ds.patchspecs), done.si())
-        
-    analyze = group(analyze_blob.si(blob.id,
-                                    *[fs.id for fs in ds.featurespecs])
-                    for blob in ds.blobs)
-    chain(patch, analyze).apply_async()
+    for blob in ds.blobs:
+        # analyze_blob(ds.id, blob.id)
+        analyze_blob.delay(ds.id, blob.id)
+    for kw in ds.keywords:
+        add_examples(kw)
 
-@celery.task
-@that_retries
-def patch_dataset(ds_id, ps_id):
+@celery.task(base=SqlAlchemyTask)
+def analyze_blob(ds_id, blob_id):
     ds = app.models.Dataset.query.get(ds_id)
-    ps = app.models.PatchSpec.query.get(ps_id)
-    for patch in ps.create_dataset_patches(ds):
-        db.session.add(patch)
-    db.session.commit()
+    blob = app.models.Blob.query.get(blob_id)
+    ds.create_blob_features(blob)
+
+
+def add_examples(k):
+    # read definition file
+    with open(k.defn_file) as defn:
+        for ex_ind, row in enumerate(csv.reader(defn)):
+            # create examples for each row
+            blob_name, x, y, w, h, val = row
+            x, y, w, h = int(x), int(y), int(w), int(h)
+
+            # check if blob exists
+            blobs = k.dataset.blobs
+            if not blobs:
+                print 'Cannot add example from empty dataset {}'.format(k.dataset)
+                return
+            print blobs    
+            print "path_2: " + os.path.basename(blob_name)
+            for b in blobs:
+                print os.path.basename(b.location)
+
+            blobs = [b for b in blobs
+                     if blob_name in b.location]
+            
+            if not blobs:
+                # TODO: add log entry
+                print 'Cannot add example for file {}'.format(blob_name)
+                return
+
+
+            blob = blobs[0]
+            patch = app.models.Patch.ensure(blob=blob, x=x, y=y, height=h, width=w,
+                                            fliplr=False, rotation=0.0)
+            # Calculate features for the example patches (as needed)
+            for fs in k.dataset.featurespecs:
+                print 'Patch is {}'.format(patch)
+                # TODO: clean up this error handling
+                try:
+                  if patch.image == []:
+                      continue
+                  if 0 in patch.image.shape:
+                      continue
+                except IndexError, e:
+                    continue
+                print patch.image.shape
+                feat = fs.analyze_patch(patch)
+                if feat:
+                    db.session.add(feat)
+                # TODO put this counting and del_networks() inside CNN
+                if fs.instance.__class__ is extract.CNN:# and (ex_ind > 0 and ex_ind % 1000 == 0):
+                    fs.instance.del_networks()
+            ex = app.models.Example(value=val, patch=patch, keyword=k)
+            db.session.add(ex)
+            db.session.commit()
+
 
 @celery.task
-@that_retries
-def analyze_blob(blob_id, *fs_ids):
-    blob = app.models.Blob.query.get(blob_id)
-    # TODO: Use an in query so that this is one query, not one per fs
-    for fs in [app.models.FeatureSpec.query.get(fs_id) for fs_id in fs_ids]:
-        for feat in fs.create_blob_features(blob):
-            db.session.add(feat)
-    db.session.commit()
-
-
+def keyword(kw_id):
+    kw = app.models.Keyword.query.get(kw_id)
+    for seed in kw.seeds:
+        seed.patch.materialize()
 
 def if_classifier(c):
     if c:
         classifier.delay(c.id)
 
 @celery.task
-@that_retries
 def classifier(c_id):
     c = app.models.Classifier.query.get(c_id)
     kw = c.keyword
@@ -120,7 +163,7 @@ def classifier(c_id):
 
         # Calculate features for the example patches (as needed)
         for fs in ds.featurespecs:
-            feat = fs.create_patch_feature(ex.patch)
+            feat = fs.analyze_patch(ex.patch)
             if feat:
                 db.session.add(feat)
 
@@ -133,7 +176,7 @@ def classifier(c_id):
     # accept negatives, and require them in such cases).
     
     if not negative:
-        patch = ds.blobs[0].patches[0]
+        patch = random.choice(ds.blobs).patches[0]
         e = app.models.Example(value = False, patch = patch, round = zero)
         db.session.add(e)
 
@@ -141,7 +184,6 @@ def classifier(c_id):
     db.session.commit()
 
 @celery.task
-@that_retries
 def advance_classifier(c_id):
     classifier = app.models.Classifier.query.get(c_id)
     latest_round = classifier.latest_round
@@ -155,11 +197,9 @@ def advance_classifier(c_id):
         db.session.add(ex)
 
     predict_round(round.id)
-    db.session.commit();
+    db.session.commit()
 
 
-@celery.task
-@that_retries
 def predict_round(r_id):
     round = app.models.Round.query.get(r_id)
 
@@ -168,11 +208,18 @@ def predict_round(r_id):
 
     for pq in round.choose_queries():
         db.session.add(pq)
-        
+
     db.session.commit()
+    precrop_round_results.delay(r_id)
+
 
 @celery.task
-@that_retries
+def precrop_round_results(r_id):
+    round = app.models.Round.query.get(r_id)
+    for pq in round.queries:
+        pq.patch.materialize()
+
+@celery.task
 def detect(d_id):
     detect = app.models.Detection.query.get(d_id)
     dense = app.models.PatchSpec.query.filter_by(name='Dense').one()
@@ -184,12 +231,12 @@ def detect(d_id):
         # Create features for the patches
         for fs in c.dataset.featurespecs:
             print " ",fs
-            for f in fs.create_blob_features(detect.blob):
+            for f in fs.analyze_blob(detect.blob):
                 print "  ",f
                 db.session.add(f)
         # Test the patches of the blob, saving Predictions
         for p in c.latest_round.detect(detect.blob):
-            print " p"
+            print " ",p
             db.session.add(p)
     db.session.commit()
 

@@ -1,2 +1,15 @@
 *.pyc
 db_repository
+*~
+#*
+*#
+.#*
+*.caffemodel
+*.DS_Store
+*.Python
+lib/
+*.lprof
+
+.DS_Store
+config.py
+paper/
