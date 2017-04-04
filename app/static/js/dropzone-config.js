@@ -55,7 +55,8 @@ function displayImg(fileNumber) {
         image_ratio_width[fileNumber] = [ratio,image_width];
 
     });
-    $("#"+fileNumber).attr('src', '/blob/'+fileNumber);
+    prefix = window.location.href.replace("keyword/new", "")
+    $("#"+fileNumber).attr('src', prefix+'/blob/'+fileNumber);
 }
 
 function addNewBboxSelector(fileNumber) {
@@ -84,7 +85,7 @@ function addBboxHandles(fileName) {
         onSelectEnd: function (img, selection) {
             ratio = image_ratio_width[fileName][0];
                 if (typeof user_patches[fileName] === 'undefined') {
-                    user_patches[fileName] = [[Math.floor(selection.x1 / ratio), Math.floor(selection.y1 / ratio),Math.floor( selection.width / ratio)]];
+                    user_patches[fileName] = [[Math.floor(selection.x1 / ratio), Math.floor(selection.y1 / ratio),Math.floor(selection.width / ratio)]];
                 }
                 else{
                     user_patches[fileName].push([Math.floor(selection.x1 / ratio), Math.floor(selection.y1 / ratio), Math.floor(selection.width / ratio)]);

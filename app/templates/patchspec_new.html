@@ -5,7 +5,7 @@
     <h1> Create New PatchSpec </h1>
     <hr>
     
-    <form action="/patchspec/new" method="post">
+    <form action="{{url_for('patchspec_new')}}" method="post">
       {{ psform.hidden_tag() }}
 
       {{ m.field(psform.name) }}

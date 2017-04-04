@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
-import ast
-import sys
-import csv
-import os
+import ast, sys, csv, os, random
 
 from celery import Celery, current_task, group, chord, chain
 from functools import wraps
@@ -160,9 +157,9 @@ def classifier(c_id):
         e = app.models.Example(value = ex.value, patch = ex.patch, round = zero)
         db.session.add(e)
 
-        # # We added at least one negative value from the seeds
-        # if not ex.value:
-        #     negative = True
+        # We added at least one negative value from the seeds
+        if not ex.value:
+            negative = True
 
         # Calculate features for the example patches (as needed)
         for fs in ds.featurespecs:
@@ -179,8 +176,7 @@ def classifier(c_id):
     # accept negatives, and require them in such cases).
     
     if not negative:
-        # TODO randomize blobs order
-        patch = ds.blobs[100].patches[0]
+        patch = random.choice(ds.blobs).patches[0]
         e = app.models.Example(value = False, patch = patch, round = zero)
         db.session.add(e)
 

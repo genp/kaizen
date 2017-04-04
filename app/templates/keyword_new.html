@@ -2,7 +2,7 @@
 {% block content %}
 
 <div id="container" > 
-  <form action="/file-upload/" class="dropzone" id="seed-drop" enctype="multipart/form-data">
+  <form action="{{url_for('file_upload')}}" class="dropzone" id="seed-drop" enctype="multipart/form-data">
     {{blob_form.hidden_tag()}}
     <div class="fallback">
       {{blob_form.file}}
@@ -14,7 +14,7 @@
   <hr>
   <div id="preview-container">
     <div id="keyword-container">
-      <form action="/keyword/add" method="post" id="submit_keyword" enctype="multipart/form-data">
+      <form action="{{url_for('keyword_add')}}" method="post" id="submit_keyword" enctype="multipart/form-data">
         {{form.hidden_tag()}}
         {{m.field(form.keyword, required=True)}}
         <input type="submit" value="Add Keyword">

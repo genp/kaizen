@@ -5,7 +5,9 @@ import importlib
 import os, time
 import urllib
 
-# import psutil
+
+import psutil
+from flask import url_for
 from flask_user import UserManager, UserMixin, SQLAlchemyAdapter, current_user
 from more_itertools import chunked
 from scipy import misc
@@ -21,7 +23,7 @@ import numpy as np
 from app import app, db
 import config
 import tasks
-import extract 
+import extract
 
 s3 = boto3.resource('s3')
 
@@ -71,6 +73,13 @@ def s3_url(location):
   (bucket, key) = location[5:].split("/")
   return "http://%s.s3.amazonaws.com/%s" % (bucket, key)
 
+def static_url(location):
+  prefix = config.kairoot + '/app/static/'
+  assert location.startswith(prefix)
+  return url_for('static', filename=location[len(prefix):])
+
+
+
 def clean_cache(s):
   dir = config.CACHE_DIR
   now = time.time()
@@ -90,7 +99,7 @@ class Blob(db.Model):
   longitude = db.Column(db.Float)
 
   URL_MAP = {
-    config.kairoot + '/app/static/' : config.URL_PREFIX,
+    config.kairoot + '/app/static/' : static_url,
     's3://' : s3_url,
   }
 
@@ -160,9 +169,7 @@ class Blob(db.Model):
     url = self.location
     for prefix, change in Blob.URL_MAP.iteritems():
       if url.startswith(prefix):
-        if hasattr(change, '__call__'):
-          return change(url)
-        return url.replace(prefix, change, 1)
+        return change(url)
     return url
 
   @property
@@ -203,7 +210,7 @@ class PatchSpec(db.Model):
 
   # Make mirrored patches too
   fliplr = db.Column(db.Boolean, nullable=False, default=False)
-  
+
   @classmethod
   def ifNew(model, **kwargs):
       if not model.query.filter_by(**kwargs).first():
@@ -308,7 +315,7 @@ class FeatureSpec(db.Model):
   @property
   def simple_class(self):
       return self.cls.split(".")[-1]
-          
+
   def __repr__(self):
     return self.simple_class + "(" + str(self.params) + ")"
 
@@ -335,7 +342,7 @@ class FeatureSpec(db.Model):
     for p in blob.patches:
       if Feature.query.filter_by(patch=p, spec=self).count() == 0:
         yield p
-        
+
 
   def analyze_patch(self, patch):
     if Feature.query.filter_by(patch=patch, spec=self).count() > 0:
@@ -368,12 +375,12 @@ class Dataset(db.Model):
     batch_size = 500
     for ps in self.patchspecs:
       print ps
-      
+
       for patches in chunked(ps.create_blob_patches(blob), batch_size):
         for p in patches:
           if p:
-            db.session.add(p)            
-        db.session.commit()        
+            db.session.add(p)
+        db.session.commit()
         print p
 
     for fs in self.featurespecs:
@@ -394,7 +401,7 @@ class Dataset(db.Model):
 
   @property
   def url(self):
-    return "/dataset/"+str(self.id)
+    return url_for("dataset", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -408,8 +415,8 @@ class Keyword(db.Model):
   '''
   Keywords can be created individually or be asscociated with a dataset
   When associated with a dataset, the keyword will have a defn_file that contains
-  the location of a csv listing the images, patch locations, and label values of the 
-  examples associated with this keyword. 
+  the location of a csv listing the images, patch locations, and label values of the
+  examples associated with this keyword.
   '''
   id = db.Column(db.Integer, primary_key = True)
   name = db.Column(db.String)
@@ -432,7 +439,7 @@ class Keyword(db.Model):
 
   @property
   def url(self):
-    return "/keyword/"+self.name
+    return url_for("keyword", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -477,7 +484,7 @@ class Estimator(db.Model):
   @property
   def simple_class(self):
       return self.cls.split(".")[-1]
-          
+
   def __repr__(self):
     return self.simple_class + "(" + str(self.params) + ")"
 
@@ -503,7 +510,7 @@ class Classifier(db.Model):
 
   dataset_id = db.Column(db.Integer, db.ForeignKey('dataset.id'), nullable=False)
   dataset = db.relationship('Dataset', backref = db.backref('classifiers', lazy = 'dynamic'))
-  
+
   keyword_id = db.Column(db.Integer, db.ForeignKey('keyword.id'), nullable=False)
   keyword = db.relationship('Keyword', backref = db.backref('classifiers', lazy = 'dynamic'))
 
@@ -515,7 +522,7 @@ class Classifier(db.Model):
       if self.owner is None and current_user.is_authenticated:
         self.owner = current_user
       zero = Round(classifier = self)
-      
+
   @property
   def examples(self):
     for round in self.rounds:
@@ -535,7 +542,7 @@ class Classifier(db.Model):
 
   @property
   def url(self):
-    return "/classifier/"+str(self.id)
+    return url_for("classifier", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
@@ -563,7 +570,7 @@ class Round(db.Model):
     for blob in ds.blobs:
       for patch in blob.patches:
         for feature in patch.features:
-          #TODO: I don't think we want predict here, want decision function or probability 
+          #TODO: I don't think we want predict here, want decision function or probability
           # value = estimators[feature.spec.id].predict(feature.vector)
           value = estimators[feature.spec.id].decision_function(feature.vector)
           yield Prediction(value=value, feature=feature, round=self)
@@ -618,10 +625,10 @@ class Round(db.Model):
       return model_debug(self)
 
   def average_precision(self, keyword, add_neg_ratio=None):
-    '''Returns the AP of the Round's estimator on the elements of the 
+    '''Returns the AP of the Round's estimator on the elements of the
     keyword.
     Adds negatives randomly selected from the keyword's dataset
-    up to a pos/neg ratio of <add_neg_ratio>. 
+    up to a pos/neg ratio of <add_neg_ratio>.
     '''
 
     estimators = self.trained_estimators()
@@ -638,12 +645,12 @@ class Round(db.Model):
         y[feature.spec.id]['true'].append( 1.0 if ex.value else 0.0 )
         feats[feature.spec.id].append(feature.vector)
 
-        print '{} of {}'.format(len(y[feature.spec.id]['true']), 
+        print '{} of {}'.format(len(y[feature.spec.id]['true']),
                                                   num_seeds)
-    # get additional negatives if need be    
+    # get additional negatives if need be
     if add_neg_ratio is not None:
       num_pos = len(keyword.seeds.filter(Example.value == True).all())
-      num_neg = len(keyword.seeds.filter(Example.value == False).all())      
+      num_neg = len(keyword.seeds.filter(Example.value == False).all())
       kw_patches = [ex.patch for ex in keyword.seeds]
       ds_blobs = keyword.dataset.blobs
       while np.true_divide(num_neg, (num_neg+num_pos)) < add_neg_ratio:
@@ -718,7 +725,7 @@ class Patch(db.Model):
       img = np.fliplr(img)
     if self.rotation != 0.0:
       img = rotate(img, self.rotation)
-    
+
     print "image shape: "
     print img.shape
     print (self.y, self.y+self.height, self.x, self.x+self.width)
@@ -741,11 +748,11 @@ class Patch(db.Model):
 
   @property
   def url(self):
-    return "/patch/"+str(self.id);
+    return url_for("patch", id=self.id)
 
   def __repr__(self):
     return model_debug(self)
-      
+
 
 class Feature(db.Model):
   id = db.Column(db.Integer, primary_key = True)
@@ -788,7 +795,7 @@ class Feature(db.Model):
 class Example(db.Model):
   id = db.Column(db.Integer, primary_key = True)
   value = db.Column(db.Boolean, nullable=False)
-  
+
   patch_id = db.Column(db.Integer, db.ForeignKey('patch.id'), index = True, nullable=False)
   patch = db.relationship('Patch', backref = db.backref('examples', lazy = 'dynamic'))
 
@@ -822,7 +829,7 @@ class PatchQuery(db.Model):
   """A Classifier thinks it would be a good idea to ask about a patch."""
   id = db.Column(db.Integer, primary_key = True)
   predicted = db.Column(db.Float, nullable=False)
-  
+
   patch_id = db.Column(db.Integer, db.ForeignKey('patch.id'), nullable=False)
   patch = db.relationship('Patch', backref = db.backref('queries', lazy = 'dynamic'))
 
@@ -839,7 +846,7 @@ class PatchResponse(db.Model):
   """A human has answered a PatchQuery (as part of a HitResponse)"""
   id = db.Column(db.Integer, primary_key = True)
   value = db.Column(db.Boolean, nullable=False)
-  
+
   query_id = db.Column(db.Integer, db.ForeignKey('patch_query.id'), nullable=False)
   patchquery = db.relationship('PatchQuery', backref = db.backref('responses', lazy = 'dynamic'))
 
@@ -849,15 +856,15 @@ class PatchResponse(db.Model):
   def __repr__(self):
     return model_debug(self)
 
-  
-class HitResponse(db.Model):  
+
+class HitResponse(db.Model):
   """A set of PatchResponses, all done by a user in one HIT"""
   id = db.Column(db.Integer, primary_key = True)
   # the completion time for all of the patch responses associated with this HIT
   time = db.Column(db.Float(), nullable=False)
   # the (self-reported) confidence of the labeling user
   confidence = db.Column(db.Integer)
-  
+
   # the user that labeled the associated PatchResponses
   user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
   user = db.relationship('User', backref = db.backref('hits', lazy = 'dynamic'))
@@ -873,7 +880,7 @@ class Detection(db.Model):
 
   @property
   def url(self):
-    return "/detect/"+str(self.id);
+    return url_for("detect", id=self.id)
 
   def __repr__(self):
     return model_debug(self)

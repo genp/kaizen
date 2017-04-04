@@ -90,13 +90,9 @@ CACHE_DIR = os.path.join(basedir, 'app', 'static', 'cache')
 LOG_DIR = os.path.join(kairoot, 'app', 'static', 'logs')
 LOG_FILE = os.path.join(LOG_DIR, APPNAME+'.log')
 
-# for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR, LOG_DIR):
-#     if not os.path.exists(dir):
-#         os.mkdir(dir)
-
-
 SQLALCHEMY_DATABASE_URI = 'postgresql://'+user+'@localhost/'+APPNAME
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
+SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 BROKER_URL="sqla+"+SQLALCHEMY_DATABASE_URI
 CELERY_RESULT_BACKEND="db+"+SQLALCHEMY_DATABASE_URI
@@ -129,14 +125,13 @@ if instance_type.startswith("g"):
     USE_GPU = True
     GPU_DEVICE_ID = 0
 
-if EC2:
-    if not os.path.exists(BLOB_DIR):
-        os.system('sudo mkdir /mnt/$USER')
-        os.system('sudo chown $USER /mnt/$USER')
-        os.system('mkdir /mnt/$USER/kaizen-space')
-        os.system('mkdir /mnt/$USER/kaizen-space/datasets')
-        os.system('mkdir /mnt/$USER/kaizen-space/cache')
-        os.system('mkdir /mnt/$USER/kaizen-space/blobs')
-        os.system('ln -sf /mnt/$USER/kaizen-space/datasets')
-        os.system('ln -sf /mnt/$USER/kaizen-space/cache')
-        os.system('ln -sf /mnt/$USER/kaizen-space/blobs')
+for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR, LOG_DIR):
+    sub = os.path.basename(dir)
+    if not os.path.exists(dir):
+        if EC2:
+            os.system('sudo mkdir -p /mnt/$USER')
+            os.system('sudo chown $USER /mnt/$USER')
+            os.system('mkdir -p /mnt/$USER/kaizen-space/'+sub)
+            os.system('ln -sf /mnt/$USER/kaizen-space/'+sub+' '+dir)
+        else:
+            os.mkdir(dir)
