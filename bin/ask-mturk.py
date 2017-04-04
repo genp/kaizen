@@ -4,8 +4,8 @@ from boto.mturk.connection import MTurkConnection
 import boto.mturk.question as q
 import math
 
-ACCESS_ID = 'AKIAJXDPX2JYBTFPTHDQ'
-SECRET_KEY = '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'
+ACCESS_ID = ''
+SECRET_KEY = ''
 HOST = 'mechanicalturk.sandbox.amazonaws.com'
 
  
