@@ -63,12 +63,6 @@ For further info on the use of this system, please see the following papers:
     make
     sudo make install
 
-### Install opencv3:
-  OS X:
-   brew install opencv
-   ln -s /usr/local/Cellar/opencv3/3*/lib/python2.7/site-packages/cv2.so \
-     ~/.virtualenvs/kaizen/lib/python*/site-packages
-  Linux: ???
 
 ### For OS X:
   <INSTALL caffe>
