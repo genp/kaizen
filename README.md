@@ -8,43 +8,43 @@ For further info on the use of this system, please see the following papers:
 
 ## Contents of this Repo
 
-LICENSE - Copyright genp
-README - This file
-app - The main flask webserver
-bin - scripts for setting up db, recreating, and running main server
- db_create.py
- kaizen.py
- db_migrate.py
- reset-all
+    LICENSE - Copyright genp
+    README - This file
+    app - The main flask webserver
+    bin - scripts for setting up db, recreating, and running main server
+     db_create.py
+     kaizen.py
+     db_migrate.py
+     reset-all
 
 ## Prerequiste for running Kaizen
-Linux:
- sudo yum install blas-devel lapack-devel gcc-c++ freetype-devel libpng-devel libffi-devel libopenssl-devel postgresql94-devel
- sudo chkconfig postgresql94 on
-? yum install postgresql94-server
- sudo service postgresql96 initdb
- sudo service postgresql96 start
+    Linux:
+     sudo yum install blas-devel lapack-devel gcc-c++ freetype-devel libpng-devel libffi-devel libopenssl-devel postgresql94-devel
+     sudo chkconfig postgresql94 on
+    ? yum install postgresql94-server
+     sudo service postgresql96 initdb
+     sudo service postgresql96 start
 
-? sudo pip install virtualenvwrapper
-? source /usr/local/bin/virtualenvwrapper.sh
-? sudo yum install openssl-devel cmake
+    ? sudo pip install virtualenvwrapper
+    ? source /usr/local/bin/virtualenvwrapper.sh
+    ? sudo yum install openssl-devel cmake
 
 ## To Begin: 
 
-git clone git@github.com:genp/kaizen.git
-mkvirtualenv kaizen
-cd kaizen
-setvirtualenvproject kaizen
-ln -sf `pwd`/bin/postactivate ~/.virtualenvs/kaizen/bin
-ln -sf `pwd`/bin/postdeactivate ~/.virtualenvs/kaizen/bin
-pip install --upgrade pip
-if ! python -c "import numpy" > /dev/null 2>1 ; then pip install numpy==1.9.2; fi
-pip install -r pip-freeze.txt
-add2virtualenv .
-echo "backend      : Agg" > /home/$USER/matplotlibrc
+    git clone git@github.com:genp/kaizen.git
+    mkvirtualenv kaizen
+    cd kaizen
+    setvirtualenvproject kaizen
+    ln -sf `pwd`/bin/postactivate ~/.virtualenvs/kaizen/bin
+    ln -sf `pwd`/bin/postdeactivate ~/.virtualenvs/kaizen/bin
+    pip install --upgrade pip
+    if ! python -c "import numpy" > /dev/null 2>1 ; then pip install numpy==1.9.2; fi
+    pip install -r pip-freeze.txt
+    add2virtualenv .
+    echo "backend      : Agg" > /home/$USER/matplotlibrc
 
 ### If not already installed
-gem install sass
+    gem install sass
 
 ### Install opencv:
   OS X:
@@ -104,11 +104,11 @@ gem install sass
 
 ### Create Database and start Kaizen and Celery Servers:
 ### ----------------------------------------------------
-sudo -u postgres createuser -sdr $USER
-#change ident to trust in pg_hba.conf
-createdb kaizen
-./bin/db_create.py
-./bin/kaizen.py
-celery -A tasks.celery worker --loglevel=debug
+    sudo -u postgres createuser -sdr $USER
+    #change ident to trust in pg_hba.conf
+    createdb kaizen
+    ./bin/db_create.py
+    ./bin/kaizen.py
+    celery -A tasks.celery worker --loglevel=debug
 
 
