@@ -47,21 +47,21 @@ For further info on the use of this system, please see the following papers:
     gem install sass
 
 ### Install opencv:
-  OS X:
-   brew install homebrew/science/opencv
-   ln -s /usr/local/Cellar/opencv/2*/lib/python2.7/site-packages/cv.py \
-     ~/.virtualenvs/kaizen/lib/python*/site-packages
-   ln -s /usr/local/Cellar/opencv/2*/lib/python2.7/site-packages/cv2.so \
-     ~/.virtualenvs/kaizen/lib/python*/site-packages
+    OS X:
+     brew install homebrew/science/opencv
+     ln -s /usr/local/Cellar/opencv/2*/lib/python2.7/site-packages/cv.py \
+       ~/.virtualenvs/kaizen/lib/python*/site-packages
+     ln -s /usr/local/Cellar/opencv/2*/lib/python2.7/site-packages/cv2.so \
+       ~/.virtualenvs/kaizen/lib/python*/site-packages
 
-  Linux: 
-    git clone https://github.com/Itseez/opencv.git
-    cd ~/opencv
-    mkdir release
-    cd release
-    cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local ..
-    make
-    sudo make install
+    Linux: 
+      git clone https://github.com/Itseez/opencv.git
+      cd ~/opencv
+      mkdir release
+      cd release
+      cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local ..
+      make
+      sudo make install
 
 
 ### For OS X:
