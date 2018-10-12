@@ -3,8 +3,8 @@
 For further info on the use of this system, please see the following papers:
 
 
-[Tropel: Crowdsourcing Detectors with Minimal Training]: http://cs.brown.edu/~gmpatter/pub_papers/patterson_hcomp2015.pdf
-[Kaizen: The Crowd Pathologist]: http://cs.brown.edu/people/gmpatter/groupsight/kaizen.pdf
+[Tropel: Crowdsourcing Detectors with Minimal Training](http://cs.brown.edu/~gmpatter/pub_papers/patterson_hcomp2015.pdf)
+[Kaizen: The Crowd Pathologist](http://cs.brown.edu/people/gmpatter/groupsight/kaizen.pdf)
 
 ## Contents of this Repo
 
