@@ -17,7 +17,7 @@ bin - scripts for setting up db, recreating, and running main server
  db_migrate.py
  reset-all
 
-# Prerequiste for running Kaizen
+## Prerequiste for running Kaizen
 Linux:
  sudo yum install blas-devel lapack-devel gcc-c++ freetype-devel libpng-devel libffi-devel libopenssl-devel postgresql94-devel
  sudo chkconfig postgresql94 on
