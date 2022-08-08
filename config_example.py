@@ -1,6 +1,6 @@
 '''
 
-Sets up global variables for Oscar.
+Sets up global variables for the app.
 
 '''
 import os,sys,socket
@@ -38,25 +38,6 @@ mime_dictionary = {
 }
 
 
-# bow vocabularies
-if False:                       # Bring this back if needed, from crowd_learner
-    import numpy as np
-    from sklearn import cluster
-    from sklearn.neighbors import NearestNeighbors
-    color_clusterer = cluster.MiniBatchKMeans(n_clusters=vocab_size)
-    color_clusterer.cluster_centers_ = np.load(cluster_file)
-    nbrs = NearestNeighbors(n_neighbors=1, algorithm='kd_tree').fit(color_clusterer.cluster_centers_)
-
-# empty patch classifier
-if False:                       # Bring this back if needed, from crowd_learner
-    import sys
-
-    sys.path.append(os.path.join(approot, 'bin/empty_patch/'))
-    # import ep_classifier
-
-    # epc = ep_classifier.EmptyPatchClassifier(os.path.join(approot, 'bin/empty_patch'))
-    # epc.load()
-
 """
 
 Classifier params
@@ -82,10 +63,10 @@ active_query_strategy='most_confident'
 Flask App
 '''
 
-APPNAME = 'oscar'
+APPNAME = 'kaizen'
 DEBUG = True
 CSRF_ENABLED = True
-SECRET_KEY = 'crowds are people too'
+SECRET_KEY = 'robots are people too'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -98,9 +79,9 @@ LOG_FILE = os.path.join(LOG_DIR, APPNAME+'.log')
 #Remote DB ex: SQLALCHEMY_DATABASE_URI = 'postgresql://'+user+'@localhost/'+APPNAME
 
 POSTGRES = {
-        'user': 'gen',
-        'pw': 'gen',
-        'db': 'oscar-local',
+        'user':  os.getenv("USER"),
+        'pw': os.getenv("USER"),
+        'db': APPNAME+'-local',
         'host': 'localhost',
         'port': '5432',
     }
@@ -120,14 +101,14 @@ MAIL_USERNAME = None
 MAIL_PASSWORD = None
 
 # administrator list
-ADMINS = ['gen@cs.brown.edu']
+ADMINS = ['name@email.com']
 
 USER_ENABLE_CONFIRM_EMAIL = False
 USER_ENABLE_EMAIL = False
 
 # Used to retrieve meta-data from ec2 machines
 def ec2_metadata(tag):
-    md_cmd = 'curl -s --connect-timeout 1 http://169.254.169.254/latest/meta-data/'
+    md_cmd = 'curl -s --connect-timeout 1 http://<ip-address>/latest/meta-data/'
     return os.popen(md_cmd+tag).read();
 
 # set logging level to 2 to suppress caffe output

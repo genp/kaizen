@@ -20,7 +20,7 @@ For further info on the use of this system, please see the following papers:
     Dockerfile - instructions for Dockerizing this repo
 
 ## Set up venv:
-> mkvirtualenv kaizen
+> mkvirtualenv kaizen # this app tested with Python3.9
 > pip install -r requirements.txt
 
 To restart venv:
@@ -29,12 +29,18 @@ To restart venv:
 To add to python requirements:
 > pip freeze > requirements.txt
 
-## Setup the database:
-> postgres createuser -sdr $USER
+## Setup the postgres database:
 > createdb $FLASK_APP-local
 
 If you'd like to blow away the db:
 > dropdb $FLASK_APP-local
+
+Setup the configuration parameters:
+>cp config-example.py config.py
+... Do some editing ...
+
+Add this repo to your PYTHONPATH:
+>export PYTHONPATH=/Users/$USER/kaizen:$PYTHONPATH
 
 Load some data to play with:
 > ./bin/forge.py
