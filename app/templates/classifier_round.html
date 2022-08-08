@@ -1,9 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
-<p>{{classifier.keyword.name}} at iteration {{round.number}}</p>
+  {% for r in classifier.rounds %}
+    <h2>Iteration #{{r.number}}</h2>
 
+    <h3>Positives</h3>
+    {% for ex in r.examples %}
+      {% if ex.value %}
+    <img class="patch" src='{{ex.patch.url}}'>
+      {% endif %}
+    {% endfor %}
 
-{% import "_active_query_state.html" as forms %}
-{{ forms.display_active_query(classifier, hits, 5, form) }}
+    <h3>Negatives</h3>
+    {% for ex in r.examples %}
+      {% if not ex.value %}
+    <img class="patch" src='{{ex.patch.url}}'/>
+      {% endif %}
+    {% endfor %}
+
+    <h3>Predictions</h3>
+    <h4>Highest</h4>
+    {% for pred in r.predictions[:9] %}
+    <img class="patch" src='{{pred.patch.url}}'/>
+    {% endfor %}
+
+    <h4>Lowest</h4>
+    {% for pred in r.predictions[-9:] %}
+    <img class="patch" src='{{pred.patch.url}}'/>
+    {% endfor %}
+
+  {% endfor %}
 
 {% endblock %}

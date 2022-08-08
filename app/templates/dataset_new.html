@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div id="container" > 
+<div id="container" >
   <h1> Create New Dataset </h1>
   <hr>
-    
+
   <h1> Upload Zip File of Images </h1>
   <form action="{{url_for('dataset_upload')}}" class="dropzone" id="dataset-drop" enctype="multipart/form-data">
     {{dataset_form.hidden_tag()}}
@@ -13,6 +13,7 @@
     </div>
     {{dataset_form.patchspec}}
     {{dataset_form.featurespec}}
+    {{dataset_form.val_percent}}
   </form>
 </div>
 

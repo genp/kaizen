@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id = "container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">Evaluate</h1>
+  </div>
+  <hr>
+
+  <p>Apply a classifier to an exisiting dataset</p>
+  <p>If you were redirected, wait for the predictions to render</p>
+
+  <div>
+    <form id="apply_classifier" action="{{url_for('evaluate_ds')}}" method="POST">
+      <h2>Pick a Classifier Round</h2>
+      <br>
+      {{eval_form.round}}
+
+      <h2>Pick a Dataset</h2>
+      <br>
+      {{eval_form.dataset(span=80)}}
+      <br><br>
+      <input type="submit"/>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

@@ -10,7 +10,8 @@
   <div id = "card-container">
     {% import "card.html" as card %}
     {% for c in classifiers %}
-      {{card.create_card_classifier(c.keyword.name+" in "+c.dataset.name, c.url, c.examples.next().patch, c.rounds.count()-1)}}
+    {{card.create_card_classifier(c.keyword.name+" in "+c.dataset.name,
+    c.url, next(c.examples).patch, c.rounds.count()-1)}}
     {% endfor %}
   </div>
 </div>

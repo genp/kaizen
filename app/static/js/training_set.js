@@ -1,4 +1,4 @@
-// JS for populating active questy form. 
+// JS for populating active query form. 
 // Fills in exemplar images, gallery of detections.
 // Users can click on images to mark them as not similar to exemplars.
 

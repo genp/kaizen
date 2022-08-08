@@ -47,7 +47,7 @@ button {
     width: 300px;
     z-index: 11;
     visibility: hidden;
-    
+
 }
 
 .intro:hover > #notes {
@@ -67,6 +67,11 @@ button {
 #cluster {
     padding: 10px;
     display: inline-block;
+}
+
+
+.overlay {
+  opacity: .1;
 }
 
 .patch-container {

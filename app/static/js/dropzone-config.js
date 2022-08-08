@@ -4,8 +4,10 @@ Dropzone.options.datasetDrop = {
   init: function() {
     this.on("success", function(file, response) {
         console.log(response);
-        if (response.errors)
+        if (response.errors != null){
+            console.info(response)
           alert(response.errors)
+        }
         else
           window.location = response.url
     });
@@ -15,6 +17,7 @@ Dropzone.options.datasetDrop = {
 var user_patches = {};
 var img_ids = {}
 var image_ratio_width = {}
+var img_infos = {}
 
 Dropzone.options.seedDrop = {
   addRemoveLinks: true,
@@ -25,7 +28,7 @@ Dropzone.options.seedDrop = {
             return;
         }
         img_ids[file.name] = response.results;
-        readURL(response.results);
+        readURL(response.results, true);
     });
     this.on("removedfile", function(file) {  
         removeBbox(img_ids[file.name]);
@@ -33,17 +36,39 @@ Dropzone.options.seedDrop = {
   }
 };
 
-function readURL(fileNumber) {
-    addNewBboxSelector(fileNumber);
-    displayImg(fileNumber);
+Dropzone.options.seedDropNeg = {
+  addRemoveLinks: true,
+  init: function() {
+    this.on("success", function(file, response) {
+        if (response.results == 0) {
+            alert(response.errors);
+            return;
+        }
+        console.info(`response: ${response}`);
+        img_ids[file.name] = response.results;
+        readURL(response.results, false);
+    });
+    this.on("removedfile", function(file) {  
+        removeBbox(img_ids[file.name]);
+    });
+  }
+};
+
+
+//The pos_or_neg field is a boolean stating if the seedDropZone used was the one
+//for positive or negative examples
+function readURL(fileNumber, pos_or_neg) {
+    addNewBboxSelector(fileNumber, pos_or_neg);
+    displayImg(fileNumber, pos_or_neg);
 }
 
-function displayImg(fileNumber) {
+function displayImg(fileNumber, pos_or_neg) {
     $("#" + fileNumber).on("load", function(){
 	console.log("#"+fileNumber+' on load function');
         // get the int value number of px. This is assuming it is in px
         container_width = parseFloat($("#container").css("width").split("px")[0]);
         image_width = this.width;
+        img_infos[fileNumber] = [this.width, this.height, pos_or_neg]
 
         if (image_width > container_width){
             ratio = container_width / image_width;
@@ -59,9 +84,9 @@ function displayImg(fileNumber) {
     $("#"+fileNumber).attr('src', prefix+'/blob/'+fileNumber);
 }
 
-function addNewBboxSelector(fileNumber) {
+function addNewBboxSelector(fileNumber, pos_or_neg) {
     createBbox(fileNumber, "img-container");
-    addBboxHandles(fileNumber);
+    addBboxHandles(fileNumber, pos_or_neg);
 }
 
 function createBbox(imgName, containerName) {
@@ -77,7 +102,7 @@ function removeBbox(fileName) {
     removeSeedPreviews(fileName);
 }
 
-function addBboxHandles(fileName) {
+function addBboxHandles(fileName, pos_or_neg) {
     $("#"+fileName).imgAreaSelect({
         handles: true,
         aspectRatio: "1:1",
@@ -85,20 +110,24 @@ function addBboxHandles(fileName) {
         onSelectEnd: function (img, selection) {
             ratio = image_ratio_width[fileName][0];
                 if (typeof user_patches[fileName] === 'undefined') {
-                    user_patches[fileName] = [[Math.floor(selection.x1 / ratio), Math.floor(selection.y1 / ratio),Math.floor(selection.width / ratio)]];
+                    user_patches[fileName] = [[Math.floor(selection.x1 / ratio), Math.floor(selection.y1 / ratio),Math.floor(selection.width / ratio), pos_or_neg]];
                 }
                 else{
-                    user_patches[fileName].push([Math.floor(selection.x1 / ratio), Math.floor(selection.y1 / ratio), Math.floor(selection.width / ratio)]);
+                    user_patches[fileName].push([Math.floor(selection.x1 / ratio), Math.floor(selection.y1 / ratio), Math.floor(selection.width / ratio), pos_or_neg]);
                 }   
-            createSeedPreview(fileName);
+            createSeedPreview(fileName, pos_or_neg);
         }
     });
 }
 
-function createSeedPreview(fileName) {
+function createSeedPreview(fileName, pos_or_neg) {
     count = user_patches[fileName].length-1;
     r = Math.floor((Math.random() * 100) + 1);
-    $("#keyword-container").append($('<div>', { id: fileName+"_"+count+"_"+r, class: "bbox"}));   
+
+    //$("#keyword-container").append($('<div>', { id: fileName+"_"+count+"_"+r, class: "bbox"}));   
+    s = (pos_or_neg == true ? "#positiveSeedsPreview" : "#negativeSeedsPreview"); 
+    $(s).show()
+    $(s).append($('<div>', { id: fileName+"_"+count+"_"+r, class: "bbox"}));
     img_width = image_ratio_width[fileName][1]
     console.log("img_width is :" + img_width);
     x = user_patches[fileName][count][0];

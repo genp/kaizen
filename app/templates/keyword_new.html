@@ -2,12 +2,23 @@
 {% block content %}
 
 <div id="container" > 
+  <h2>Positive Examples</h2>
   <form action="{{url_for('file_upload')}}" class="dropzone" id="seed-drop" enctype="multipart/form-data">
     {{blob_form.hidden_tag()}}
-    <div class="fallback">
+    <div class="fallback" >
       {{blob_form.file}}
     </div>
   </form>
+
+    <!-- Beginning of the code for a new Dropzone-->
+    <h2>Negative Examples</h2>
+  <form action="{{url_for('file_upload')}}" class="dropzone" id="seed-drop-neg" enctype="multipart/form-data">
+    {{blob_form.hidden_tag()}}
+    <div class="fallback" >
+      {{blob_form.file}}
+    </div>
+  </form>
+  <!-- End of the code for a new Dropzone-->
 
   <hr>
   <div id="img-container"> </div> 
@@ -17,8 +28,15 @@
       <form action="{{url_for('keyword_add')}}" method="post" id="submit_keyword" enctype="multipart/form-data">
         {{form.hidden_tag()}}
         {{m.field(form.keyword, required=True)}}
+        <input type="hidden" name="img_ratio_width" id="img_ratio_width" value>
         <input type="submit" value="Add Keyword">
       </form>
+      <div id="positiveSeedsPreview" style="display: none;">
+        Positive Seeds Preview
+      </div>
+      <div id="negativeSeedsPreview" style="display: none;">
+        Negative Seeds Preview
+      </div>
     </div>
   </div>
 </div>
@@ -26,6 +44,7 @@
 <script>
   $("#submit_keyword").submit(function () {
     $("#seeds").val(JSON.stringify(user_patches));
+    $("#imgInfos").val(JSON.stringify(img_infos));
     return true;
   });
 </script>

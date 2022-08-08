@@ -123,7 +123,7 @@ body {
 
 /* line 127, ../sass/base.scss */
 a {
-  color: #59C5C7;
+  color: #557aff;
   text-decoration: none;
 }
 
@@ -194,10 +194,15 @@ End of floating div property
 */
 
 .patch {
-  height: 100px;
-  width: 100px;
+  height: 150px;
+  width: 150px;
 }
 
 .patch-container .patch {
   display: inline-block;
+}
+
+.score div {
+  float: left;
+  margin-right: 15px;
 }

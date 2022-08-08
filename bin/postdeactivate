@@ -1,8 +1,0 @@
-#!/bin/zsh
-# This hook is sourced after this virtualenv is deactivated, because it
-# is symlinked into ~/.virtualens/kaizen/bin
-
-PGUSER=$_PGUSER
-PGHOST=$_PGHOST
-PGDATABASE=$_PGDATABASE
-

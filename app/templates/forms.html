@@ -9,6 +9,6 @@
 </form>
 {% endmacro %}
 
-{% macro display_new_classifier_form(form, id) %}    
+{% macro display_new_classifier_form(form, id) %}
     {{ display_form(form, url_for('classifier_new'), 'submit_classifier', 'Create Classifier') }}
 {% endmacro %}

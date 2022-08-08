@@ -1,23 +1,18 @@
 {% import "macros.html" as m %}
 <!DOCTYPE html>
-<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
-<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
-<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="icon" type="image/ico" href="/favicon/favicon.ico">
   {% if title %}
-    <title>{{ title }} | Kaizen</title>
+    <title>{{ title }} | FathomNet SIA</title>
   {% else %}
-    <title>Kaizen</title>
+    <title>FathomNet SIA</title>
   {% endif %}
   <meta name="description" content="{{ description }}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link rel="apple-touch-icon-precomposed" href="/favicon/k-arrow-152.png">
-
-  {% assets filters="cssmin,scss", output="css/packed.css",
+  {% assets filters="cssmin", output="css/packed.css",
   "css/normalize.css",
   "css/base.css",
   "css/main.css",
@@ -46,15 +41,16 @@
 </head>
   <body>
     <div id = "nav_bar">
-      <p><a href="{{ url_for('top') }}">Kaizen</a></p>
+      <p><a href="{{ url_for('top') }}">FathomNet Service for Interactive Annotation</a></p>
       <div id="links">
         <a href="{{ url_for('dataset_top') }}">Datasets</a>
         <a href="{{ url_for('keyword_top') }}">Keywords</a>
         <a href="{{ url_for('classifier_top') }}">Train</a>
         <a href="{{ url_for('detect_top') }}">Detect</a>
+        <a href="{{ url_for('evaluate_top') }}">Evaluate</a>
       </div>
       {% if current_user.is_anonymous %}
-        <a href="{{url_for('user.login')}}">login</a> | <a href="{{url_for('user.register')}}">register</a>
+
       {% else %}
         Hello, <a href="{{url_for('user.profile')}}">{{current_user.username}}</a> (<a href="{{url_for('user.logout')}}">logout</a>)
       {% endif %}
@@ -74,7 +70,7 @@
       {% block content %}
       <p>Set a content block!</p>
       {% endblock %}
-        
+
       <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
       <script>
         (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=

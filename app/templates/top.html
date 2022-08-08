@@ -2,40 +2,124 @@
 
 {% block content %}
 <style>
-.instr { 
+.instr {
   margin: 10px;
   padding: 20px;
   border: 1px dashed #968895;
   float: left;
   width:95%;/* 660px; */
+
 }
 </style>
-
 <div id = "container">
-  <h1> Welcome </h1>
-  <hr>
-  <h2> Create an image classifer in four easy steps!</h2>
-
-  <div class="instr"> 
+  <div style="padding-right: 5px;">
+    <img src="favicon/FathomNet-Hero_Image@0.5x.jpg"
+	 alt="Jellyfish" style="width: 100%;">
+    <h2 class="home-page__heading" style="position: absolute;top: 80px;left: 50px;"> Create a <strong>new</strong> classifer in a few easy steps.</h2>
+  </div>
+  <div class="instr">
     <h3> Step 1: </h3>
-    Create a Dataset by uploading a zip or tar file of images.
+    Register as a new user
+    </br>
+    <img width=800 src='images/register.png' />
   </div>
 
-  <div class="instr"> 
+  <div class="instr">
     <h3> Step 2: </h3>
     Create a "Keyword" which is really a target type of image by uploading
-    images and marking the relevant pieces.
+    images and marking the relevant pieces. Click on the Keyword Tab to begin making a Keyword.
+    </br>
+    This is the main page with all of the currently created keywords:
+    </br>
+    <img width=800 src='images/keyword_main_ex.png' />
+    </br>
+    <p>
+    Click on "Create New Keyword" to start making a classifier for a new concept.
+    Drag and drop one or more images that are <b>Positive Examples</b> of the concept.
+    </p>
+    <img width=800 src='images/keyword_new1.png' />
+    <p>
+      IMPORTANT: you must select the region of the image that contains
+      the concept of the Keyword. If you want to use the whole image,
+      make the selected region as big as allowed. Click and drag on
+      the preview of the uploaded image to create the bounding
+      box. Only square boxes are permitted at the moment to prevent
+      image warping. This is being updated.
+      </p>
+    <img width=800 src='images/keyword_new_bbox.png' />
+    <p>
+      Every selected bounding box will create a new example for this
+      keyword. You can select multiple examples from the same image,
+      e.g. you may want to use an image that has several dogs in it
+      when creating a dog Keyword. The final examples for the Keyword
+      are displayed at the bottom of the page. If incorrect regions
+      are selected, simply click on the preview to have them removed.
+    </p>
+    <img width=800 src='images/keyword_new_wrong_selection.png' />
+    <p>
+      When you are satisfied with the selected example images, enter a
+      name for the Keyword and click the "New Keyword" button. You
+      will be redirect to a page that lists the example and all the
+      classifiers made for this Keyword. This is where you can make a
+      classifier for the new Keyword.
+    </p>
+    <img width=800 src='images/keyword_new_corrected_selection.png' />
   </div>
 
-  <div class="instr"> 
+  <div class="instr">
     <h3> Step 3: </h3>
-    Create a classifier from the keyword against your dataset.
+    <p>
+      Create a classifier from the keyword against your dataset. On
+      the profile page for a given Keyword, at the bottom of the page,
+      there are options for creating a new classifier for that
+      Keyword. Select the dataset you want to train on and the type of
+      classifier you would like to create. For now, please use the
+      "scene attributes" dataset and the "turicreate squeezenet"
+      classifier.
+    </p>
+    <img width=800 src='images/classifier_new.png' />
+    <p>
+      After hitting the "Create Classifier" button, you will be
+      redirected to the classifier update page, which will be empty at
+      first. Creating a classifier can take 10mins to an hour or more
+      depending on the size of the training dataset and the demand on
+      the system. Please be patient and check back in on your new
+      classifier after a short break. All of the created classifiers
+      are listed under the "Train" tab.
+      </p>
+    <img width=800 src='images/classifier_main.png' />
+
   </div>
 
-  <div class="instr"> 
+  <div class="instr">
     <h3> Step 4: </h3>
-    Iteratively improve your classifier by dividing the proposed image
-    patches into correct and incorrect groups.
+    <p>
+      In order to improve your classifier, you will have to update
+      what the classifier thinks is correct and incorrect. If you
+      click on the card for you new classifier on the Train page, you
+      will be redirected to the query upate page for your
+      classifier. At the top of this page, the most confident
+      detections and the least confident detections of your classifier
+      on the training set are shown. These examples will give you an
+      indication of whether or not your new classifier has grasped the
+      concept of your Keyword. If you scroll down, you will see the
+      Query section of this page. On the left had side of the page are
+      200 images that your classifier thinks might be the Keyword
+      concept. Click on all of the image that are <b>Correct</b>. Any
+      images in the left side column should be Negative examples, and
+      the images in the right side column should be Postive
+      examples. When you are done selecting images, click "Submit" at
+      the top of the page. This will initiate retraining for your
+      classifier. Please allow 10 mins-1 hour for this page to update.
+    </p>
+    <img width=800 src='images/query_page.png' />
+    <p>
+      Repeat this process until your classifier has learned what a
+      keyword is. If the classifier is still failing after 5-7
+      iterations, try restarting the classifier from scratch or email
+      Gen about the failure. Failures are learning experiences for us,
+      so they are as important as successes.
+      </p>
   </div>
 </div>
 {% endblock %}

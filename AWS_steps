@@ -1,8 +1,0 @@
-sudo useradd -d /home/gen -m gen
-sudo passwd gen
-
-As sudo:
-yum install blas-devel lapack-devel gcc-c++ freetype-devel libpng-devel libffi-devel libopenssl-devel postgresql-devel
-chkconfig postgresql94 on
-postgresql-setup initdb
-service postgresql start

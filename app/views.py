@@ -1,12 +1,11 @@
 from app import app, db, manage
 from flask import render_template, redirect, request, url_for, g, jsonify, send_file
 from flask_login import login_user, logout_user, login_required
-from forms import *
-from models import User, Blob, Patch
+from app.forms import *
+from app.models import User, Blob, Patch
 import config
 import os, tempfile
-
-import dataset_views, keyword_views, classifier_views
+from app import dataset_views, keyword_views, classifier_views, evaluate_views
 
 @app.errorhandler(404)
 def not_found_error(error):
@@ -22,7 +21,7 @@ def top():
     return render_template('top.html')
 
 @app.route('/user/<username>')
-@login_required
+#@login_required
 def user(username):
     user = User.find(username)
     if user == None:
@@ -55,8 +54,8 @@ def patch_debug(id):
 def file_upload():
     form = BlobForm()
 
-    if form.validate_on_submit(): 
-        print "Uploaded file: "+form.file.data.filename
+    if form.validate_on_submit():
+        print("Uploaded file: "+form.file.data.filename)
 
         upload = form.file.data
         _, ext = os.path.splitext(upload.filename)

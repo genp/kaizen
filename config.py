@@ -1,24 +1,28 @@
 '''
 
-Sets up global variables for Kaizen.
+Sets up global variables for Oscar.
 
 '''
-import os,sys,socket
-kairoot = os.getenv('KAIROOT')
-if not kairoot:
-    kairoot = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(kairoot)
+import os
+import sys
+from dotenv import load_dotenv
+load_dotenv()
 
-cafferoot = os.getenv('CAFFEROOT')
-if not cafferoot:
-    cafferoot = '~/caffe'
-sys.path.append(cafferoot)
+AWS_ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+
+approot = os.getenv('APPROOT')
+if not approot:
+    approot = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(approot)
+
+
 DEVELOPMENT = False
 
-HOST = 'ec2-54-175-135-17.compute-1.amazonaws.com' #socket.getfqdn()
+HOST = '' #'localhost' # AWS example: 'ec2-54-175-135-17.compute-1.amazonaws.com' #socket.getfqdn()
 if 'local' in HOST:
     HOST = 'localhost'
-PORT = 8080
+PORT = 8889
 URL_PREFIX = 'http://'+HOST
 if PORT != 80:
     URL_PREFIX = URL_PREFIX+':'+str(PORT)
@@ -48,10 +52,10 @@ if False:                       # Bring this back if needed, from crowd_learner
 if False:                       # Bring this back if needed, from crowd_learner
     import sys
 
-    sys.path.append(os.path.join(kairoot, 'bin/empty_patch/'))
+    sys.path.append(os.path.join(approot, 'bin/empty_patch/'))
     # import ep_classifier
 
-    # epc = ep_classifier.EmptyPatchClassifier(os.path.join(kairoot, 'bin/empty_patch'))
+    # epc = ep_classifier.EmptyPatchClassifier(os.path.join(approot, 'bin/empty_patch'))
     # epc.load()
 
 """
@@ -72,30 +76,41 @@ threshold = -1.0
 
 # How many of the predictions to ask about in one round
 query_num = 200
+# the active query strategy
+active_query_strategy='most_confident'
 
 '''
 Flask App
 '''
 
-APPNAME = 'kaizen'
+APPNAME = 'app'
 DEBUG = True
 CSRF_ENABLED = True
-SECRET_KEY = 'crowds are people too'
+SECRET_KEY = 'under the sea'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-BLOB_DIR = os.path.join(basedir, 'app', 'static', 'blobs')
-DATASET_DIR = os.path.join(basedir, 'app', 'static', 'datasets')
-CACHE_DIR = os.path.join(basedir, 'app', 'static', 'cache')
-LOG_DIR = os.path.join(kairoot, 'app', 'static', 'logs')
+BLOB_DIR = os.path.join(basedir, APPNAME, 'static', 'blobs')
+DATASET_DIR = os.path.join(basedir, APPNAME, 'static', 'datasets')
+CACHE_DIR = os.path.join(basedir, APPNAME, 'static', 'cache')
+LOG_DIR = os.path.join(approot, APPNAME, 'static', 'logs')
 LOG_FILE = os.path.join(LOG_DIR, APPNAME+'.log')
+# SQLALCHEMY_DATABASE_URI = \
+#     'sqlite:////' + os.path.join(basedir, APPNAME+'-dev.db')
+POSTGRES = {
+        'user': 'gen',
+        'pw': 'gen',
+        'db': f'{APPNAME}-local',
+        'host': 'localhost',
+        'port': '5432',
+    }
+SQLALCHEMY_DATABASE_URI = 'postgresql://%(user)s:%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 
-SQLALCHEMY_DATABASE_URI = 'postgresql://'+user+'@localhost/'+APPNAME
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-BROKER_URL="sqla+"+SQLALCHEMY_DATABASE_URI
-CELERY_RESULT_BACKEND="db+"+SQLALCHEMY_DATABASE_URI
+broker_url = "sqla+"+SQLALCHEMY_DATABASE_URI
+result_backend = "db+"+SQLALCHEMY_DATABASE_URI
 
 
 # mail server settings
@@ -117,21 +132,21 @@ def ec2_metadata(tag):
 
 # set logging level to 2 to suppress caffe output
 os.environ['GLOG_minloglevel'] = '2'
-USE_GPU = False
-instance_type = ec2_metadata('instance-type')
-EC2 = instance_type != ''
-if instance_type.startswith("g"):
-    print "Using GPU"
-    USE_GPU = True
-    GPU_DEVICE_ID = 0
+#USE_GPU = False
+#instance_type = ec2_metadata('instance-type')
+#EC2 = instance_type != ''
+#if instance_type.startswith("g"):
+USE_GPU = True
+GPU_DEVICE_IDS = [0]
 
+EC2 = False
 for dir in (BLOB_DIR, DATASET_DIR, CACHE_DIR, LOG_DIR):
     sub = os.path.basename(dir)
     if not os.path.exists(dir):
         if EC2:
             os.system('sudo mkdir -p /mnt/$USER')
             os.system('sudo chown $USER /mnt/$USER')
-            os.system('mkdir -p /mnt/$USER/kaizen-space/'+sub)
-            os.system('ln -sf /mnt/$USER/kaizen-space/'+sub+' '+dir)
+            os.system('mkdir -p /mnt/$USER/sia-space/'+sub)
+            os.system('ln -sf /mnt/$USER/sia-space/'+sub+' '+dir)
         else:
             os.mkdir(dir)

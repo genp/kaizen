@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+
+<script src="/js/sticky-div.js"></script>
+<script src="/js/evaluate.js"></script>
+<div id="container">
+  <div style = "overflow: hidden; height: 70px">
+    <h1 style = "display: inline-block;">Evaluate</h1>
+  </div>
+  <hr>
+
+ <!-- all the ifs are to display existing, otherwise jqeury update the divs -->
+  {% if eval %}
+  <div id="picks" class="score" style="height:250px;">
+  {% else %}
+  <div id="picks" class="score">
+  {% endif %}
+  <p> Keyword <b>{{ form.classifier.data.keyword.name}}</b> at round
+    <b>{{ form.round.data.number }}</b> evaluated on dataset
+    <b>{{ form.dataset.data.name }}</b>
+  </p>
+    <div id="first_incorrect_div">
+      {% if eval %}
+        <p>First incorrect</p>
+        <img id="patch-{{ eval[0] }}" class="patch" src="/patch/{{ eval[0] }}">
+      {% endif %}
+    </div>
+    <div id="last_correct_div">
+      {% if eval %}
+        <p>Last Correct</p>
+        <img id="patch-{{ eval[1] }}" class="patch" src="/patch/{{ eval[1] }}">
+      {% endif %}
+    </div>
+    <div id="score_div">
+      {% if eval %}
+        <h3>Score: {{ (eval[0] - eval[1])|abs }}</h3>
+      {% endif %}
+    </div>
+    <!-- first check for existing ones -->
+  </div>
+
+  <div id="space">
+    {% if eval %}
+      <hr>
+    {% endif %}
+  </div>
+  <p> Pick the first incorrect image and the last correct image </p>
+
+  <form id="range_response">
+  	{{form.hidden_tag()}}
+    <button id="commit"> Submit </button>
+  </form>
+
+  <div id="container-panel">
+    <div id="gallery">
+      <div class="patch-container">
+        {% for p in predicts %}
+        <img id="patch-{{p['patch_id']}}" class='patch' src="/patch/{{p['patch_id']}}">
+        {% endfor %}
+    </div>
+  </div>
+
+<script> img_select(); </script>
+{% endblock %}

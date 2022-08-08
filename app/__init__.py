@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 from flask import Flask
 from flask_assets import Environment
+from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
-from flask_user import UserManager, SQLAlchemyAdapter
+#from flask_user import UserManager, SQLAlchemyAdapter
 import logging
 from logging.handlers import RotatingFileHandler, SMTPHandler
 from config import APPNAME, LOG_FILE
@@ -12,11 +13,31 @@ app.config.from_object('config')
 
 assets = Environment(app)
 db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
 
+# DO NOT move this import to the top of this file.
+# It will cause a circular import.
 from app import views, models
-user_manager = UserManager(SQLAlchemyAdapter(db, models.User), app)
+# user_manager = UserManager(SQLAlchemyAdapter(db, models.User), app)
+@login_manager.user_loader
+def load_user(user_id):
+    return models.User.query.get(user_id)
+login_manager.login_view = "user.login"
 
-# email logs for catasrophic failures 
+from flask_login import AnonymousUserMixin
+class Guest(AnonymousUserMixin):
+
+    def can(self, permission_name):
+        return False
+
+    @property
+    def is_admin(self):
+        return False
+
+login_manager.anonymous_user = Guest
+
+# email logs for catasrophic failures
 from config import ADMINS, MAIL_SERVER, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD
 
 credentials = None

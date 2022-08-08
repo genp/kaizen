@@ -1,7 +1,7 @@
 from app import app, db
 from flask import render_template, g, redirect, jsonify
-from forms import *
-from models import Dataset, Blob, PatchSpec, FeatureSpec, Classifier
+from app.forms import *
+from app.models import Dataset, Blob, PatchSpec, FeatureSpec, Classifier
 import tempfile
 import config
 import os
@@ -29,27 +29,21 @@ def dataset_upload():
         name, ext = os.path.splitext(upload.filename)
 
         acceptable = ['.jpg', '.jpeg', '.png']
-        label_acceptable = ['.csv']
 
         def unarchive_blob(item, dset, tmpd, archive):
             archive.extract(item, tmpd)
             # TODO: change to check if path contains valid image
             blob = Blob(os.path.join(str(tmpd),item.filename))
             dset.blobs.append(blob)
+            print(blob)
             return
 
         def list_blob(url):
             _, ext = os.path.splitext(url)
-            if ext in acceptable:
+            if ext.lower() in acceptable:
                 # TODO: change to check if url contains valid image
                 blob = Blob(url)
                 dset.blobs.append(blob)
-            return
-
-        def keyword_dataset(kw, item, dset, tmpd, archive):
-            archive.extract(item, tmpd)
-            kw_fname = str(tmpd) + "/" + item.filename
-            k = Keyword(name=kw[1:],defn_file=kw_fname,dataset=dset)
             return
 
         dset = None
@@ -60,30 +54,20 @@ def dataset_upload():
                 dset = Dataset(name = name)
                 db.session.add(dset)
 
+                vdset = Dataset(name = name+'_val', is_train=False)
+                db.session.add(vdset)
+
+
                 for item in myzip.infolist():
                     fname, ext = os.path.splitext(item.filename)
                     if "__MACOSX" in item.filename:
                         continue
-                    kw = os.path.basename(fname)
-                    if ext in acceptable:
-                        unarchive_blob(item, dset, tmpd, myzip)
-                    elif ext in label_acceptable and kw.startswith('_'):
-                        print "creating keyword: " + kw
-                        keyword_dataset(kw, item, dset, tmpd, myzip)
-                    elif ext == ".txt":
-                        myzip.extract(item, tmpd)
-                        with open(os.path.join(str(tmpd),item.filename)) as img_list:
-                            for url in img_list:
-                                url = url.rstrip()
-                                list_blob(url)
-                    elif ext == ".csv" and not kw.startswith('_') :
-                        myzip.extract(item, tmpd)
-                        with open(os.path.join(str(tmpd),item.filename)) as img_list:
-                            for row in csv.reader(img_list):
-                                for entry in row:
-                                    url = as_url(entry)
-                                    if url:
-                                        list_blob(url)
+                    print(fname)
+                    if ext.lower() in acceptable:
+                        if random.random() > form.val_percent.data:
+                            unarchive_blob(item, dset, tmpd, myzip)
+                        else:
+                            unarchive_blob(item, vdset, tmpd, myzip)
 
         elif ext == ".gz" or ext == ".bz2" or ext == ".tar":
             if ext != ".tar":
@@ -102,24 +86,9 @@ def dataset_upload():
                             if "__MACOSX" in item.filename:
                                 continue
                             kw = os.path.basename(fname)
-                            if ext in acceptable:
+                            if ext.lower() in acceptable:
                                 unarchive_blob(item, dset, tmpd, mytar)
-                            if ext in label_acceptable and kw.startswith('_'):
-                                keyword_dataset(kw, item, dset, tmpd, mytar)
-                            elif ext == ".txt":
-                                mytar.extract(item, tmpd)
-                                with open(os.path.join(str(tmpd),item.filename)) as img_list:
-                                    for url in img_list:
-                                        url = url.rstrip()
-                                        list_blob(url)
-                            elif ext == ".csv" and not kw.startswith('_'):
-                                mytar.extract(item, tmpd)
-                                with open(os.path.join(str(tmpd),item.filename)) as img_list:
-                                    for row in csv.reader(img_list):
-                                        for entry in row:
-                                            url = as_url(entry)
-                                            if url:
-                                                list_blob(url)
+
         elif ext == ".txt":
             dset = Dataset(name = name)
             db.session.add(dset)
@@ -142,9 +111,23 @@ def dataset_upload():
                 dset.featurespecs.append(form.featurespec.data)
             db.session.commit()
             tasks.dataset.delay(dset.id)
-            return jsonify(name=dset.name, id=dset.id, url = dset.url)
+
+            if form.patchspec.data:
+                vdset.patchspecs.append(form.patchspec.data)
+            if form.featurespec.data:
+                vdset.featurespecs.append(form.featurespec.data)
+            db.session.commit()
+            tasks.dataset.delay(vdset.id)
+            return jsonify(
+                name=dset.name,
+                id=dset.id,
+                url = dset.url,
+                v_name=vdset.name,
+                v_id=vdset.id,
+                v_url = vdset.url)
+
     else:
-        print form.errors
+        print(form.errors)
         return jsonify(errors=form.file.errors)
 
 
@@ -163,7 +146,7 @@ def dataset_attach():
 
 @app.route('/dataset/', methods = ['GET'])
 def dataset_top():
-    datasets = Dataset.query.all()
+    datasets = Dataset.query.filter(Dataset.is_train == True).all()
     return render_template('dataset_top.html',
                            datasets = datasets)
 
@@ -179,9 +162,11 @@ def dataset_new():
 def dataset(id, psform=None, fsform=None):
     dataset = Dataset.query.get_or_404(id)
     classifiers = Classifier.query.filter_by(dataset_id = id)
-
+    app.logger.info('DATASET BLOBS: {}'.format(dataset))
     num_ex = 20
-    blobs = dataset.blobs[:num_ex]
+    import random
+    blobs = random.sample(dataset.blobs, min(30, len(dataset.blobs)))
+    # blobs = dataset.blobs[:num_ex]
     if not psform:
         psform = PatchSpecForm(dataset=dataset)
     if not fsform:

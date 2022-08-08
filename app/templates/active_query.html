@@ -9,32 +9,10 @@
       <h3> <i>Selected images should closely resemble the example images. For example, if the example images show an entire bird, then only select images that contain the whole body of a similar looking bird, e.g. same species bird. If the examples show only a bird beak or leg, only select image patches that contain a similar beak or leg.</i></h3>
     </div>
     <h3 class="no-bottom">Click submit when you are finished. <br />
-      Click on a confidence value (1 = low, 5 = high) to show how confident you feel about your selected image patches.<br />
       Click images to move them between "no" and "yes".</h3>
     <div id="button-panel">
       <form id="hit_response" method="POST" action="">
 	{{form.hidden_tag()}}
-
-	<p>
-	  <label for=radios><h3>Confidence:</h3></label>
-		  
-	  <div id="radios">
-	    <input id="option1" name="options" type="radio" value="1">
-	    <label for="option1">1</label>
-		   
-	    <input id="option2" name="options" type="radio" value="2">
-	    <label for="option2">2</label>
-		   
-	    <input id="option3" name="options" type="radio" value="3" checked>
-	    <label for="option3">3</label>
-		   
-	    <input id="option4" name="options" type="radio" value="4">
-	    <label for="option4">4</label>
-		   
-	    <input id="option5" name="options" type="radio" value="5">
-	    <label for="option5">5</label>
-	  </div>
-	</p>
 
       </form>		 
       <form id="mturk" method="POST" action="https://www.mturk.com/mturk/externalSubmit"><!--"https://workersandbox.mturk.com/mturk/externalSubmit"-->
@@ -42,17 +20,17 @@
 	<button id="commit">Submit</button>
       </form>		 
     </div>
-    <div id="exemplar-container">
+    <div id=""><!-- "exemplar-container"> -->
       <div id="pos-examples" style="display:inline-block">
         <h3>Examples:</h3>
-        {% for pid in hits.positives %}
+        {% for pid in hits.positives[:10] %}
         <img class='patch' src="/patch/{{pid}}">
         {% endfor %}
       </div>
       <div id="spacer" style="width:100px; display:inline-block"></div>
       <div id="neg-examples" style="display:inline-block">
         <h4><font color='#900'>These are incorrect selections: </font></h4>
-        {% for pid in hits.negatives %}
+        {% for pid in hits.negatives[:10] %}
         <img class='patch' src="/patch/{{pid}}">
         {% endfor %}
       </div>
