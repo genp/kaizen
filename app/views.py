@@ -16,6 +16,10 @@ def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
 
+@app.route('/appname', methods=['GET'])
+def get_appname():
+    return config.APPNAME
+
 @app.route('/', methods=['GET','POST'])
 def top():
     return render_template('top.html')

@@ -5,9 +5,9 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <link rel="icon" type="image/ico" href="/favicon/favicon.ico">
   {% if title %}
-    <title>{{ title }} | Kaizen </title>
+    <title>{{ title }} | {{ appname }} </title>
   {% else %}
-    <title>Kaizen</title>
+    <title>{{ appname }}</title>
   {% endif %}
   <meta name="description" content="{{ description }}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -41,7 +41,7 @@
 </head>
   <body>
     <div id = "nav_bar">
-      <p><a href="{{ url_for('top') }}">Kaizen</a></p>
+      <p><a href="{{ url_for('top') }}">{{ appname }}</a></p>
       <div id="links">
         <a href="{{ url_for('dataset_top') }}">Datasets</a>
         <a href="{{ url_for('keyword_top') }}">Keywords</a>

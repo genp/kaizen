@@ -37,6 +37,11 @@ class Guest(AnonymousUserMixin):
 
 login_manager.anonymous_user = Guest
 
+# convenience function for jinja to render app name in templates
+@app.context_processor
+def get_appname():
+    return dict(appname=APPNAME)
+
 # email logs for catasrophic failures
 from config import ADMINS, MAIL_SERVER, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD
 
