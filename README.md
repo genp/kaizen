@@ -1,4 +1,4 @@
-## Webserver for Crowd-in-the-Loop Active learning.
+## Webserver for Human-in-the-Loop Active learning.
 
 For further info on the use of this system, please see the following papers:
 
