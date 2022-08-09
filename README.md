@@ -1,4 +1,5 @@
 ## Webserver for Human-in-the-Loop Active learning.
+![The Kaizen Query Response UI](https://raw.githubusercontent.com/genp/kaizen/main/app/static/images/query_page.png)
 
 For further info on the use of this system, please see the following papers:
 
