@@ -80,7 +80,7 @@ def dataset_upload_urls(
     tasks.dataset(vdset.id)
 
     print(
-        f"Added {dset.blobs.count()} images to dataset {dset.name}. "
+        f"Added {len(dset.blobs)} images to dataset {dset.name}. "
         + "Extracted patches and features."
     )
     return dset

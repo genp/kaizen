@@ -95,21 +95,17 @@ def forge(forgeData):
 
 def get_fathoment_forge():
 
-    # Sample of FathomNet Images from Monterey Bay
+    # FathomNet Keyword Example
+    keyword_name = "Aurelia aurita"
     query = fathomnet.models.GeoImageConstraints(
-        maxLatitude=37.0538,
-        minLatitude=36.4458,
-        maxLongitude=-121.7805,
-        minLongitude=-122.5073,
-        limit=100,
+        concept=keyword_name,
     )
 
     concept_images = fathomnet.api.images.find(query)
     dataset_url_list = [img.url for img in concept_images]
-    dataset_name = "MontereyBay"
+    dataset_name = "Moon Jellies"
 
-    # FathomNet Keyword Example
-    keyword_name = "Sebastolobus"
+    # Find a starting example (a seed) from a specific gps range
     query = fathomnet.models.GeoImageConstraints(
         concept=keyword_name,
         maxLatitude=37.0538,
