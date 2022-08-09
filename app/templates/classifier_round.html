@@ -18,12 +18,12 @@
     {% endfor %}
 
     <h3>Predictions</h3>
-    <h4>Highest</h4>
+    <h4>Highest scoring image patches on validation dataset</h4>
     {% for pred in r.predictions[:9] %}
     <img class="patch" src='{{pred.patch.url}}'/>
     {% endfor %}
 
-    <h4>Lowest</h4>
+    <h4>Lowest scoring image patches on validation dataset</h4>
     {% for pred in r.predictions[-9:] %}
     <img class="patch" src='{{pred.patch.url}}'/>
     {% endfor %}

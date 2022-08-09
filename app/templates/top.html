@@ -17,15 +17,19 @@
   </div>
   <div class="instr">
     <h3> Step 1: </h3>
-    Register as a new user
+    Upload your dataset using 'bin/dataset_ingestion.py' or use the testing
+    dataset by running 'bin/forge.py'
     </br>
-    <img width=800 src='images/register.png' />
+    <img width=800 src='images/dataset_main_ex.png' />
+        </br>
+        <img width=800 src='images/dataset_ex.png' />
   </div>
 
   <div class="instr">
     <h3> Step 2: </h3>
-    Create a "Keyword" which is really a target type of image by uploading
-    images and marking the relevant pieces. Click on the Keyword Tab to begin making a Keyword.
+    Create a "Keyword". A Keyword in an an object that hold the initial
+    example(s) of the concept you want to make classifier(s) for.
+    Click on the Keyword Tab to begin making a Keyword.
     </br>
     This is the main page with all of the currently created keywords:
     </br>
@@ -38,11 +42,11 @@
     <img width=800 src='images/keyword_new1.png' />
     <p>
       IMPORTANT: you must select the region of the image that contains
-      the concept of the Keyword. If you want to use the whole image,
+      the concept for the Keyword. If you want to use the whole image,
       make the selected region as big as allowed. Click and drag on
       the preview of the uploaded image to create the bounding
-      box. Only square boxes are permitted at the moment to prevent
-      image warping. This is being updated.
+      box. Only square boxes are permitted at the moment. Please make an issue
+      if you'd like rectangular selection.
       </p>
     <img width=800 src='images/keyword_new_bbox.png' />
     <p>
@@ -61,7 +65,7 @@
       classifiers made for this Keyword. This is where you can make a
       classifier for the new Keyword.
     </p>
-    <img width=800 src='images/keyword_new_corrected_selection.png' />
+    <img width=800 src='images/keyword_ex.png' />
   </div>
 
   <div class="instr">
@@ -71,21 +75,19 @@
       the profile page for a given Keyword, at the bottom of the page,
       there are options for creating a new classifier for that
       Keyword. Select the dataset you want to train on and the type of
-      classifier you would like to create. For now, please use the
-      "scene attributes" dataset and the "turicreate squeezenet"
-      classifier.
+      classifier you would like to create.
     </p>
-    <img width=800 src='images/classifier_new.png' />
+
     <p>
       After hitting the "Create Classifier" button, you will be
       redirected to the classifier update page, which will be empty at
-      first. Creating a classifier can take 10mins to an hour or more
-      depending on the size of the training dataset and the demand on
-      the system. Please be patient and check back in on your new
+      first. Creating a classifier will take different amounts of time depending
+      on the size of the training and validation datasets.
+      Please be patient and check back in on your new
       classifier after a short break. All of the created classifiers
       are listed under the "Train" tab.
       </p>
-    <img width=800 src='images/classifier_main.png' />
+
 
   </div>
 
@@ -114,8 +116,10 @@
     <p>
       Repeat this process until your classifier has learned what a
       keyword is. If the classifier is still failing after 5-7
-      iterations, try restarting the classifier from scratch or email
-      Gen about the failure. Failures are learning experiences for us,
+      iterations, try restarting the classifier from scratch with different
+      positive or negative initial examples, different training dataset, or
+      adding different feature types to your training set. Please email
+      use about persistent failure cases. Failures are learning experiences for us,
       so they are as important as successes.
       </p>
   </div>

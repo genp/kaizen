@@ -47,6 +47,7 @@ def forge(forgeData):
     dataset_name = forgeData.dataset_name
     list_of_urls = forgeData.dataset_url_list
 
+    # If the dataset exists, i.e. forge was run before, don't make the dataset twice
     if not Dataset.query.filter(Dataset.name == dataset_name).all():
         patchspec_id = PatchSpec.query.filter(PatchSpec.name == "Sparse").first().id
         featurespec_id = (
@@ -86,9 +87,11 @@ def forge(forgeData):
         owner=owner, dataset=dataset, keyword=keyword, estimator=estimator
     )
     db.session.add(classifier)
-    tasks.classifier(classifier.id)
 
+    # Commit keyword items and new classifier to DB so they have primary keys
     db.session.commit()
+
+    tasks.classifier(classifier.id)
 
 
 # Example forged data, from the FathomNet API
