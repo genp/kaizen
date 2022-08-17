@@ -7,7 +7,7 @@ from app import db, manage
 from app.models import User, Dataset, Blob, PatchSpec, FeatureSpec
 import tasks
 from utils.extract_frames import extract_frames
-from utils.add_blob import add_blob
+from utils.add_blob import add_blob, add_blobs_batch
 
 _acceptable = [".jpg", ".jpeg", ".png"]
 _video_acceptable = [".mp4", ".mov", ".avi"]
@@ -51,10 +51,10 @@ def dataset_upload_urls(
     Upload all images and or videos from the input list of urls into a new
     Dataset.
     """
-    print("THIS IS A PRINT")
     dset, vdset = setup_dataset(name, featurespec_id, patchspec_id, val_percent)
-    print(dset)
-    print(list_of_urls)
+    print(f'Attempint to adding {len(list_of_urls)} images{dset}')
+    dset_urls = []
+    vdset_urls = []
     for url in list_of_urls:
         # check url is to a valid file type
         _, ext = os.path.splitext(url)
@@ -62,9 +62,9 @@ def dataset_upload_urls(
         if ext.lower() in _acceptable:
             print(f"adding image url to dataset: {url}")
             if random.random() > val_percent:
-                add_blob(url, dset)
+                dset_urls.append(url)
             else:
-                add_blob(url, vdset)
+                vdset_urls.append(url)
 
         # TODO: if video extract frames first and add them all as blobs
         if ext.lower() in _video_acceptable:
@@ -73,6 +73,8 @@ def dataset_upload_urls(
         if ext.lower() not in _acceptable and ext.lower() not in _video_acceptable:
             print(f"This url points to an unsupported file type: {url}")
 
+    add_blobs_batch(dset_urls, dset)
+    add_blobs_batch(vdset_urls, vdset)
     db.session.commit()
 
     # Execute without Celery so all patches and features will be available at once.
