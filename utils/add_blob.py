@@ -19,3 +19,20 @@ def add_blob(item, dset):
     db.session.commit()
     dset.blobs.append(blob)
     return True
+
+def add_blobs_batch(urls, dset):
+    """Add a list of blobs to a dataset
+       This function does not check if a blob already exists with this url.
+    Params:
+        urls (list of str): paths to image files
+        dset (Dataset): Dataset ORM object from app/models.py
+    """
+    new_blobs = []
+    for url in urls:
+        blob = Blob(url)
+        db.session.add(blob)
+        new_blobs.append(blob)
+    db.session.commit()
+    for blob in new_blobs:
+        dset.blobs.append(blob)
+    return True
