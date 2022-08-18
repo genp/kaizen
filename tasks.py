@@ -91,15 +91,32 @@ def dataset(ds_id):
     with the dataset ds_id.
     """
     ds = app.models.Dataset.query.get(ds_id)
+    # check dataset has blobs
+    if not ds.blobs:
+        print(f'Dataset {ds_id} has no blobs.')
+        return False
     # extract all patches
+    failed_blobs = []
     for blob in ds.blobs:
-        ds.create_blob_patches(blob)
+        try:
+            ds.create_blob_patches(blob)
+        except Exception as e:
+            failed_blobs.append(blob)
+
     # extract all features for all patches
-    ds.create_all_patch_features()
+    try:
+        ds.create_all_patch_features()
+    except Exception as e:
+        print(e)
 
     # for kw in ds.keywords:
     #     add_examples(kw)
 
+    if not failed_blobs:
+        return True
+    else:
+        print(f'{len(failed_blobs)} failed to have patches cropped.')
+        return False, failed_blobs
 
 @celery.task(base=SqlAlchemyTask)
 def analyze_blob(ds_id, blob_id):
