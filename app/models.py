@@ -566,6 +566,11 @@ class Dataset(db.Model):
             )
         return []
 
+    def unanalyzed_blobs(self):
+        for blob in self.blobs:
+            if Patch.query.filter_by(blob=blob).count() == 0:
+                yield blob
+
     def migrate_to_s3(self):
         for blob in self.blobs:
             blob.migrate_to_s3()
