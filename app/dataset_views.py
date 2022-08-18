@@ -147,11 +147,13 @@ def dataset_attach():
 @app.route('/dataset/', methods = ['GET'])
 def dataset_top():
     datasets = Dataset.query.filter(Dataset.is_train == True).all()
+    val_datasets = []
     for ds in datasets:
         if Dataset.query.filter(Dataset.name == f'{Dataset.name}_val').first():
-            ds.val_dataset = Dataset.query.filter(Dataset.name == f'{ds.name}_val').first()
+            val_datasets.append(Dataset.query.filter(Dataset.name == f'{ds.name}_val').first())
     return render_template('dataset_top.html',
-                           datasets = datasets)
+                           datasets = datasets,
+                           val_datasets=val_datasets)
 
 
 @app.route('/dataset/new', methods = ['GET', 'POST'])
