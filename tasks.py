@@ -118,6 +118,15 @@ def dataset(ds_id):
 
 @celery.task
 def dataset_distributed(ds_id):
+    """
+    Populate the Dataset object with the database id ds_id. Create
+    patches for all dataset blobs and calculate features for all
+    patches. Use the PatchSpecs and FeatureSpecs currently associated
+    with the dataset ds_id.
+
+    This method distributed each blob's patch and feature extraction task to
+    a Celery worker.
+    """
     for blob_id in app.models.Dataset.query.get(ds_id).unanalyzed_blob_ids():
         analyze_blob.delay(ds_id, blob_id)
 
