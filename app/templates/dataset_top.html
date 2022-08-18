@@ -12,23 +12,14 @@
   <ul>
     {% for ds in datasets %}
     <li><a href = "{{ds.url}}">{{ds.name}}</a>: {{ds.images}} images.
-
+      <ul>
+	<li><a href = "{{ds.val_dataset.url}}">{{ds.val_dataset.name}}</a>: {{ds.val_dataset.images}} images.
+      </ul>
       <ul>
         {% for c in ds.classifiers %}
         <li><a href="{{c.url}}">{{c.keyword.name}}: {{c.name}}</a> @ iteration {{c.rounds.count()}}</li>
         {% endfor %}
       </ul>
-     </li>
-    {% endfor %}
-
-  </ul>
-
-    <hr>
-    <h1 style = "display: inline-block;">Validation Datasets</h1>
-  <ul>
-    {% for ds in val_datasets %}
-    <li><a href = "{{ds.url}}">{{ds.name}}</a>: {{ds.images}} images.
-     </li>
     {% endfor %}
 
   </ul>
