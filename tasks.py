@@ -109,14 +109,18 @@ def dataset(ds_id):
     except Exception as e:
         print(e)
 
-    # for kw in ds.keywords:
-    #     add_examples(kw)
-
     if not failed_blobs:
         return True
     else:
         print(f'{len(failed_blobs)} failed to have patches cropped.')
         return False, failed_blobs
+
+
+@celery.task
+def dataset_distributed(ds_id):
+    for blob in app.models.Dataset.query.get(ds_id).unanalyzed_blobs:
+        analyze_blob.delay(ds_id, blob.id)
+
 
 @celery.task(base=SqlAlchemyTask)
 def analyze_blob(ds_id, blob_id):
