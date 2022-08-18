@@ -45,7 +45,8 @@ def setup_dataset(name, featurespec_id, patchspec_id, val_percent=0.1):
 
 
 def dataset_upload_urls(
-    list_of_urls, name, featurespec_id, patchspec_id, val_percent=0.1
+        list_of_urls, name, featurespec_id, patchspec_id, val_percent=0.1,
+        use_task_queue=False
 ):
     """
     Upload all images and or videos from the input list of urls into a new
@@ -77,9 +78,15 @@ def dataset_upload_urls(
     add_blobs_batch(vdset_urls, vdset)
     db.session.commit()
 
-    # Execute without Celery so all patches and features will be available at once.
-    tasks.dataset(dset.id)
-    tasks.dataset(vdset.id)
+    if not use_task_queue:
+        # Execute without Celery so all patches and features will be available at once.
+        # Suitable for smaller datasets.
+        tasks.dataset(dset.id)
+        tasks.dataset(vdset.id)
+    else:
+        # Execute with Celery for faster processing.
+        tasks.dataset_distributed.delay(dset.id)
+        tasks.dataset_distributed.delay(vdset.id)
 
     print(
         f"Added {len(dset.blobs)} images to dataset {dset.name}. "
