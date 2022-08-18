@@ -30,8 +30,8 @@ def add_blobs_batch(urls, dset):
     new_blobs = []
     for url in urls:
         blob = Blob(url)
-        db.session.add(blob)
         new_blobs.append(blob)
+    db.session.add_all(new_blobs)
     db.session.commit()
     for blob in new_blobs:
         dset.blobs.append(blob)
