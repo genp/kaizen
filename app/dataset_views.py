@@ -149,7 +149,7 @@ def dataset_top():
     datasets = Dataset.query.filter(Dataset.is_train == True).all()
     for ds in datasets:
         if Dataset.query.filter(Dataset.name == f'{Dataset.name}_val').first():
-            ds.val_dataset = Dataset.query.filter(Dataset.name == f'{Dataset.name}_val').first()
+            ds.val_dataset = Dataset.query.filter(Dataset.name == f'{ds.name}_val').first()
     return render_template('dataset_top.html',
                            datasets = datasets)
 
