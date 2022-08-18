@@ -118,7 +118,7 @@ def dataset(ds_id):
 
 @celery.task
 def dataset_distributed(ds_id):
-    for blob in app.models.Dataset.query.get(ds_id).unanalyzed_blobs:
+    for blob in app.models.Dataset.query.get(ds_id).unanalyzed_blobs():
         analyze_blob.delay(ds_id, blob.id)
 
 
