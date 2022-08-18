@@ -566,10 +566,12 @@ class Dataset(db.Model):
             )
         return []
 
-    def unanalyzed_blobs(self):
-        for blob in self.blobs:
-            if Patch.query.filter_by(blob=blob).count() == 0:
-                yield blob
+    def unanalyzed_blob_ids(self):
+        un_blobs = [row[0] for row in
+                     db.engine.execute('select id from blob where id not in ' +
+                          '(select blob_id from patch) and id in ' +
+                          f'(select blob_id from dataset_x_blob where dataset_id = {self.id});').all()]
+        return un_blobs
 
     def migrate_to_s3(self):
         for blob in self.blobs:
