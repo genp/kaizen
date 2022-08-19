@@ -208,7 +208,8 @@ class Blob(db.Model):
             return
         with self.open() as body:
             s3.Bucket(Blob.BUCKET).put_object(Key=self.filename, Body=body)
-        self.location = "s3://%s/%s" % (Blob.BUCKET, self.filename)
+        self.location = "https://s3.amazonaws.com/%s/%s" % (Blob.BUCKET, self.filename)
+        db.session.commit()
 
     def __repr__(self):
         return "Blob#" + str(self.id) + ":" + self.location
