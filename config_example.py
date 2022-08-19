@@ -7,8 +7,11 @@ import os,sys,socket
 from dotenv import load_dotenv
 load_dotenv()
 
-AWS_ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+"""
+
+Server resource paths and hosting options
+
+"""
 
 approot = os.getenv('APPROOT')
 if not approot:
@@ -36,6 +39,17 @@ mime_dictionary = {
   ".gif" : "image/gif",
   ".png" : "image/png"
 }
+
+"""
+
+AWS Options
+
+"""
+# If this is set to true, user running the app must have AWS CLI config set up
+# for an IAM user that has permission to write to the s3 bucket named
+# APPNAME-blobs
+# All uploaded images and videos will be saved to that bucket
+USE_AWS_S3 = False
 
 
 """
