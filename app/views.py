@@ -66,11 +66,14 @@ def file_upload():
         with tempfile.NamedTemporaryFile(dir = config.BLOB_DIR,
                                          prefix='image', suffix = ext,
                                          delete = False) as tmp:
-            filename = os.path.basename(tmp.name)
             upload.save(tmp)
-        blob = Blob(tmp.name)
-        db.session.add(blob)
-        db.session.commit();
-        return jsonify(results=blob.id)
+        new_blob = Blob(tmp.name)
+        db.session.add(new_blob)
+        db.session.commit()
+
+        if config.USE_AWS_S3:
+            new_blob.migrate_to_s3()
+
+        return jsonify(results=new_blob.id)
     else:
         return jsonify(results=0, errors=form.file.errors)

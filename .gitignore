@@ -121,3 +121,4 @@ db_repository/
 notebooks/
 *.pages
 config.py
+config-*.py
