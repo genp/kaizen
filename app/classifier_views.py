@@ -152,8 +152,8 @@ def classifier_new():
         db.session.add(c)
         db.session.commit()
 
-        # TODO: for now, a new classifier randomly samples at most 100k features; consider parameterizing this.
-        tasks.if_classifier(c, limited_number_of_features_to_evaluate=100000)
+        # TODO: for now, a new classifier randomly samples at most 50k features; consider parameterizing this.
+        tasks.if_classifier(c, limited_number_of_features_to_evaluate=50000)
         return redirect(c.url)
     else:
         print("did not validate")
