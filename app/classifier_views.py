@@ -28,6 +28,7 @@ import tasks
 
 import time, itertools
 
+SAMPLE_LIMIT = 50000
 
 @app.route("/classifier/")
 def classifier_top():
@@ -129,7 +130,7 @@ def classifier_update(id):
 
         db.session.commit()
         print(str(time.time()) + ": committed")
-        tasks.advance_classifier.delay(form.classifier.data.id)
+        tasks.advance_classifier.delay(form.classifier.data.id, limited_number_of_features_to_evaluate=SAMPLE_LIMIT)
 
     else:
         for field in form:
@@ -153,7 +154,7 @@ def classifier_new():
         db.session.commit()
 
         # TODO: for now, a new classifier randomly samples at most 50k features; consider parameterizing this.
-        tasks.if_classifier(c, limited_number_of_features_to_evaluate=50000)
+        tasks.if_classifier(c, limited_number_of_features_to_evaluate=SAMPLE_LIMIT)
         return redirect(c.url)
     else:
         print("did not validate")
