@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """
 This module creates a consistently labled dataset from the current
-state of Oscar GT annotated instances and classifiers for ingestion by
-the Otto training pipeline.
+state of annotated instances and classifiers for ingestion by
+an outside training pipeline.
 
 Example syntax to run:
 python utils/export_classifiers.py \
     --keywords-list keyword_1 keyword_1_bis \
     --keywords-list keyword_2_bis keyword_2 \
-    --dataset-name "Ela's parents Small" \
+    --dataset-name "Ela's Airplanes" \
     --estimator-id 1
 """
 

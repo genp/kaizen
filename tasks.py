@@ -199,13 +199,14 @@ def keyword(kw_id):
         seed.patch.materialize()
 
 
-def if_classifier(c):
+def if_classifier(c, limited_number_of_features_to_evaluate=None):
     if c:
-        classifier.delay(c.id)
+        classifier.delay(c.id,
+                         limited_number_of_features_to_evaluate=limited_number_of_features_to_evaluate)
 
 
 @celery.task
-def classifier(c_id):
+def classifier(c_id, limited_number_of_features_to_evaluate=None):
     c = app.models.Classifier.query.get(c_id)
     kw = c.keyword
     ds = c.dataset
@@ -216,7 +217,8 @@ def classifier(c_id):
     for ex in kw.seeds:
         e = app.models.Example(value=ex.value, patch=ex.patch, round=zero)
         db.session.add(e)
-        print(f'Added example <{e}> to db')
+        db.session.commit()
+        print(f'Added example <{e.id},{e.value}> to db')
 
         # If ex.value is false, there there is at least one negative example in the seeds
         if not ex.value:
@@ -244,18 +246,21 @@ def classifier(c_id):
     # accept negatives, and require them in such cases).
 
     if not negative:
-        patch = random.choice(ds.blobs).patches[0]
-        e = app.models.Example(value=False, patch=patch, round=zero)
+        #select a precalculated feature from the dataset at random
+        feature = next(ds.features(limit=1))
+        e = app.models.Example(value=False, patch=feature.patch, round=zero)
         db.session.add(e)
-        print(f'Added example <{e}> to db')
+        db.session.commit()
+        print(f'Added example <{e.id},{e.value}> to db')
 
-    predict_round(zero.id)
+    predict_round(zero.id,
+                  limited_number_of_features_to_evaluate=limited_number_of_features_to_evaluate)
     c.is_ready = True
     db.session.commit()
 
 
 @celery.task
-def advance_classifier(c_id):
+def advance_classifier(c_id, limited_number_of_features_to_evaluate=None):
     classifier = app.models.Classifier.query.get(c_id)
     latest_round = classifier.latest_round
     round = app.models.Round(classifier=classifier, number=latest_round.number + 1)
@@ -266,15 +271,16 @@ def advance_classifier(c_id):
         ex = app.models.Example(value=value, patch=pq.patch, round=round)
         db.session.add(ex)
 
-    predict_round(round.id)
+    predict_round(round.id,
+                  limited_number_of_features_to_evaluate=limited_number_of_features_to_evaluate)
     db.session.commit()
 
 
-def predict_round(r_id):
+def predict_round(r_id, limited_number_of_features_to_evaluate=None):
     round = app.models.Round.query.get(r_id)
 
-    for pred in round.predict():
-        print(f'Made prediciton <{pred}>')
+    for pred in round.predict(limited_number_of_features_to_evaluate=limited_number_of_features_to_evaluate):
+        print(f'Made prediciton {pred.value} for Feature {pred.feature.id}')
         db.session.add(pred)
 
     for pq in round.choose_queries():

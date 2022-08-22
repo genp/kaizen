@@ -574,6 +574,29 @@ class Dataset(db.Model):
                           f'(select blob_id from dataset_x_blob where dataset_id = {self.id});').all()]
         return un_blobs
 
+    #TODO: consider making patch_x_dataset table and feature_x_dataset table
+    def patch_ids(self,limit=None):
+        if limit:
+            return db.engine.execute(f'select id from patch where blob_id in (select blob_id from dataset_x_blob where dataset_id = {self.id}) limit {limit}').all()
+        else:
+            return db.engine.execute(f'select id from patch where blob_id in (select blob_id from dataset_x_blob where dataset_id = {self.id})').all()
+
+    def patches(self, limit=None):
+        for p_id in self.patch_ids(limit):
+            yield Patch.query.get(p_id)
+
+    def feature_ids(self, limit=None):
+        if limit:
+            return db.engine.execute('select id from feature where patch_id in ' +
+                                     f'(select id from patch where blob_id in (select blob_id from dataset_x_blob where dataset_id = {self.id})) limit {limit}').all()
+        else:
+            return db.engine.execute('select id from feature where patch_id in ' +
+                                     f'(select id from patch where blob_id in (select blob_id from dataset_x_blob where dataset_id = {self.id}))').all()
+
+    def features(self, limit=None):
+        for f_id in self.feature_ids(limit):
+            yield Feature.query.get(f_id)
+
     def migrate_to_s3(self):
         for blob in self.blobs:
             blob.migrate_to_s3()
@@ -788,7 +811,7 @@ class Round(db.Model):
     # to keep first_incorrect and last_correct of each round
     notes = db.Column(db.String)
 
-    def predict(self, ds=None, val=False, featurespec_ids=None, estimators=None):
+    def predict(self, ds=None, val=False, featurespec_ids=None, estimators=None, limited_number_of_features_to_evaluate=None):
 
         """Yield Predictions for all Patches in the Dataset, as of this Round.
         Uses estimators trained on examples for each FeatureSpec to make
@@ -800,41 +823,41 @@ class Round(db.Model):
 
         if ds is None:
             ds = classifier.dataset
-        for blob in ds.blobs:
-            for patch in blob.patches:
-                for feature in patch.features:
-                    if featurespec_ids is None or feature.spec_id in featurespec_ids:
-                        # Note: this only works for sklearn estimators...
-                        try:
-                            value = estimators[feature.spec.id].decision_function(
-                                feature.nparray
-                            )
-                            if not val:
-                                yield Prediction(
-                                    value=value,
-                                    feature=feature,
-                                    patch=patch,
-                                    round=self,
-                                )
-                            else:
-                                yield ValPrediction(
-                                    value=value,
-                                    feature=feature,
-                                    patch=patch,
-                                    round=self,
-                                )
-                        except IndexError as e:
-                            print(f"IndexError!")
-                            print(f"estimnator keys: {estimators.keys()}")
-                            print(
-                                f"estimators[feature.spec.id].decision_function(feature.nparray) {feature.spec.id} {feature.nparray.shape}"
-                            )
-                            pass
-                        except KeyError as e:
-                            print(
-                                f"KeyError! There is no estimator for this FeatureSpec {feature.spec.id}"
-                            )
-                            pass
+
+        #TODO: there might be a way to make this loop run faster if features are evaluated in batches instead of one at a time
+        for feature in ds.features(limit=limited_number_of_features_to_evaluate):
+            if featurespec_ids is None or feature.spec_id in featurespec_ids:
+                # Note: this only works for sklearn estimators...
+                try:
+                    value = estimators[feature.spec.id].decision_function(
+                        feature.nparray
+                    )
+                    if not val:
+                        yield Prediction(
+                            value=value,
+                            feature=feature,
+                            patch_id=feature.patch_id,
+                            round=self,
+                        )
+                    else:
+                        yield ValPrediction(
+                            value=value,
+                            feature=feature,
+                            patch_id=feature.patch_id,
+                            round=self,
+                        )
+                except IndexError as e:
+                    print(f"IndexError!")
+                    print(f"estimnator keys: {estimators.keys()}")
+                    print(
+                        f"estimators[feature.spec.id].decision_function(feature.nparray) {feature.spec.id} {feature.nparray.shape}"
+                    )
+                    pass
+                except KeyError as e:
+                    print(
+                        f"KeyError! There is no estimator for this FeatureSpec {feature.spec.id}"
+                    )
+                    pass
 
     def predict_patch(self, patch, fs):
         """Yield Prediction on a patch, as of this Round.
