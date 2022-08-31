@@ -587,6 +587,7 @@ class Dataset(db.Model):
 
     def feature_ids(self, limit=None):
         if limit:
+            # TODO: this may need to be changed to include order by RANDOM ()
             return db.engine.execute('select id from feature where patch_id in ' +
                                      f'(select id from patch where blob_id in (select blob_id from dataset_x_blob where dataset_id = {self.id})) limit {limit}').all()
         else:

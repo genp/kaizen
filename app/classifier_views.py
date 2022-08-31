@@ -28,7 +28,8 @@ import tasks
 
 import time, itertools
 
-SAMPLE_LIMIT = 50000
+# TODO: this should be in config.py
+SAMPLE_LIMIT = 10000
 
 @app.route("/classifier/")
 def classifier_top():

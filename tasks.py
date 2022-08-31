@@ -287,7 +287,7 @@ def predict_round(r_id, limited_number_of_features_to_evaluate=None):
         db.session.add(pq)
 
     for vdset in round.classifier.dataset.val_dset:
-        for vpred in round.predict(ds=vdset, val=True):
+        for vpred in round.predict(ds=vdset, val=True, limited_number_of_features_to_evaluate=limited_number_of_features_to_evaluate):
             db.session.add(vpred)
 
     db.session.commit()
