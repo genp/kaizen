@@ -429,7 +429,7 @@ class FeatureSpec(db.Model):
     def analyze_blob(self, blob, batch_size=256):
         iter = 0
         for patches in chunked(self.undone_patches(blob), batch_size):
-            print("calculating {}x500 patch features for {}".format(iter, blob))
+            print("calculating {}x{} patch features for {}".format(iter, blob, batch_size))
             iter += 1
             imgs = [p.image for p in patches]
             feats = self.instance.extract_many(imgs)
