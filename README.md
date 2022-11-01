@@ -59,8 +59,8 @@ Tests are in the tests directory
 > cd tests
 Run unit test classes using:
 > python -m unittest unit_tests.py
-Run timed tests using:
-> python unit_tests.py
+
+The forge functions also serve as system tests.
 
 ## License
 
