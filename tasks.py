@@ -182,11 +182,7 @@ def add_examples(k):
                 feat = fs.analyze_patch(patch)
                 if feat:
                     db.session.add(feat)
-                # TODO put this counting and del_networks() inside CNN
-                if (
-                    fs.instance.__class__ is extract.CNN
-                ):  # and (ex_ind > 0 and ex_ind % 1000 == 0):
-                    fs.instance.del_networks()
+
             ex = app.models.Example(value=val, patch=patch, keyword=k)
             db.session.add(ex)
             db.session.commit()

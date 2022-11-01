@@ -506,8 +506,6 @@ class Dataset(db.Model):
                 for f in feat:
                     db.session.add(f)
                 db.session.commit()
-                if fs.instance.__class__ is extract.CNN:
-                    fs.instance.del_networks()
                 print(
                     "Memory usage: %s (kb)"
                     % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -529,8 +527,7 @@ class Dataset(db.Model):
                 Feature(patch=Patch.query.get(p_ids[idx]), spec=fs, vector=f)
             )
         db.session.commit()
-        if fs.instance.__class__ is extract.CNN:
-            fs.instance.del_networks()
+
         return p_ids
 
     def create_all_patch_features(self, batch_size=256, fs_ids=False):
