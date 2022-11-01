@@ -4,40 +4,71 @@ import os
 
 import app
 
-# import caffe
-from extract import CNN
+from extract import TimmModel
 from apptimer import AppTimer
 import unittest
 from app import models
 
 
-class TestExtractCNN(unittest.TestCase):
+class TestExtractTimmModel(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        super(TestExtractCNN, self).__init__(*args, **kwargs)
-        print("initializing unit test")
-        self.c = CNN()
-        self.c.set_params(initialize=True)
+        super(TestExtractTimmModel, self).__init__(*args, **kwargs)
+        print("Initializing unit test for TimmModel feature extractor...")
+
+        self.c = TimmModel()
+        # print(vars(self.c))
+
         p = models.Patch.query.all()[0]
         self.img = p.image
-        self.many = np.repeat(np.expand_dims(self.img, axis=0), 300, axis=0)
+        # print(f'self.img type in TestExtractTimmModel {type(self.img)}')
+        self.repeat_img_n = 30
+        self.many = np.repeat(np.expand_dims(self.img, axis=0), self.repeat_img_n, axis=0)
 
     def test_output_extract(self):
-        self.assertEqual(self.c.extract(self.img).shape, (4096,))
+        print('test_output_extract...')
+        feat = self.c.extract(self.img)
+        print(f'extracted feature shape = {feat.shape}')
+        # Single image feauutres are expected to be shape 1xN
+        self.assertEqual(feat.shape[0], 1)
+        self.assertGreater(feat.shape[1], 1)
+        self.assertEqual(len(feat.shape), 2)
+
+    def test_output_extract_reduce(self):
+        self.c.use_reduce = True
+
+        self.c.ops = ['normalize']
+        self.c.output_dim = 100 # expect the feature size to be longer than 100 dimensions
+
+        print('test_output_extract_reduce...')
+        feat = self.c.extract(self.img)
+        print(f'extracted feature shape = {feat.shape}')
+        # normalized feature should sum to 0
+        self.assertAlmostEqual(np.sum(feat), 0, places=3)
+
+
+        self.c.ops = ['subsample', 'power_norm']
+        self.c.output_dim = 100 # expect the feature size to be longer than 100 dimensions
+        self.c.alpha = 2.5 # power normalize exponent = 2.5
+
+        print('test_output_extract_reduce...')
+        feat = self.c.extract(self.img)
+        print(f'extracted feature shape = {feat.shape}')
+        # Single image feauutres are expected to be shape 1xN
+        self.assertEqual(feat.shape[0], 1)
+        self.assertGreater(feat.shape[1], 1)
+        self.assertEqual(len(feat.shape), 2)
+
 
     def test_output_extract_many(self):
-        self.assertEqual(self.c.extract_many(self.many).shape, (300, 4096))
-        self.assertEqual(
-            self.c.extract_many(np.repeat(self.many, 2, axis=0)).shape, (600, 4096)
-        )
-
-    def test_output_extract_many_pad(self):
-        self.assertEqual(self.c.extract_many_pad(self.many).shape, (300, 4096))
-        self.assertEqual(
-            self.c.extract_many(np.repeat(self.many, 2, axis=0)).shape, (600, 4096)
-        )
+        print('test_output_extract_many...')
+        feats = self.c.extract_many(self.many)
+        print(f'extract many feature shape = {feats.shape}')
+        self.assertEqual(feats.shape[0], self.repeat_img_n)
 
 
-def time_tests():
+
+
+def time_extract_tests(model_class=TimmModel):
     a = AppTimer()
 
     img = np.random.rand(257, 257, 3)
@@ -45,7 +76,7 @@ def time_tests():
     img_many = np.repeat(img_many, 300, axis=0)
     img_manymore = np.repeat(img_many, 2, axis=0)
 
-    c = CNN()
+    c = model_class()
 
     log = open("time_log_extract.txt", "w+")
 
@@ -103,7 +134,7 @@ def time_tests():
     log.close()
 
 
-def reduce_tests():
+def reduce_tests(model_class=TimmModel):
     a = AppTimer()
 
     img = 255 * np.random.rand(457, 457, 3)
@@ -114,7 +145,7 @@ def reduce_tests():
     print(np.min(img))
     print(np.max(img))
 
-    c = CNN()
+    c = model_class()
 
     log = open("reduce_log_extract.txt", "w+")
 
@@ -192,7 +223,7 @@ def reduce_tests():
         )
     )
 
-
+# TODO update to test a generic featureSpec
 def extract_tests():
     # assumes one dataset and a blob with a least 10 patches loaded into database
     d = models.Dataset.query.get(1)
@@ -218,7 +249,7 @@ def extract_tests():
         )
     )
 
-
+# TODO update to test a generic featureSpec
 def extract_multi_batch_tests():
     # assumes one dataset and a blob with a least 10 patches loaded into database
     d = models.Dataset.query.get(1)

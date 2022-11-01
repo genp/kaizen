@@ -159,7 +159,7 @@ class Blob(db.Model):
         # if self.img is not None:
         #  return self.img
         try:
-            img = imageio.imread(self.location)
+            img = np.asarray(imageio.imread(self.location))
             return img
         except IOError as e:
             print("Could not open image file for {}".format(self))

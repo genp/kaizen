@@ -54,6 +54,14 @@ Start the Celery server to manage new tasks from the Flask app:
 Run Server:
 > flask run
 
+## Unit Testing
+Tests are in the tests directory
+> cd tests
+Run unit test classes using:
+> python -m unittest unit_tests.py
+Run timed tests using:
+> python unit_tests.py
+
 ## License
 
 This project is licensed under the MIT License (see the
