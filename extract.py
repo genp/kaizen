@@ -215,6 +215,10 @@ class TimmModel(ReducibleFeature):
         )
         output_features = pooled_features.detach().cpu().numpy()
 
+        # print(output_features.shape)
+        # output_features = output_features.squeeze()
+        # print(output_features.shape)
+
         return output_features
 
 

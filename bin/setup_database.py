@@ -108,7 +108,7 @@ def add_default_feature_specs():
         fs.params = {'use_reduce' : True,
                      'ops' : ["subsample", "power_norm"],
                      'output_dim' : 100,
-                     'power_norm' : 2.5,
+                     'alpha' : 2.5,
                      'model' : "wide_resnet50_2",
                      }
         db.session.add(fs)
