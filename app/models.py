@@ -471,6 +471,7 @@ class Dataset(db.Model):
 
     is_train = db.Column(db.Boolean, nullable=False, default=True)
 
+
     def __init__(self, **kwargs):
         super(Dataset, self).__init__(**kwargs)
         # if self.owner is None and current_user.is_authenticated:
@@ -556,7 +557,8 @@ class Dataset(db.Model):
             print(
                 f"Need to calculate fs id {fs_id} for {len(all_patch_ids)} patches..."
             )
-            for p_ids in chunked(all_patch_ids, batch_size):
+            for chunk_idx, p_ids in enumerate(chunked(all_patch_ids, batch_size)):
+                print(f"Adding patch features for batch {chunk_idx}/{len(all_patch_ids)} with batch_size {batch_size} for dataset {self.id}...")
                 self.create_patch_features(p_ids, fs_id, batch_size)
 
             print(
@@ -609,6 +611,10 @@ class Dataset(db.Model):
     @property
     def images(self):
         return len(self.blobs)
+
+    @property
+    def val_datasets(self):
+        return self.val_dset.all()
 
 
 # Monkey-patch to make a foreign key reference to a dataset from another dataset

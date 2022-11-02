@@ -30,18 +30,18 @@ To restart venv:
 To add to python requirements:
 > pip freeze > requirements.txt
 
-## Setup the postgres database:
-> createdb $FLASK_APP-local
-
-If you'd like to blow away the db:
-> dropdb $FLASK_APP-local
-
 Setup the configuration parameters:
 >cp config-example.py config.py
 ... Do some editing ...
 
 Add this repo to your PYTHONPATH:
->export PYTHONPATH=/Users/$USER/kaizen:$PYTHONPATH
+> export PYTHONPATH=/Users/$USER/kaizen:$PYTHONPATH
+
+## Setup the postgres database:
+> createdb <APPNAME>-local # APPNAME should match that set in config.py
+
+If you'd like to blow away the db:
+> dropdb <APPNAME>-local
 
 Load some data to play with:
 > ./bin/forge.py

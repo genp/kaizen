@@ -138,10 +138,16 @@ def dataset_attach():
     dset = form.dataset.data
     if form.patchspec.data:
         dset.patchspecs.append(form.patchspec.data)
+        for vdset in dset.val_datasets:
+            vdset.patchspecs.append(form.patchspec.data)
     if form.featurespec.data:
         dset.featurespecs.append(form.featurespec.data)
+        for vdset in dset.val_datasets:
+            vdset.featurespecs.append(form.featurespec.data)
     db.session.commit()
     tasks.dataset.delay(dset.id)
+    for vdset in dset.val_datasets:
+        tasks.dataset.delay(vdset.id)
     return redirect(dset.url)
 
 @app.route('/dataset/', methods = ['GET'])
