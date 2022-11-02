@@ -149,9 +149,14 @@ class Blob(db.Model):
         return (0, 0)  # TODO BROKEN exif.get_lat_lon(exif.get_data(self.materialize()))
 
     @property
+    # Note: this is a sequential scan. May be better to build an index
+    def patches(self):
+        return Patch.query.filter(Patch.blob_id==self.id).all()
+
+    @property
     def features(self):
         for patch in self.patches:
-            for feature in patch:
+            for feature in patch.features:
                 yield feature
 
     @property
@@ -200,6 +205,7 @@ class Blob(db.Model):
     @property
     def filename(self):
         return "blob-" + str(self.id) + self.ext
+
 
     BUCKET = config.APPNAME + "-blobs"
 
@@ -269,7 +275,11 @@ class PatchSpec(db.Model):
         )
 
     def create_blob_patches(self, blob):
-        print("Creating patches for {}".format(blob))
+        # check if patches are already made
+        if Patch.query.filter((Patch.blob_id == blob.id) and (Patch.spec_id == self.id)).first():
+            return
+
+        print(f"Creating patches for {blob} using spec {self}")
         print(
             "Memory usage: %s (kb)" % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         )
