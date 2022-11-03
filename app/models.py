@@ -1036,7 +1036,8 @@ class Round(db.Model):
 
             for ex in examples:
                 feat = Feature.of(patch=ex.patch, spec=fs)
-                samples.append(feat.vector)
+                samples.append(np.array(feat.vector).squeeze()) # feat.vector may be read from the db as a list. turning it into an (N,) shape numpy array
+                print(f'adding sample with feature {samples[-1].shape}')
                 results.append(1 if ex.value else -1)
 
             print(
