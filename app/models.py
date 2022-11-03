@@ -1036,12 +1036,11 @@ class Round(db.Model):
 
             for ex in examples:
                 feat = Feature.of(patch=ex.patch, spec=fs)
-                samples.append(np.array(feat.vector).squeeze()) # feat.vector may be read from the db as a list. turning it into an (N,) shape numpy array
-                print(f'adding sample with feature {samples[-1].shape}')
+                samples.append(feat.nparray) # feat.vector may be read from the db as a list. turning it into an (N,) shape numpy array
                 results.append(1 if ex.value else -1)
 
             print(
-                f"Training estimator with {len(samples)} examples for feature spec {fs} ..."
+                f"Training estimator with {len(samples)} examples for feature spec {fs}, feature shape is {samples[-1].shape} ..."
             )
             # Evaluate on train val split
             # TODO: this would be better if we did k-fold crossvalidation
@@ -1420,7 +1419,7 @@ class Feature(db.Model):
         if self.is_video:
             return np.array(self.array)
         else:
-            return np.array(self.vector).reshape(1, -1)
+            return np.array(self.vector).squeeze()
 
     def __repr__(self):
         return (
