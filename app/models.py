@@ -844,7 +844,7 @@ class Round(db.Model):
                 # Note: this only works for sklearn estimators...
                 try:
                     value = estimators[feature.spec.id].decision_function(
-                        feature.nparray
+                        feature.nparray.reshape(1, -1)
                     )
                     if not val:
                         yield Prediction(
