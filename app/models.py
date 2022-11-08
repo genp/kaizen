@@ -19,6 +19,7 @@ from sklearn.metrics import average_precision_score
 from sklearn.model_selection import train_test_split
 import skvideo.io
 from sqlalchemy import orm
+from sqlalchemy.exc import NoResultFound
 import sqlalchemy.types as types
 import boto3
 import numpy as np
@@ -1382,7 +1383,14 @@ class Feature(db.Model):
 
     @classmethod
     def of(cls, **kwargs):
-        return cls.query.filter_by(**kwargs).one()
+        try:
+            return cls.query.filter_by(**kwargs).one()
+        except NoResultFound:
+            # calculate the missing features
+            # get patch and spec from kwargs, analyze the patch
+            spec = kwargs['spec']
+            patch = kwargs['patch']
+            return spec.analyze_patch(patch)
 
     def closest(self):
         best = (None, float("inf"))
