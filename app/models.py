@@ -1270,7 +1270,7 @@ class Patch(db.Model):
     @property
     def image(self):
         img = self.blob.image
-        if img == []:
+        if not img:
             return []
         if self.fliplr:
             img = np.fliplr(img)
