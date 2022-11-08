@@ -122,3 +122,4 @@ notebooks/
 *.pages
 config.py
 config-*.py
+*_aws.py
