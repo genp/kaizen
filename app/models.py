@@ -169,7 +169,7 @@ class Blob(db.Model):
             return img
         except IOError as e:
             print("Could not open image file for {}".format(self))
-            return None
+            return []
 
     @property
     def is_video(self):
@@ -1270,7 +1270,7 @@ class Patch(db.Model):
     @property
     def image(self):
         img = self.blob.image
-        if not img:
+        if img == []:
             return []
         if self.fliplr:
             img = np.fliplr(img)
