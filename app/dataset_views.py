@@ -136,6 +136,9 @@ def dataset_upload():
 def dataset_attach():
     form = DatasetAddSpecsForm()
     dset = form.dataset.data
+    # TODO this is slow, consider delaying.
+    # TODO view shouldn't need to know about val datasets and examples
+    # TODO add extract features for keyword examples. ??? not sure if this is needed try testing. 
     if form.patchspec.data:
         dset.patchspecs.append(form.patchspec.data)
         for vdset in dset.val_datasets:
