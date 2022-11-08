@@ -33,11 +33,12 @@ To add to python requirements:
 Setup the configuration parameters:
 > cp config-example.py config.py
 
-Then edit the `config.py` file to suit your environment. 
+Then edit the `config.py` file to suit your environment.
 
 
 Add this repo to your PYTHONPATH:
-> export PYTHONPATH=/Users/$USER/kaizen:$PYTHONPATH
+> export APPROOT=/Users/$USER/kaizen # this is an example of where the app might be.
+> export PYTHONPATH= $APPROOT:$PYTHONPATH
 
 ## Setup the postgres database:
 > createdb APPNAME-local # APPNAME should match that set in config.py
