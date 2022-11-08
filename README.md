@@ -31,19 +31,26 @@ To add to python requirements:
 > pip freeze > requirements.txt
 
 Setup the configuration parameters:
->cp config-example.py config.py
-... Do some editing ...
+> cp config-example.py config.py
+
+Then edit the `config.py` file to suit your environment. 
+
 
 Add this repo to your PYTHONPATH:
 > export PYTHONPATH=/Users/$USER/kaizen:$PYTHONPATH
 
 ## Setup the postgres database:
-> createdb <APPNAME>-local # APPNAME should match that set in config.py
+> createdb APPNAME-local # APPNAME should match that set in config.py
 
 If you'd like to blow away the db:
-> dropdb <APPNAME>-local
+> dropdb APPNAME-local
+
+Setup default objects in the database:
+> chmod +x ./bin/setup_database.py
+> ./bin/setup_database.py
 
 Load some data to play with:
+> chmod +x bin/forge.py
 > ./bin/forge.py
 
 ## Start Task Queue
